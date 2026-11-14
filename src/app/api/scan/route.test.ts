@@ -25,18 +25,21 @@ describe("POST /api/scan", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns the model's findings in the { findings } shape", async () => {
-    const finding = { label: "Dry growth", severity: "risk", action: "Mow by June 1", bbox: [10, 20, 300, 400], confidence: 0.9 };
+  it("returns the model's grid with an empty findings list", async () => {
+    const rows = Array(8).fill("ggggggddddgg");
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({
-        output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ findings: [finding] }) }] }],
+        output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ rows, findings: [] }) }] }],
       }),
     });
     const res = await post({ image: IMAGE });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ findings: [finding] });
+    const body = await res.json();
+    expect(body.findings).toEqual([]);
+    expect(body.grid.cells).toHaveLength(96);
+    expect(body.grid.cells[6]).toBe("d");
   });
 
   it("returns an error status, not fake findings, when the key is missing", async () => {
