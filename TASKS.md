@@ -61,6 +61,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P17 | Bounded Backblaze 5xx retries, upload receipt recovery, and durable scraper error notifications | DONE (Codex; four attempts with 1/2/4 second waits; 14 native checks and 47 Python tests pass; docs/storage-retries.md) |
 | P18 | Run the real Silver River 50-box risk model and publish a portable result snapshot | DONE (Codex; verified cloud publication, 1,476 scored cells; src/data/real-runs/silver-river-20261114/) |
 | P19 | Prepare real risk results for website display | READY (Codex; static result page, verified snapshot API and visible grid; live Vercel deployment awaits account connection) |
+| P20 | Move generated map grids out of HTML into separate GeoJSON | DONE (Codex; HTML reduced 99.35%, unchanged grid, offline file-picker fallback; generator and public snapshots updated) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

@@ -105,9 +105,13 @@ def score_features(ndvi, ndmi, pressure, options):
 
 
 def write_map(path, collection, summary):
-    # Standalone SVG with geographic coordinates, pan/zoom, hover details and
-    # toggles. No tiles, remote scripts, access tokens or external web dependency.
-    data = json.dumps(collection, allow_nan=False).replace("<", "\\u003c")
+    # Keep the grid in its own cacheable file instead of embedding it in HTML.
+    # A file picker also supports local viewing when file:// blocks fetch.
+    import hashlib
+    path = Path(path)
+    data = json.dumps(collection, allow_nan=False)
+    (path.parent / "risk_map.geojson").write_text(data, encoding="utf-8")
+    data_url = "risk_map.geojson?v=" + hashlib.sha256(data.encode("utf-8")).hexdigest()[:16]
     metadata = json.dumps(summary, allow_nan=False).replace("<", "\\u003c")
     template = '''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FireBlock · Fire risk map</title><style>
@@ -115,10 +119,10 @@ body{margin:0;background:#111a20;color:#edf2ed;font:15px system-ui}header{paddin
 h1{margin:0 0 8px;font-size:27px}main{display:grid;grid-template-columns:1fr 310px;gap:16px;padding:20px}svg{width:100%;height:72vh;background:#25312e;touch-action:none;border-radius:12px}aside{padding:10px}button{padding:8px 15px;margin:5px;background:#e9eee5;border:0;border-radius:6px;cursor:pointer}.legend{height:14px;background:linear-gradient(90deg,#f7e8a4,#e89239,#ab2635);margin:12px 0}.note{color:#b7c6bd;line-height:1.5}#detail{white-space:pre-wrap;font:12px ui-monospace;max-height:38vh;overflow:auto}label{display:block;margin:12px 0}@media(max-width:750px){main{grid-template-columns:1fr}svg{height:55vh}}</style>
 <header><h1>FireBlock / Fire risk</h1><div id="subtitle"></div></header><main><section>
 <svg id="map" role="img" aria-label="Relative fire susceptibility grid and recent satellite thermal detections"><defs><pattern id="unknown" width=".25" height=".25" patternUnits="objectBoundingBox" viewBox="0 0 8 8"><rect width="8" height="8" fill="#53605b"/><path d="M0 8L8 0" stroke="#78857d"/></pattern></defs><g id="cells"></g><g id="points"></g></svg>
-<button id="plus">Zoom +</button><button id="minus">Zoom −</button><button id="reset">Reset</button><a href="risk_map.geojson" download><button>Download GeoJSON</button></a></section>
+<button id="plus">Zoom +</button><button id="minus">Zoom −</button><button id="reset">Reset</button><a href="risk_map.geojson" download><button>Download GeoJSON</button></a><p id="localLoad" hidden><label>Choose this map's GeoJSON file to view it offline: <input id="gridFile" type="file" accept=".geojson,.json"></label></p></section>
 <aside><strong>Relative susceptibility · 0–100</strong><div class="legend"></div><div>Lower ← → Higher</div><p class="note">Hatched cells: unknown / insufficient fresh imagery. No hotspot detection does not establish safety.</p>
 <label><input id="showHeat" type="checkbox" checked> Recent thermal detections</label><label><input id="showCells" type="checkbox" checked> Relative-risk grid</label><div id="coverage"></div><p class="note">Experimental index from vegetation, moisture and recent thermal activity. Not a calibrated fire probability or an operational forecast.</p><pre id="detail">Hover over a cell or detection for its inputs.</pre></aside></main><script>
-const data=__DATA__,meta=__META__,svg=document.getElementById('map'),ns='http://www.w3.org/2000/svg';
+const meta=__META__,svg=document.getElementById('map'),ns='http://www.w3.org/2000/svg';
 const [w,s,e,n]=meta.bbox,cos=Math.cos((n+s)/2*Math.PI/180),width=(e-w)*cos,height=n-s;
 let box=[0,0,width,height];function view(){svg.setAttribute('viewBox',box.join(' '))}view();
 document.getElementById('subtitle').textContent=(meta.data_label?meta.data_label+' · ':'')+'As of '+meta.as_of+' · '+meta.model_id;
@@ -127,7 +131,18 @@ function xy(p){return [(p[0]-w)*cos,n-p[1]]}function add(type,group,feature){con
 if(type==='polygon'){el.setAttribute('points',feature.geometry.coordinates[0].map(xy).map(q=>q.join(',')).join(' '));el.setAttribute('fill',p.risk_score===null?'url(#unknown)':`hsl(${45-p.risk_score*.45} 75% ${75-p.risk_score*.38}%)`);el.setAttribute('stroke','#17201c');el.setAttribute('stroke-width',width/1800)}
 else{const q=xy(feature.geometry.coordinates);el.setAttribute('cx',q[0]);el.setAttribute('cy',q[1]);el.setAttribute('r',width/250);el.setAttribute('fill','#ffeff0');el.setAttribute('stroke','#d53f53');el.setAttribute('stroke-width',width/1000)}
 el.addEventListener('mouseenter',()=>document.getElementById('detail').textContent=JSON.stringify(p,null,2));group.appendChild(el)}
+function draw(data){
+if(data.type!=='FeatureCollection'||!Array.isArray(data.features)||data.features.length>150000)throw new Error('Invalid map data');
+const first=data.features.find(f=>f.properties?.layer==='relative_risk');
+if(!first||first.properties.model_id!==meta.model_id||first.properties.as_of!==meta.as_of)throw new Error('Choose the GeoJSON matching this map');
+document.getElementById('cells').replaceChildren();document.getElementById('points').replaceChildren();
 for(const f of data.features)add(f.geometry.type==='Point'?'circle':'polygon',document.getElementById(f.geometry.type==='Point'?'points':'cells'),f);
+document.getElementById('detail').textContent='Hover over a cell or detection for its inputs.';
+}
+function loadError(){document.getElementById('detail').textContent='Map data could not be loaded. Retry or choose the matching GeoJSON file below the map.';document.getElementById('localLoad').hidden=false;}
+document.getElementById('detail').textContent='Loading map data…';
+fetch(__DATA_URL__).then(response=>{if(!response.ok)throw new Error('Map data unavailable');return response.json();}).then(draw).catch(loadError);
+document.getElementById('gridFile').onchange=async event=>{try{const file=event.target.files[0];if(!file)return;if(file.size>25*1024*1024)throw new Error('File too large');draw(JSON.parse(await file.text()));}catch{loadError();}};
 function zoom(f){box=[box[0]+box[2]*(1-f)/2,box[1]+box[3]*(1-f)/2,box[2]*f,box[3]*f];view()}
 document.getElementById('plus').onclick=()=>zoom(.7);document.getElementById('minus').onclick=()=>zoom(1.4);document.getElementById('reset').onclick=()=>{box=[0,0,width,height];view()};
 document.getElementById('showHeat').onchange=e=>document.getElementById('points').style.display=e.target.checked?'':'none';document.getElementById('showCells').onchange=e=>document.getElementById('cells').style.display=e.target.checked?'':'none';
@@ -135,7 +150,7 @@ let drag=null;svg.onpointerdown=e=>{drag=[e.clientX,e.clientY,...box];svg.setPoi
 svg.onpointermove=e=>{if(!drag)return;const scale=Math.min(svg.clientWidth/drag[4],svg.clientHeight/drag[5]);box=[drag[2]-(e.clientX-drag[0])/scale,drag[3]-(e.clientY-drag[1])/scale,drag[4],drag[5]];view()};
 svg.onwheel=e=>{e.preventDefault();zoom(e.deltaY>0?1.2:.8)};
 </script></html>'''
-    Path(path).write_text(template.replace("__DATA__", data).replace("__META__", metadata), encoding="utf-8")
+    path.write_text(template.replace("__DATA_URL__", json.dumps(data_url)).replace("__META__", metadata), encoding="utf-8")
 
 
 def build_risk(manifest, root, options, bbox, model=None):
@@ -259,7 +274,6 @@ def build_risk(manifest, root, options, bbox, model=None):
             "Missing detections do not establish absence of fire", "Coverage is sampled; cell sizes are approximate kilometres",
             "NDVI and NDMI are spectral proxies; no local validation or calibrated probability"]}
     collection = {"type": "FeatureCollection", "bbox": bbox, "features": features + detections}
-    (destination / "risk_map.geojson").write_text(json.dumps(collection, allow_nan=False), encoding="utf-8")
     (destination / "summary.json").write_text(json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8")
     write_map(destination / "risk_map.html", collection, summary)
     # A georeferenced risk raster for GIS users. Unknown cells stay nodata.
