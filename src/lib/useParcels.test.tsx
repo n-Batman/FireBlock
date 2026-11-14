@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { PARCEL_SCAN_KEY } from "./parcelScanStore";
 import { useParcels } from "./useParcels";
+import { clearParcelCache } from "./parcelCache";
 
 const square = (lon: number, lat: number, w: number) => [
   [lon, lat], [lon + w, lat], [lon + w, lat + w], [lon, lat + w], [lon, lat],
@@ -46,11 +47,13 @@ const memoryStorage = {
 };
 
 beforeEach(() => {
+  clearParcelCache();
   store.clear();
   vi.stubGlobal("localStorage", memoryStorage);
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => {
+  clearParcelCache();
   fetchMock.mockReset();
   vi.unstubAllGlobals();
 });
@@ -58,6 +61,40 @@ afterEach(() => {
 const at = (id: number, lat = 35.632, lon = -120.858) => ({ lat, lon, id });
 
 describe("useParcels", () => {
+  it("invalidates memoized parcel scores when new scan evidence arrives", async () => {
+    routes({risk:riskMap});
+    const hook=renderHook(()=>useParcels(at(1)));
+    await waitFor(()=>expect(hook.result.current.units[0]?.score?.score).toBe(40));
+    act(()=>{
+      memoryStorage.setItem(PARCEL_SCAN_KEY,JSON.stringify([{lat:35.632,lon:-120.858,risks:3,clears:1,at:'2026-11-14T18:00:00Z'}]));
+      window.dispatchEvent(new Event('storage'));
+    });
+    await waitFor(()=>expect(hook.result.current.units[0]?.score?.score).toBe(75));
+    expect(fetchMock.mock.calls.filter(([url])=>String(url).includes('/api/parcels'))).toHaveLength(1);
+    hook.unmount();
+  });
+  it("does not start speculative requests after visible parcels and clears timers on page exit", async () => {
+    vi.useFakeTimers();
+    let preloadSignal:AbortSignal|undefined;
+    fetchMock.mockImplementation(async (url:string,init?:{signal?:AbortSignal})=>{
+      if(url.includes('/data/'))return reply({},404);
+      if(url.includes('bbox=')){preloadSignal=init?.signal;return new Promise(()=>{});}
+      return reply(parcelsBody);
+    });
+    const hook=renderHook(()=>useParcels(at(1)));
+    try{
+      await act(async()=>{await vi.advanceTimersByTimeAsync(0);});
+      expect(hook.result.current.phase).toBe('ready');
+      expect(preloadSignal).toBeUndefined();
+      await act(async()=>{await vi.advanceTimersByTimeAsync(501);});
+      expect(preloadSignal).toBeUndefined();
+      expect(fetchMock.mock.calls.filter(([url])=>String(url).includes('/api/parcels'))).toHaveLength(1);
+      hook.unmount();
+      window.dispatchEvent(new Event('pagehide'));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(vi.getTimerCount()).toBe(0);
+    }finally{hook.unmount();vi.useRealTimers();}
+  });
   it("does nothing until a place is chosen", () => {
     routes();
     const { result } = renderHook(() => useParcels(null));

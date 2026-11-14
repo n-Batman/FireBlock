@@ -1,0 +1,69 @@
+{
+  "run_id": "20261114T224834Z-781c21500411",
+  "completed_manifest_file_id": "4_za7bcbaab5245dd88a51a0c19_f104d52d01d5005de_d20261114_m225208_c004_v0402027_t0058_u01794696728276",
+  "cloud_manifest_sha256": "139aba59e9bf9257ddc6c89a643a0ef2528971979258e644af0750ca902cc7b8",
+  "frontend_pointer_key": "risk/latest.json",
+  "model_id": "fireblock-relative-risk-v1",
+  "as_of": "2026-11-14T22:48:33.135184+00:00",
+  "bbox": [
+    -120.70453105702744,
+    35.24488876455776,
+    -120.61640292667903,
+    35.30784123544224
+  ],
+  "collection_boxes": 50,
+  "original_firms_snapshots": 200,
+  "distinct_firms_contents": 2,
+  "firms_date_window": {
+    "start_inclusive": "2026-11-11",
+    "end_exclusive": "2026-11-14"
+  },
+  "satellite_products": [
+    {
+      "file_id": "4_za7bcbaab5245dd88a51a0c19_f105ad2bf55ea02cb_d20261114_m204933_c004_v0402037_t0058_u01794689373057",
+      "key": "raw/17946893711709428-28996-1/copernicus/7eca07b6-2041-447c-9ef5-020ec43c6837/metadata.json",
+      "sha1": "3c98fff6abeda4e8a4cd795b84a6d20b02065536",
+      "product": "S2B_MSIL2A_20261111T184619_N0513_R070_T10SGE_20261111T235139.SAFE",
+      "acquired_at": "2026-11-11T18:46:19.024000Z"
+    },
+    {
+      "file_id": "4_za7bcbaab5245dd88a51a0c19_f1181119f0b3b3893_d20261114_m204810_c004_v0402004_t0024_u01794689290205",
+      "key": "raw/17946892882828870-30492-1/copernicus/4a5e2a6b-0221-4685-9c3b-efb33cb90b58/metadata.json",
+      "sha1": "21077e3a97b476648b5e1636bb62cdce2f5ad7f4",
+      "product": "S2B_MSIL2A_20261111T184619_N0513_R070_T10SFE_20261111T235139.SAFE",
+      "acquired_at": "2026-11-11T18:46:19.024000Z"
+    }
+  ],
+  "inputs": [
+    {
+      "file_id": "4_za7bcbaab5245dd88a51a0c19_f1122d110c2553a78_d20261114_m201334_c004_v0402035_t0018_u01794687214329",
+      "sha256": "aec72d0308bd2d5c8493aa0c601f46c19979e87b3849eac9905cbcc04987f1cf",
+      "bytes": 1194541407
+    },
+    {
+      "file_id": "4_za7bcbaab5245dd88a51a0c19_f118d137a8437cf7c_d20261114_m204226_c004_v0402037_t0006_u01794688946588",
+      "sha256": "5de7003e286cf1ca97efa53594589c650993b2efa5d220fb19304fd0f37fd767",
+      "bytes": 799348738
+    },
+    {
+      "file_id": "4_za7bcbaab5245dd88a51a0c19_f1009bbe131f77d9c_d20261114_m203720_c004_v0402037_t0059_u01794688640609",
+      "sha256": "64ed71a4446426389026d389501df269e707d1ea071bdada2d8e34ced1bc37c9",
+      "bytes": 122
+    },
+    {
+      "file_id": "4_za7bcbaab5245dd88a51a0c19_f1015789f3f029020_d20261114_m203722_c004_v0402031_t0003_u01794688642106",
+      "sha256": "2b11a44667d05367ecf77651b95fd3d34c545c7ec154856094b91245e41ae697",
+      "bytes": 122
+    }
+  ],
+  "artifact_sha256": {
+    "collection-footprint.geojson": "2931899f89c72c5582eb93aa55ef5366306eb555cb10a807d8edf98bdd9b781d",
+    "features.ndjson": "c65e8dfe551b69c5c96020fc3db4ad986195ede51d2876b5d13958724420773b",
+    "result-summary.json": "e3a0a2550c50aa4f5e4802fa4d9aabcb76ed9f6d320d5a63c08e064ac5d5ea69",
+    "risk_map.geojson": "31214d47119adff5d1f7b354602d52a6e4d32a918fa3c724bad91b88a150efaa",
+    "risk_map.html": "f935086ec07bd575f811b17207e2441346309457df99c97e68b2a8a156f6b4c9",
+    "risk_preview.png": "c66c868d1237596a510ef9e6218aeb688ae5b809730c32d3d163f2a1a508271e",
+    "risk_score.tif": "5d82a743fd16a6fa6b028bbee7be170dfec7cfac0e8d98bd4a1ceb9fe6b786e7",
+    "summary.json": "0451ba5c6a69a305b7a4e9c9b5e6c77af8900ff7c9777c3c4c51e4e7c194f2c3"
+  }
+}

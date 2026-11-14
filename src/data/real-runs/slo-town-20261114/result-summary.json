@@ -1,0 +1,21 @@
+{
+  "cells": 1476,
+  "known_cells": 1466,
+  "unknown_cells": 10,
+  "mean_score": 14.381268294298478,
+  "peak_score": 31.778751257393964,
+  "minimum_score": 0.0,
+  "recent_firms_detections": 0,
+  "run_id": "20261114T224834Z-781c21500411",
+  "model_id": "fireblock-relative-risk-v1",
+  "as_of": "2026-11-14T22:48:33.135184+00:00",
+  "collection_boxes": 50,
+  "scored_extent": "enclosing rectangle of the 50 collection boxes",
+  "satellite_acquired_at": [
+    "2026-11-11T18:46:19.024000Z"
+  ],
+  "published_manifest_file_id": "4_za7bcbaab5245dd88a51a0c19_f104d52d01d5005de_d20261114_m225208_c004_v0402027_t0058_u01794696728276",
+  "preview": "risk_preview.png",
+  "grid": "risk_map.geojson",
+  "interactive_map": "risk_map.html"
+}

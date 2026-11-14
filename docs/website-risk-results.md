@@ -1,5 +1,15 @@
 # Website risk results
 
+The active November 14 snapshot is now the downtown SLO result at
+`/results/slo-town/index.html`, with its grid, preview and summary alongside it.
+It has 1,476 nominal 200 m cells, 1,466 scored and 10 unknown; the mean known-cell
+score is 14.38 and peak is 31.78. Both `/data/risk_map.geojson` (property ratings)
+and the verified API fallback select this same run. Cloud publication was
+explicitly approved and the immutable manifest, grid and `risk/latest.json`
+pointer were downloaded again and verified. The dated source snapshot is in
+`src/data/real-runs/slo-town-20261114`. Credentials, raw satellite archives and
+local machine paths are excluded. The older Silver River files remain available.
+
 The November 14 real Silver River result is published as static website assets:
 
 - `/results/silver-river/index.html`: standalone interactive result map.

@@ -62,6 +62,10 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P18 | Run the real Silver River 50-box risk model and publish a portable result snapshot | DONE (Codex; verified cloud publication, 1,476 scored cells; src/data/real-runs/silver-river-20261114/) |
 | P19 | Prepare real risk results for website display | READY (Codex; static result page, verified snapshot API and visible grid; live Vercel deployment awaits account connection) |
 | P20 | Move generated map grids out of HTML into separate GeoJSON | DONE (Codex; HTML reduced 99.35%, unchanged grid, offline file-picker fallback; generator and public snapshots updated) |
+| P22 | Preload nearby parcels with bounded session and score caches | DONE (Codex; 48 targeted checks and changed-file type checks pass; cancellation, private-field stripping and no persistent cache writes; docs/parcel-preloading.md) |
+| P23 | Simplify dense city parcels into zoom-dependent area summaries | DONE (Codex; approximate blocks below zoom 17, original property ratings on zoom-in, selected properties retained; docs/parcel-detail-levels.md) |
+| P24 | Analyze and publish the completed downtown SLO satellite collection | DONE (Codex; 50 boxes, 1,466/1,476 scored cells, verified cloud manifest/pointer and dated website snapshot; src/data/real-runs/slo-town-20261114/) |
+| P26 | Remove parcel preloading regression and redundant hidden map work | DONE (Codex; automatic preload disabled, full-response score cache retained within existing byte bound, duplicate lookup/projection and hidden grid clipping skipped; targeted regression checks) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |
