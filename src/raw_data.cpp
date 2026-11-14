@@ -11,6 +11,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <utility>
+#include <regex>
 
 namespace fireblock {
 namespace {
@@ -55,6 +56,73 @@ void save(const std::filesystem::path& file,const Json& data) {
     require(bool(out),"Cannot save raw-data manifest");
     require(MoveFileExW(part.c_str(),file.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)!=0,"Cannot commit raw-data manifest");
 }
+std::filesystem::path indexDirectory() {
+    auto configured=environment("FIREBLOCK_INDEX_DIR");
+    return configured.empty()?std::filesystem::current_path()/".cache":std::filesystem::u8path(configured);
+}
+struct IndexLock {
+    static thread_local int depth;
+    HANDLE handle=INVALID_HANDLE_VALUE;
+    IndexLock(){
+        if(depth==0){
+            auto dir=indexDirectory();std::filesystem::create_directories(dir);
+            handle=CreateFileW((dir/"satellite.lock").c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
+            require(handle!=INVALID_HANDLE_VALUE,"Another satellite collection is active; retry when it finishes");
+        }
+        ++depth;
+    }
+    ~IndexLock(){--depth;if(handle!=INVALID_HANDLE_VALUE)CloseHandle(handle);}
+};
+thread_local int IndexLock::depth=0;
+std::string satelliteKey(const std::string& path) {
+    static const std::regex pattern("copernicus/([a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12})/(product\\.zip|product\\.nc|quicklook\\.image)");
+    std::smatch match;if(!std::regex_match(path,match,pattern))return "";
+    return "satellite/"+lower(match[1].str())+"/"+match[3].str();
+}
+class SatelliteIndex {
+    Controller& storage;
+    std::string bucket;
+    Json records=Json::object();
+    std::filesystem::path file=indexDirectory()/"satellite-index.json";
+public:
+    SatelliteIndex(Controller& s,std::string b):storage(s),bucket(std::move(b)) {
+        if(std::filesystem::exists(file)&&std::filesystem::file_size(file)<=4*1024*1024){
+            std::ifstream in(file);auto value=Json::parse(in,nullptr,false);if(value.is_object())records=std::move(value);
+        }
+    }
+    Json find(const std::string& key){
+        auto cacheKey=bucket+"/"+key;
+        if(records.contains(cacheKey)){
+            try{
+                const auto& record=records.at(cacheKey);
+                auto info=storage.info(record.at("file_id").get<std::string>());
+                if(info.value("fileName","")==key && info.at("contentLength")==record.at("bytes") && info.at("contentSha1")==record.at("sha1"))return record;
+            }catch(const Json::exception&){
+                // Malformed local metadata is disposable; recover from B2 below.
+            }catch(const std::exception& e){
+                if(std::string(e.what()).find("HTTP 404")==std::string::npos)throw;
+            }
+            records.erase(cacheKey);
+        }
+        // A lost/evicted local index is recoverable from a tiny UUID-specific
+        // cloud listing, never a full-bucket scan or imagery download.
+        auto objects=storage.files(bucket,key);
+        for(const auto& object:objects)if(object.value("fileName","")==key){
+            auto info=storage.info(object.at("fileId").get<std::string>());
+            auto hash=info.value("contentSha1",std::string());
+            if(hash.size()!=40 || hash.find_first_not_of("0123456789abcdef")!=std::string::npos)continue;
+            Json record={{"key",key},{"file_id",object.at("fileId")},{"bytes",info.at("contentLength")},{"sha1",hash}};
+            remember(key,record);return record;
+        }
+        return nullptr;
+    }
+    void remember(const std::string& key,const Json& record){records[bucket+"/"+key]=record;}
+    void flush(){
+        while(records.size()>5000)records.erase(records.begin());
+        while(records.dump(2).size()+1>4*1024*1024 && !records.empty())records.erase(records.begin());
+        save(file,records);
+    }
+};
 std::string mime(const std::filesystem::path& p) {
     if (p.extension()==".json") return "application/json";
     if (p.extension()==".csv") return "text/csv";
@@ -70,12 +138,43 @@ Json RawDataController::scrape(const Json& config,const std::filesystem::path& w
     std::filesystem::create_directories(root.parent_path());
     require(std::filesystem::create_directory(root),"Scrape work directory already exists");
     auto adjusted=config; adjusted["output"]=root.u8string();
+    adjusted["copernicus"].erase("local_cache_root"); // archives must be self-contained apart from verified cloud references
     // Every scrape starts from an isolated tree, so old NRT files cannot leak into
     // a new archive. Provider failures prevent publication of the raw manifest.
-    Ingestor(std::move(transport)).run(adjusted);
-    return publish(root,bucket,prefix);
+    IndexLock lock;
+    SatelliteIndex index(storage_,bucket);
+    Ingestor(std::move(transport),[&](const std::string& id,const std::string& asset){
+        auto path="copernicus/"+id+"/"+asset;
+        auto key=satelliteKey(path);if(key.empty())return false;
+        auto record=index.find(key);if(record.is_null())return false;
+        auto refs=root/"copernicus"/id/"cloud-assets.json";
+        Json entries=Json::object();if(std::filesystem::exists(refs)){std::ifstream in(refs);entries=Json::parse(in);}
+        entries[asset]=record;save(refs,entries);
+        std::cout<<"Reusing cloud satellite asset: "<<id<<"/"<<asset<<'\n';return true;
+    }).run(adjusted);
+    index.flush();
+    auto result=publish(root,bucket,prefix);
+    if(result.value("verified",false)) {
+        bool cleaned=true;
+        std::ifstream in(std::filesystem::u8path(result.at("local_manifest").get<std::string>()));
+        auto manifest=Json::parse(in); in.close();
+        // The fresh scrape directory belongs to this call. Remove only verified
+        // inventory files, not user-selected publish inputs or arbitrary trees.
+        for(const auto& entry : manifest.at("files")) {
+            auto name=entry.at("path").get<std::string>(); relativePath(name);
+            auto file=root/std::filesystem::u8path(name);
+            if(!std::filesystem::exists(file))continue; // shared cloud reference, never downloaded here
+            if(!std::filesystem::is_symlink(file) && within(std::filesystem::canonical(file),std::filesystem::canonical(root))) {
+                std::error_code ec; std::filesystem::remove(file,ec); if(ec)cleaned=false;
+            } else cleaned=false;
+        }
+        result["local_raw_files_removed"]=cleaned;
+    }
+    return result;
 }
 Json RawDataController::publish(const std::filesystem::path& input,const std::string& bucket,const std::string& prefix) {
+    IndexLock lock;
+    SatelliteIndex index(storage_,bucket);
     std::cerr << std::unitbuf;
     relativePath(prefix); require(!bucket.empty(),"Bucket is required");
     auto root=std::filesystem::canonical(input); require(std::filesystem::is_directory(root),"Raw input must be a directory");
@@ -98,6 +197,7 @@ Json RawDataController::publish(const std::filesystem::path& input,const std::st
     Json manifest={{"schema_version",1},{"kind","fireblock.raw"},{"run_id",id},{"status","uploading"},
         {"bucket",bucket},{"prefix",remote},{"files",Json::array()}};
     save(receipt,manifest);
+    bool verified=true;
     std::cerr << "Archiving raw dataset: " << files.size() << " files\n";
     try {
         for (const auto& file : files) {
@@ -105,17 +205,44 @@ Json RawDataController::publish(const std::filesystem::path& input,const std::st
             std::cerr << "Uploading " << manifest["files"].size()+1 << "/" << files.size() << ": " << name << '\n';
             auto bytes=std::filesystem::file_size(file);
             auto hash=sha1File(file);
-            auto result=storage_.upload(bucket,file,remote+name,mime(file));
+            auto canonical=satelliteKey(name);
+            auto existing=canonical.empty()?Json():index.find(canonical);
+            Json result;
+            auto key=canonical.empty()?remote+name:canonical;
+            if(!existing.is_null()){
+                require(existing.at("sha1")==hash && existing.at("bytes")==bytes,"Satellite UUID asset changed; refusing to overwrite its immutable identity");
+                result={{"fileId",existing.at("file_id")},{"contentSha1",hash},{"contentLength",bytes}};
+            }else result=storage_.upload(bucket,file,key,mime(file));
+            verified=verified && result.value("contentSha1",std::string())==hash && result.value("contentLength",uintmax_t(-1))==bytes;
             require(std::filesystem::file_size(file)==bytes && sha1File(file)==hash,"Raw input changed during upload");
             auto fileId=result.at("fileId").get<std::string>(); require(!fileId.empty(),"Missing uploaded file ID");
-            manifest["files"].push_back({{"path",name},{"key",remote+name},{"file_id",fileId},{"bytes",bytes},{"sha1",hash}});
+            Json entry={{"path",name},{"key",key},{"file_id",fileId},{"bytes",bytes},{"sha1",hash}};
+            if(!canonical.empty()){
+                entry["storage_kind"]="shared_satellite";
+                entry["metadata_key"]=remote+"copernicus/"+std::filesystem::path(name).parent_path().filename().u8string()+"/metadata.json";
+                if(result.value("contentSha1",std::string())==hash && result.value("contentLength",uintmax_t(-1))==bytes)index.remember(key,entry);
+            }
+            manifest["files"].push_back(entry);
+            if(file.filename()=="cloud-assets.json"){
+                std::ifstream in(file);auto references=Json::parse(in);
+                for(auto it=references.begin();it!=references.end();++it){
+                    auto assetPath=file.parent_path().lexically_relative(root).generic_u8string()+"/"+it.key();
+                    auto assetKey=satelliteKey(assetPath);require(!assetKey.empty(),"Invalid satellite reference path");
+                    auto reference=index.find(assetKey);require(!reference.is_null() && reference==it.value(),"Satellite reference is no longer valid");
+                    reference["path"]=assetPath;reference["storage_kind"]="shared_satellite";
+                    reference["metadata_key"]=remote+file.parent_path().lexically_relative(root).generic_u8string()+"/metadata.json";
+                    manifest["files"].push_back(reference);
+                }
+            }
             save(receipt,manifest);
         }
+        index.flush();
         manifest["status"]="complete"; save(receipt,manifest);
         require(std::filesystem::file_size(receipt)<=32ULL*1024*1024,"Raw manifest exceeds restore limit; split the batch");
         auto result=storage_.upload(bucket,receipt,remote+"manifest.json","application/json");
+        verified=verified && result.value("contentSha1",std::string())==sha1File(receipt) && result.value("contentLength",uintmax_t(-1))==std::filesystem::file_size(receipt);
         return {{"manifest_file_id",result.at("fileId")},{"manifest_key",remote+"manifest.json"},
-            {"local_manifest",receipt.u8string()},{"files",manifest["files"].size()},{"run_id",id}};
+            {"local_manifest",receipt.u8string()},{"files",manifest["files"].size()},{"run_id",id},{"verified",verified}};
     } catch (...) { manifest["status"]="failed"; save(receipt,manifest); throw; }
 }
 Json RawDataController::pull(const std::string& id,const std::filesystem::path& destination) {
@@ -140,7 +267,8 @@ Json RawDataController::pull(const std::string& id,const std::filesystem::path& 
             auto name=entry.at("path").get<std::string>(); relativePath(name);
             require(rawFile(name) && std::filesystem::u8path(name).extension()!=".part","Unsupported raw inventory path");
             require(paths.insert(lower(name)).second,"Duplicate raw inventory path");
-            require(entry.at("key").get<std::string>()==prefix+name,"Raw object is outside its batch prefix");
+            auto expected=entry.value("storage_kind","")=="shared_satellite"?satelliteKey(name):prefix+name;
+            require(!expected.empty() && entry.at("key").get<std::string>()==expected,"Raw object is outside its batch or satellite identity");
             auto fileId=entry.at("file_id").get<std::string>(); require(!fileId.empty() && ids.insert(fileId).second,"Invalid or duplicate raw file ID");
             auto hash=entry.at("sha1").get<std::string>();
             require(hash.size()==40 && hash.find_first_not_of("0123456789abcdef")==std::string::npos,"Invalid raw SHA-1");

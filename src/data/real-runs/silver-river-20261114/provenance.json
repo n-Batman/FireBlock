@@ -1,0 +1,50 @@
+{
+  "run_id": "20261114T201400Z-bc7033713423",
+  "completed_manifest_file_id": "4_za7bcbaab5245dd88a51a0c19_f11209d181eaa9f18_d20261114_m201421_c004_v0402021_t0035_u01794687261998",
+  "frontend_pointer_key": "risk/latest.json",
+  "satellite_product": "S2B_MSIL2A_20261111T184619_N0513_R070_T10SGE_20261111T235139.SAFE",
+  "satellite_acquired_at": "2026-11-11T18:46:19.024000Z",
+  "model_id": "fireblock-relative-risk-v1",
+  "as_of": "2026-11-14T20:14:00.336306+00:00",
+  "bbox": [
+    -120.71656146374816,
+    35.71293876455776,
+    -120.62791811803811,
+    35.775891235442245
+  ],
+  "original_firms_snapshots": 200,
+  "distinct_firms_contents": 2,
+  "firms_date_window": {
+    "start_inclusive": "2026-11-11",
+    "end_exclusive": "2026-11-14"
+  },
+  "collection_boxes": 50,
+  "analysis_extent": "Enclosing rectangle of the 50 collection boxes",
+  "inputs": [
+    {
+      "file_id": "4_za7bcbaab5245dd88a51a0c19_f1122d110c2553a78_d20261114_m201334_c004_v0402035_t0018_u01794687214329",
+      "sha256": "aec72d0308bd2d5c8493aa0c601f46c19979e87b3849eac9905cbcc04987f1cf",
+      "bytes": 1194541407
+    },
+    {
+      "file_id": "4_za7bcbaab5245dd88a51a0c19_f110ea7f45aec2e2e_d20261114_m195333_c004_v0402017_t0032_u01794686013115",
+      "sha256": "64ed71a4446426389026d389501df269e707d1ea071bdada2d8e34ced1bc37c9",
+      "bytes": 122
+    },
+    {
+      "file_id": "4_za7bcbaab5245dd88a51a0c19_f1087348c29d465f7_d20261114_m195334_c004_v0402019_t0007_u01794686014782",
+      "sha256": "2b11a44667d05367ecf77651b95fd3d34c545c7ec154856094b91245e41ae697",
+      "bytes": 122
+    }
+  ],
+  "artifact_sha256": {
+    "collection-footprint.geojson": "76956a6741639a12898fa13341d79d5d1744c2221c5ba371b75c5893b9ddf73a",
+    "features.ndjson": "7c3e0152f97fe052d59aefe30274945ed1dc4b273e9a3ee398525db9d988c982",
+    "result-summary.json": "14e0bc5e2d36624252b94f585eadb1f9922b525335796a4677e39f1dacb438c4",
+    "risk_map.geojson": "df8c7e0e3e3b31cf57af2dc51a3483515378326d92254ca7781f65f91d5e116b",
+    "risk_map.html": "3a88af640f1dd80bd15e1557412c322e4c8c150f31a620f9f13363f94f114a27",
+    "risk_preview.png": "91ca53dec5ec7716a384c916018c4fd089df444f480cf5ed65e0173efef07cd2",
+    "risk_score.tif": "c0c71682817c3e7be4f602ee141835870aa8b60b4c3242bdc52c1c6c4fa387e9",
+    "summary.json": "0585e7cf8e872a360b243aa93fc7fedef9eef9cbde6606c25db2c68d2640ed3e"
+  }
+}

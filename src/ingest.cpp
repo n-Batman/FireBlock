@@ -77,7 +77,7 @@ void checkCsv(const std::filesystem::path& file) {
         throw std::runtime_error("FIRMS returned an error or unexpected CSV schema; check key, source and data availability");
 }
 }
-Ingestor::Ingestor(Transport t) : transport_(std::move(t)) {}
+Ingestor::Ingestor(Transport t, ReuseAsset reuse) : transport_(std::move(t)), reuse_(std::move(reuse)) {}
 void Ingestor::validate(const Json& c) {
     if (!c.is_object()) throw std::runtime_error("Configuration must be an object");
     date(c.at("start").get<std::string>()); date(c.at("end").get<std::string>());
@@ -194,7 +194,8 @@ void Ingestor::copernicus(const Json& c) {
     if (opts.contains("cloud_cover_max")) filter += " and Attributes/OData.CSC.DoubleAttribute/any(a:a/Name eq 'cloudCover' and a/OData.CSC.DoubleAttribute/Value le " + opts.at("cloud_cover_max").dump() + ")";
     int limit = opts.value("max_products",20);
     std::string url = std::string(catalogue) + "Products?$filter=" + encode(filter) + "&$expand=Assets&$expand=Attributes&$orderby=ContentDate/Start%20asc&$top=" + std::to_string((std::min)(100,limit));
-    auto root = std::filesystem::u8path(c.at("output").get<std::string>()) / "copernicus";
+    auto root = opts.contains("local_cache_root") ? std::filesystem::u8path(opts.at("local_cache_root").get<std::string>()) :
+        std::filesystem::u8path(c.at("output").get<std::string>()) / "copernicus";
     Json products = Json::array(); std::set<std::string> seen, pages;
     while (!url.empty() && products.size() < static_cast<size_t>(limit)) {
         if (url.rfind(catalogue,0) != 0 || !pages.insert(url).second) throw std::runtime_error("Invalid catalogue pagination URL");
@@ -204,7 +205,6 @@ void Ingestor::copernicus(const Json& c) {
             if (!std::regex_match(id,std::regex("[a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}"))) throw std::runtime_error("Invalid product UUID");
             if (!seen.insert(id).second) continue;
             products.push_back(product);
-            save(root / "catalogue.json",products);
             save(root / id / "metadata.json",product);
             if (opts.value("quicklooks",true) && product.contains("Assets")) {
                 for (const auto& asset : product.at("Assets")) {
@@ -213,17 +213,19 @@ void Ingestor::copernicus(const Json& c) {
                     if (type != "quicklook") continue;
                     auto link = asset.at("DownloadLink").get<std::string>();
                     if (!cdseUrl(link)) throw std::runtime_error("Unexpected quicklook host");
-                    download(link,root / id / "quicklook.image"); break;
+                    if(!reuse_ || !reuse_(id,"quicklook.image")) download(link,root / id / "quicklook.image"); break;
                 }
             }
             if (opts.value("products",false) && product.value("Online",false)) {
                 auto name = product.value("Name","");
                 auto ext = name.size() >= 3 && name.substr(name.size()-3) == ".nc" ? ".nc" : ".zip";
-                download("https://download.dataspace.copernicus.eu/odata/v1/Products(" + id + ")/$value",
-                         root / id / ("product" + std::string(ext)),true);
+                auto asset="product"+std::string(ext);
+                if(!reuse_ || !reuse_(id,asset)) download("https://download.dataspace.copernicus.eu/odata/v1/Products(" + id + ")/$value",
+                         root / id / asset,true);
             } else if (opts.value("products",false)) std::cerr << "Offline product skipped: " << id << '\n';
             if (products.size() == static_cast<size_t>(limit)) break;
         }
+        save(root / "catalogue.json",products);
         url = page.value("@odata.nextLink","");
     }
     save(root / "catalogue.json",products);

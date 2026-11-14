@@ -5,8 +5,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
+from .risk_model import MathematicalRiskModel, evaluate_model
 
-MODEL_ID = "fireblock-relative-risk-v1"
+MODEL_ID = MathematicalRiskModel.model_id
 FEATURE_SCHEMA = "fireblock.risk-features.v1"
 
 
@@ -29,7 +30,7 @@ def validate_risk(options, bbox):
             not (-180 <= bbox[0] < bbox[2] <= 180 and -80 <= bbox[1] < bbox[3] <= 80)):
         raise ValueError("Risk maps require bbox [west,south,east,north] within latitudes -80..80")
     utc(options["as_of"])
-    for key, default, low, high in (("cell_km", 1, .1, 50), ("hotspot_radius_km", 10, .1, 100),
+    for key, default, low, high in (("cell_km", .2, .1, 50), ("hotspot_radius_km", 10, .1, 100),
             ("hotspot_half_life_hours", 24, 1, 168), ("hotspot_max_age_hours", 72, 1, 720),
             ("scene_max_age_days", 30, 1, 365), ("min_valid_fraction", .6, .01, 1)):
         value = options.get(key, default)
@@ -50,7 +51,7 @@ def validate_risk(options, bbox):
 
 def grid(bbox, options):
     west, south, east, north = bbox
-    km = options.get("cell_km", 1)
+    km = options.get("cell_km", .2)
     rows = max(1, math.ceil((north - south) * 111.195 / km))
     cols = max(1, math.ceil((east - west) * 111.195 * math.cos(math.radians((north + south) / 2)) / km))
     if rows * cols > options.get("max_cells", 10000):
@@ -99,8 +100,7 @@ def distance_km(lon, lat, point_lon, point_lat):
 def score_features(ndvi, ndmi, pressure, options):
     vegetation = np.clip((ndvi - .2) / .6, 0, 1)
     dryness = np.clip((.4 - ndmi) / .8, 0, 1)
-    dry_weight, heat_weight = options.get("dryness_weight", .7), options.get("hotspot_weight", .3)
-    score = 100 * vegetation * (dry_weight * dryness + heat_weight * pressure) / (dry_weight + heat_weight)
+    score = evaluate_model(MathematicalRiskModel(), {"ndvi": ndvi, "ndmi": ndmi, "hotspot_pressure": pressure}, options)
     return score, vegetation, dryness
 
 
@@ -138,9 +138,10 @@ svg.onwheel=e=>{e.preventDefault();zoom(e.deltaY>0?1.2:.8)};
     Path(path).write_text(template.replace("__DATA__", data).replace("__META__", metadata), encoding="utf-8")
 
 
-def build_risk(manifest, root, options, bbox):
+def build_risk(manifest, root, options, bbox, model=None):
     validate_risk(options, bbox)
     as_of = utc(options["as_of"])
+    model = model or MathematicalRiskModel()
     rows, cols = grid(bbox, options)
     root = Path(root)
     destination = root / "risk"
@@ -225,7 +226,8 @@ def build_risk(manifest, root, options, bbox):
                 detections.append({"type": "Feature", "geometry": feature["geometry"], "properties": {
                     "layer": "thermal_detection", "acquired_at": p["acquired_at"], "age_hours": age,
                     "frp_mw": p.get("frp_mw"), "confidence": confidence, "source_id": source["id"]}})
-    score, vegetation, dryness = score_features(ndvi, ndmi, pressure, options)
+    score = evaluate_model(model, {"ndvi":ndvi,"ndmi":ndmi,"hotspot_pressure":pressure}, options)
+    vegetation, dryness = np.clip((ndvi-.2)/.6,0,1), np.clip((.4-ndmi)/.8,0,1)
     features = []
     with open(destination / "features.ndjson", "w", encoding="utf-8") as out:
         for r in range(rows):
@@ -233,7 +235,7 @@ def build_risk(manifest, root, options, bbox):
                 known = bool(np.isfinite(score[r, c]))
                 x, top = west + c * dx, north - r * dy
                 props = {"layer": "relative_risk", "cell_id": f"r{r}c{c}", "feature_schema": FEATURE_SCHEMA,
-                    "model_id": MODEL_ID, "as_of": options["as_of"], "risk_score": float(score[r, c]) if known else None,
+                    "model_id": model.model_id, "as_of": options["as_of"], "risk_score": float(score[r, c]) if known else None,
                     "status": "estimated" if known else "unknown_insufficient_fresh_imagery",
                     "ndvi": float(ndvi[r, c]) if known else None, "ndmi": float(ndmi[r, c]) if known else None,
                     "vegetation_proxy": float(vegetation[r, c]) if known else None,
@@ -244,12 +246,12 @@ def build_risk(manifest, root, options, bbox):
                     [x + dx, top - dy], [x, top - dy], [x, top]]]}, "properties": props}
                 out.write(json.dumps(feature, allow_nan=False) + "\n")
                 features.append(feature)
-    summary = {"model_id": MODEL_ID, "feature_schema": FEATURE_SCHEMA, "as_of": options["as_of"], "bbox": bbox,
+    summary = {"model_id": model.model_id, "model_kind": "mathematical" if isinstance(model, MathematicalRiskModel) else "custom", "feature_schema": FEATURE_SCHEMA, "as_of": options["as_of"], "bbox": bbox,
         "rows": rows, "columns": cols, "total_cells": rows * cols, "known_cells": int(np.isfinite(score).sum()),
         "recent_detections": len(detections), "ignored_detections": ignored, "scenes": scene_diagnostics,
         "parameters": options, "prediction_available": False, "data_label": options.get("data_label", "Parsed satellite observations"),
         "interpretation": "Experimental relative susceptibility index, not ignition probability or operational fire danger",
-        "formula": "100 * vegetation_proxy * (dryness_weight * dryness_proxy + hotspot_weight * hotspot_pressure) / sum(weights)",
+        "formula": "100 * vegetation_proxy * (dryness_weight * dryness_proxy + hotspot_weight * hotspot_pressure) / sum(weights)" if isinstance(model, MathematicalRiskModel) else "Defined by supplied model; see model_id",
         "feature_transforms": {"vegetation_proxy": "clip((NDVI-0.2)/0.6,0,1)",
             "dryness_proxy": "clip((0.4-NDMI)/0.8,0,1)",
             "hotspot_pressure": "max(exp(-distance_km/radius_km) * 2^(-age_hours/half_life_hours)) within radius"},
@@ -267,5 +269,5 @@ def build_risk(manifest, root, options, bbox):
             count=1, dtype="float32", crs="EPSG:4326", transform=from_bounds(*bbox, cols, rows),
             nodata=-9999, compress="deflate") as raster:
         raster.write(np.where(np.isfinite(score), score, -9999).astype("float32"), 1)
-        raster.update_tags(model_id=MODEL_ID, as_of=options["as_of"], score_units="relative_index_0_100")
+        raster.update_tags(model_id=model.model_id, as_of=options["as_of"], score_units="relative_index_0_100")
     return summary

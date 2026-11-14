@@ -6,7 +6,8 @@ namespace fireblock {
 // No credentials are written into metadata or diagnostics.
 class Ingestor {
 public:
-    explicit Ingestor(Transport transport = windowsHttp);
+    using ReuseAsset = std::function<bool(const std::string&,const std::string&)>;
+    explicit Ingestor(Transport transport = windowsHttp, ReuseAsset reuse = {});
     void run(const Json& config);
     static void validate(const Json& config);
 private:
@@ -19,5 +20,6 @@ private:
     void firms(const Json& config);
     Transport transport_;
     std::string token_;
+    ReuseAsset reuse_;
 };
 }

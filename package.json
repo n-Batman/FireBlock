@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
-    "@turf/area": "^7.4.0",
+    "@turf/area": "^7.3.0",
     "@turf/boolean-point-in-polygon": "^7.4.0",
     "@turf/helpers": "^7.4.0",
-    "@turf/intersect": "^7.4.0",
+    "@turf/intersect": "^7.3.0",
     "leaflet": "^1.9.4",
     "motion": "^14.14.0",
     "next": "16.4.6",

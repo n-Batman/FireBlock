@@ -1,5 +1,13 @@
 # FireBlock
 
+The [mathematical risk pipeline](docs/mathematical-risk.md) uses cloud-backed
+parsed satellite data, publishes a verified frontend grid and keeps scoring
+replaceable for a later AI model.
+
+Cloud-backed runs now support verified working-file cleanup and direct cloud
+grid serving. See [cloud storage and retention](docs/cloud-retention.md) for
+configuration, parcel-license gating and recovery behavior.
+
 For a basic one-area desktop scraper panel, launch `scraper-control.cmd`.
 See [desktop controller setup](docs/scraper-control.md).
 
@@ -140,9 +148,13 @@ storage.deleteVersion("images/photo.png", uploaded.at("fileId"));
 ```
 
 Use one controller per thread. Account tokens remain in memory and are refreshed
-once when metadata API calls report expired authentication. Uploads are not
-automatically retried because an ambiguous response can mean the upload succeeded.
-Retry a failed upload explicitly after checking versions. Downloads can be retried
+once when metadata API calls report expired authentication. Backblaze HTTP 5xx
+errors on authorization, metadata reads and uploads get four total attempts, with
+1, 2 and 4 second waits. Uploads first check their unique receipt and checksum in
+stored versions, then acquire a fresh upload URL if another attempt is needed.
+An unverifiable upload stops rather than being blindly replayed. The desktop
+scraper reports exhausted attempts in a dialog, progress log and `error.json`.
+See [storage retries](docs/storage-retries.md). Downloads can be retried
 by rerunning the command. Requests have connect and I/O timeouts; TLS certificate
 validation stays enabled and HTTP redirects are refused.
 

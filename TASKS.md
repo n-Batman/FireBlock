@@ -39,6 +39,8 @@ Workflow: pull before you start → work on your own branch (`milo/...` or `part
 ## Task board
 
 ### Partner (engine)
+
+P16 — DONE (Codex): replaceable mathematical cloud risk model and verified frontend publication pointer. See `docs/mathematical-risk.md`.
 | ID | Task | Status |
 |---|---|---|
 | P1 | Repo shared with Milo, Vercel project connected, auto-deploys from `main` | TODO |
@@ -51,6 +53,14 @@ Workflow: pull before you start → work on your own branch (`milo/...` or `part
 | P8 | Plan engine: mowing order, hours, cost, habitat buffers; PDF export | TODO |
 | P9 | (Stretch) Backtest slide: would the score have flagged the Gifford Fire area beforehand? | TODO |
 | P10 | Point/area parcel lookup API and transparent boundary overlay on the risk map | DONE (Codex; source attribution and coverage documented in docs/parcel-boundaries.md) |
+| P11 | Display backend risk grid as area-weighted parcel/plot colors, retaining grid and unknown coverage | DONE (Codex; docs/parcel-risk-display.md) |
+| P12 | Verified cloud persistence, cloud grid serving, parcel archives and safe working-file cleanup | DONE (Codex; docs/cloud-retention.md; parcel licensing and completed-run ID require configuration) |
+| P13 | Seed-centered spiral collection controls (default 1 km); separate 200 m analysis grid; box progress and plans | DONE (Codex; docs/scraper-control.md) |
+| P14 | UUID-based satellite reuse, bounded metadata-only index, shared cloud references and restore compatibility | DONE (Codex; docs/satellite-deduplication.md) |
+| P15 | Bound scraper events and cloud discovery memory; reap failed scraper children | DONE (Codex; 43 Python tests and 13 native checks pass; frontend: 59 tests pass, BreakdownPanel suite blocked by missing component) |
+| P17 | Bounded Backblaze 5xx retries, upload receipt recovery, and durable scraper error notifications | DONE (Codex; four attempts with 1/2/4 second waits; 14 native checks and 47 Python tests pass; docs/storage-retries.md) |
+| P18 | Run the real Silver River 50-box risk model and publish a portable result snapshot | DONE (Codex; verified cloud publication, 1,476 scored cells; src/data/real-runs/silver-river-20261114/) |
+| P19 | Prepare real risk results for website display | READY (Codex; static result page, verified snapshot API and visible grid; live Vercel deployment awaits account connection) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

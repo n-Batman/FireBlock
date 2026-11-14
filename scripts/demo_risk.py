@@ -35,7 +35,7 @@ def main():
     (fires / "detections.ndjson").write_text(json.dumps(detection) + "\n", encoding="utf-8")
     manifest = {"scenes": [{"id": scene.name, "acquired_at": "2026-11-12T12:00:00Z",
         "indices": {name: {"raster": f"{name}.tif"} for name in ("ndvi", "ndmi")}}], "firms": [{"id": fires.name}]}
-    options = {"enabled": True, "as_of": "2026-11-13T12:00:00Z", "cell_km": 1.3,
+    options = {"enabled": True, "as_of": "2026-11-13T12:00:00Z", "cell_km": 0.2,
         "data_label": "SYNTHETIC DEMO — no live satellite observations"}
     summary = build_risk(manifest, root, options, bbox)
     print(root / "risk/risk_map.html")

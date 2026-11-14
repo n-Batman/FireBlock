@@ -213,9 +213,11 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
   const tiles = tileSource(process.env.NEXT_PUBLIC_ARCGIS_KEY);
   // Three failed tiles in a row means the imagery is not loading. Say so instead of staying grey.
   const [tileErrors, setTileErrors] = useState(0);
+  // Nick's rule: once a backend risk grid is loaded, the sample blocks (but not habitat) are hidden.
+  const [gridActive, setGridActive] = useState(false);
 
-  // With county parcels on the map the sample blocks are not drawn.
-  const blocks = parcels ? [] : property.blocks;
+  // With county parcels on the map, or a loaded grid, the sample blocks are not drawn.
+  const blocks = parcels ? [] : property.blocks.filter((b) => !gridActive || b.kind === "habitat");
   const selected = blocks.find((b) => b.id === selectedId && b.kind === "vine") ?? null;
   const labels = useMemo(
     () => new Map(property.blocks.map((b) => [b.id, labelPoint(b.polygon)] as const)),
@@ -272,7 +274,7 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
         {!(wide && panelOpen) && (
           <ZoomControl key={wide ? "wide" : "narrow"} position={wide ? "bottomright" : "topright"} />
         )}
-        <ParcelOverlay center={property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} />
+        <ParcelOverlay center={property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} onGridActive={setGridActive} />
         <PlaceFocus place={place} />
 
         {parcels && <ParcelPolygons parcels={parcels} selectedId={selectedId} onSelect={onSelect} />}
