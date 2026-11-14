@@ -64,7 +64,9 @@ export function ParcelRows({ parcels, selectedId, onSelect, notice }: ParcelRows
                       <span className="ml-2 text-sm text-ink-2">{acresLabel(parcel.acres)}</span>
                       {parcel.atPoint && <span className="ml-2 text-xs font-medium text-ink">At your search</span>}
                     </span>
-                    {parcel.score && <RiskChip level={parcel.score.level} score={parcel.score.score} />}
+                    {parcel.score && (
+                      <RiskChip level={parcel.score.level} score={parcel.score.score} scaleScore={parcel.score.score} />
+                    )}
                   </span>
                   <span className="mt-1 block text-sm leading-snug text-ink-2">
                     {parcel.score ? sourceLabel(parcel.score.source) : NOT_SCORED}

@@ -17,6 +17,7 @@ import { animate } from "motion/react";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { Block, Level, ParcelUnit, Property } from "@/data/types";
 import { boundsOfPolygon, labelPoint } from "@/lib/geo";
+import { scaleColor } from "@/lib/riskScale";
 import { levelOf, scoreOf } from "@/lib/score";
 import { tileSource } from "@/lib/tiles";
 import { useWide } from "@/lib/useWide";
@@ -42,11 +43,13 @@ const PILL_TONE: Record<Level | "habitat", string> = {
 };
 
 /** A small score pill, centred on its point, for any block shape. */
-function pillIcon(text: string, tone: string, selected: boolean, dim: boolean) {
+function pillIcon(text: string, tone: string, selected: boolean, dim: boolean, color?: string) {
+  // `color` is for parcels: the colour of the score on Nick's scale, in place of the level's tone classes.
+  const style = color ? ` style="color:${color};border-color:${color}"` : "";
   return L.divIcon({
     className: "",
     iconSize: [0, 0],
-    html: `<span class="num inline-flex h-6 min-w-9 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center whitespace-nowrap rounded-full border bg-[var(--glass-bg)] px-2 text-xs font-semibold backdrop-blur-md transition-opacity ${tone} ${
+    html: `<span${style} class="num inline-flex h-6 min-w-9 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center whitespace-nowrap rounded-full border bg-[var(--glass-bg)] px-2 text-xs font-semibold backdrop-blur-md transition-opacity ${tone} ${
       selected ? "ring-2 ring-ink" : ""
     } ${dim ? "opacity-50" : ""}">${text}</span>`,
   });
@@ -123,8 +126,9 @@ function PlaceFocus({ place }: { place: PickedPlace | null }) {
 }
 
 /**
- * County parcels as the clickable units, styled like the sample blocks: same colours, casing and
- * selected glow. A parcel with no score is a neutral outline with no pill. It is never given a colour.
+ * County parcels as the clickable units, with the sample blocks' casing and selected glow. A scored
+ * parcel is coloured on Nick's 0 to 100 scale. A parcel with no score is a neutral outline with no
+ * pill. It is never given a colour.
  */
 export function ParcelPolygons({
   parcels,
@@ -136,7 +140,8 @@ export function ParcelPolygons({
   onSelect: (id: string) => void;
 }) {
   const selected = parcels.find((p) => p.id === selectedId) ?? null;
-  const colorOf = (p: ParcelUnit) => (p.score ? RISK_COLOR[p.score.level] : PARCEL_NEUTRAL);
+  // A scored parcel's outline, fill and glow use Nick's 0 to 100 scale, like its pill and chip.
+  const colorOf = (p: ParcelUnit) => (p.score ? scaleColor(p.score.score) : PARCEL_NEUTRAL);
   return (
     <>
       {parcels.map((parcel) => {
@@ -184,7 +189,7 @@ export function ParcelPolygons({
           <Marker
             key={`pill-${parcel.id}`}
             position={parcel.center}
-            icon={pillIcon(String(parcel.score.score), PILL_TONE[parcel.score.level], isSelected, dim)}
+            icon={pillIcon(String(parcel.score.score), "", isSelected, dim, scaleColor(parcel.score.score))}
             title={label}
             alt={label}
             zIndexOffset={isSelected ? 1000 : 0}

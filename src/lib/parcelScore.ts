@@ -8,8 +8,8 @@ import type { Fetcher } from "./geocode";
 import { levelOf } from "./score";
 import { toGeoJSON } from "./parcelUnits";
 
-/** Scored cells must cover at least this share of a parcel, or the parcel stays unscored. */
-const MIN_COVERAGE = 0.5;
+/** Scored cells must cover at least this share of a parcel, or it stays unscored. Same cutoff as Nick's display (docs/parcel-risk-display.md). */
+const MIN_COVERAGE = 0.6;
 
 /** One grid cell of risk_map.geojson. A null score means no data, which is not a low score. */
 export interface RiskCell {
@@ -65,7 +65,7 @@ const scoreOfValue = (score: number) => ({ score, level: levelOf(score) });
 
 /**
  * Area-weighted mean of the risk-map cells that overlap the parcel. Cells with no data are skipped.
- * No score when scored cells cover under half the parcel.
+ * No score when scored cells cover under 60% of the parcel.
  */
 export function scoreFromCells(unit: ParcelUnit, cells: RiskCell[]): ParcelScore | null {
   const geometry = toGeoJSON(unit);

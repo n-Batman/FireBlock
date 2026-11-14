@@ -53,7 +53,7 @@ export function ParcelPanel({ parcel, onClose }: { parcel: ParcelUnit; onClose: 
                   / 100
                 </span>
               </p>
-              <RiskChip level={score.level} />
+              <RiskChip level={score.level} scaleScore={score.score} />
             </div>
             <p className="mt-3 text-[15px] leading-snug">{sourceLabel(score.source)}</p>
             <p className="mt-1 text-xs text-ink-2">
