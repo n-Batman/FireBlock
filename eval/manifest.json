@@ -1,0 +1,968 @@
+[
+ {
+  "id": "dry-grass-11493848",
+  "file": "dry-grass/11493848.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Buchloe_dactyloides.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Matt Lavin",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 70,
+   "notes": "Patchy ground grass is mostly dry and straw-colored, with some green growth."
+  }
+ },
+ {
+  "id": "dry-grass-18750597",
+  "file": "dry-grass/18750597.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Beach_grasses_near_Pacific_Ocean.jpg",
+  "license": "CC0",
+  "author": "Tomwsulcer",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 90,
+   "notes": "A field of mostly dry, brown brush with scattered green growth."
+  }
+ },
+ {
+  "id": "dry-grass-22759069",
+  "file": "dry-grass/22759069.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bouteloua_gracilis_(5041784825).jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Matt Lavin from Bozeman, Montana, USA",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "An open field with predominantly dry grass and scrub."
+  }
+ },
+ {
+  "id": "dry-grass-24374240",
+  "file": "dry-grass/24374240.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Beach_grass,_Christopher_Culbertson_(6501973281).jpg",
+  "license": "CC BY 2.0",
+  "author": "Oregon Department of Transportation",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "Close-up of a few silhouetted grass stems against a beach sunset."
+  }
+ },
+ {
+  "id": "dry-grass-24908541",
+  "file": "dry-grass/24908541.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Autumn_grass_and_rushes.jpg",
+  "license": "Public domain",
+  "author": "Titus Tscharntke",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 80,
+   "notes": "A field of mostly dry, straw-colored grass with some green vegetation."
+  }
+ },
+ {
+  "id": "dry-grass-24908567",
+  "file": "dry-grass/24908567.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Brown_dead_grass.jpg",
+  "license": "Public domain",
+  "author": "John Harvey",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 99,
+   "notes": "Ground is covered with dry, dead grass and plant debris."
+  }
+ },
+ {
+  "id": "dry-grass-24908580",
+  "file": "dry-grass/24908580.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Brown_dead_grass_weeds_and_leaves.jpg",
+  "license": "Public domain",
+  "author": "John Harvey",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 98,
+   "notes": "The ground is covered mostly in dry, dead grass with a few green shoots."
+  }
+ },
+ {
+  "id": "dry-grass-25123999",
+  "file": "dry-grass/25123999.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Agropyron_dasystachyum_and_bull_snake_(4010794240).jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Matt Lavin from Bozeman, Montana, USA",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 75,
+   "notes": "A snake lies among mostly dry grass with some green shoots."
+  }
+ },
+ {
+  "id": "dry-grass-25124000",
+  "file": "dry-grass/25124000.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Agropyron_dasystachyum_and_bull_snake_(4010793798).jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Matt Lavin from Bozeman, Montana, USA",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 75,
+   "notes": "Dry ground vegetation with scattered green grasses surrounds a fallen log."
+  }
+ },
+ {
+  "id": "dry-grass-25124001",
+  "file": "dry-grass/25124001.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Agropyron_dasystachyum_and_bull_snake_(4010792912).jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Matt Lavin from Bozeman, Montana, USA",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 70,
+   "notes": "Patchy ground vegetation with mostly dry grasses and some green shoots."
+  }
+ },
+ {
+  "id": "dry-grass-27443632",
+  "file": "dry-grass/27443632.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Abra.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Juan Antonio ALBERTO",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 45,
+   "notes": "Dry golden grass covers a field in front of green trees and shrubs."
+  }
+ },
+ {
+  "id": "dry-grass-28441368",
+  "file": "dry-grass/28441368.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:African_Elephant_Grass_-_Giant_Tall_Grass.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Benjaminchapi",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 90,
+   "notes": "Tall, mostly dry grasses and seed heads are viewed against the sky."
+  }
+ },
+ {
+  "id": "dry-grass-29207309",
+  "file": "dry-grass/29207309.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Blowing_in_the_breeze_(5822375129)_(2).jpg",
+  "license": "CC BY 2.0",
+  "author": "Virginia State Parks staff",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 65,
+   "notes": "Dry seed-head grasses grow in front of green shrubs and trees."
+  }
+ },
+ {
+  "id": "dry-grass-30701521",
+  "file": "dry-grass/30701521.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Boomi_Park.jpg",
+  "license": "CC BY 2.0",
+  "author": "tim from coffs harbour, Australia",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 90,
+   "notes": "A dry, straw-covered yard with scattered trees and buildings."
+  }
+ },
+ {
+  "id": "dry-grass-37569717",
+  "file": "dry-grass/37569717.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:A_bush_of_grass_at_spsu.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Rjluna2",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 55,
+   "notes": "Dry ornamental grasses grow beside a green lawn."
+  }
+ },
+ {
+  "id": "dry-grass-40187093",
+  "file": "dry-grass/40187093.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Ausgetrocknetes_grass.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "CuNi",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 80,
+   "notes": "Patchy ground grass is mostly dry and brown with some green growth."
+  }
+ },
+ {
+  "id": "dry-grass-49093863",
+  "file": "dry-grass/49093863.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Boukornine_8.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Nizar askri",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 55,
+   "notes": "A grassy roadside verge with a mix of green and dry grass beside gravel."
+  }
+ },
+ {
+  "id": "dry-grass-53032401",
+  "file": "dry-grass/53032401.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Airport_Grass_1990.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "gillfoto",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 70,
+   "notes": "Windblown grass is mostly tan and dry, with some green blades."
+  }
+ },
+ {
+  "id": "dry-grass-55134575",
+  "file": "dry-grass/55134575.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Amber_Waves_-_panoramio.jpg",
+  "license": "CC BY 3.0",
+  "author": "Pintsmasher",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 98,
+   "notes": "Rolling fields are covered in golden, dry vegetation."
+  }
+ },
+ {
+  "id": "dry-grass-57336474",
+  "file": "dry-grass/57336474.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Autumn_on_the_New_River_Trail_(32684965271).jpg",
+  "license": "CC BY 2.0",
+  "author": "vastateparksstaff",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 45,
+   "notes": "A gravel lane is bordered by green grass, dry brush, and trees."
+  }
+ },
+ {
+  "id": "dry-grass-61603646",
+  "file": "dry-grass/61603646.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Beaver_Brook_Wildlife_Management_Area_(Revisited)_(3)_(13834147304).jpg",
+  "license": "CC BY 2.0",
+  "author": "Nicholas A. Tonelli from Northeast Pennsylvania, USA",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 98,
+   "notes": "A field of mostly dry golden grass bordered by leafless trees."
+  }
+ },
+ {
+  "id": "dry-grass-61603653",
+  "file": "dry-grass/61603653.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Beaver_Brook_Wildlife_Management_Area_(Revisited)_(2)_(13833850673).jpg",
+  "license": "CC BY 2.0",
+  "author": "Nicholas A. Tonelli from Northeast Pennsylvania, USA",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 98,
+   "notes": "A field of dry golden grass bordered by leafless trees."
+  }
+ },
+ {
+  "id": "dry-grass-61604180",
+  "file": "dry-grass/61604180.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Appalachian_Trail-_Totts_Gap_to_Mount_Minsi_(10)_(10355537623).jpg",
+  "license": "CC BY 2.0",
+  "author": "Nicholas A. Tonelli from Northeast Pennsylvania, USA",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A field of dry golden grass borders autumn-colored trees."
+  }
+ },
+ {
+  "id": "dry-grass-61604191",
+  "file": "dry-grass/61604191.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Appalachian_Trail-_Totts_Gap_to_Mount_Minsi_(1)_(10355586453).jpg",
+  "license": "CC BY 2.0",
+  "author": "Nicholas A. Tonelli from Northeast Pennsylvania, USA",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A hillside field is covered in dry golden grass, with sparse autumn trees."
+  }
+ },
+ {
+  "id": "dry-grass-9215349",
+  "file": "dry-grass/9215349.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Black_Moss_Reservoir_-_geograph.org.uk_-_119121.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "John Illingworth",
+  "category": "Dry grass",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 98,
+   "notes": "A pond surrounded by mostly dry, straw-colored grassland."
+  }
+ },
+ {
+  "id": "grasslands-of-california-10359984",
+  "file": "grasslands-of-california/10359984.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Meadow_in_Rancho_San_Antonio_County_Park.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Ixfd64",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A mostly green grassy field with scattered trees and shrubs."
+  }
+ },
+ {
+  "id": "grasslands-of-california-127341",
+  "file": "grasslands-of-california/127341.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Meadow_in_Santa_Monica_Mountains.jpg",
+  "license": "CC BY 2.0",
+  "author": "unknown",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 10,
+   "notes": "A mostly green grassy field stretches across rolling hills."
+  }
+ },
+ {
+  "id": "grasslands-of-california-127346",
+  "file": "grasslands-of-california/127346.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Meadow_and_Hill_in_Santa_Monica_Mountains.jpg",
+  "license": "CC BY 2.0",
+  "author": "unknown",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A mostly green grassy field lies beneath shrub-covered hills."
+  }
+ },
+ {
+  "id": "grasslands-of-california-1682432",
+  "file": "grasslands-of-california/1682432.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bunchgrass_prairie_SRP.jpg",
+  "license": "CC BY 2.5",
+  "author": "Geographer at English Wikipedia",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A dirt track runs through a mostly green grassy field."
+  }
+ },
+ {
+  "id": "grasslands-of-california-24246124",
+  "file": "grasslands-of-california/24246124.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:SantaRosaPlateaugrassland.JPG",
+  "license": "CC BY-SA 3.0",
+  "author": "No machine-readable author provided. Scottthezombie assumed (based on copyright claims).",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A field of mostly dry, brown grass with distant trees."
+  }
+ },
+ {
+  "id": "grasslands-of-california-26301543",
+  "file": "grasslands-of-california/26301543.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:The_Electric_Highway_(4402561172).jpg",
+  "license": "CC BY 2.0",
+  "author": "Rennett Stowe from USA",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 15,
+   "notes": "A dirt road runs through mostly green fields beneath power lines."
+  }
+ },
+ {
+  "id": "grasslands-of-california-30069953",
+  "file": "grasslands-of-california/30069953.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Petes_creek_ranch.jpg",
+  "license": "CC BY 2.0",
+  "author": "USDA NRCS CA",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "A horseback rider is the subject in a grassy field."
+  }
+ },
+ {
+  "id": "grasslands-of-california-30868722",
+  "file": "grasslands-of-california/30868722.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Distant_view_of_snow-capped_Mount_San_Antonio_(or_Mount_Baldy),_ca.1920_(CHS-5558).jpg",
+  "license": "Public domain",
+  "author": "Unknown authorUnknown author",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 50,
+   "notes": "A black-and-white photo of a grassy field with mountains in the background; vegetation dryness is uncertain."
+  }
+ },
+ {
+  "id": "grasslands-of-california-3812015",
+  "file": "grasslands-of-california/3812015.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Cuyamaca_west_mesa.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Ikes",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A hillside field is covered mostly in dry golden grass, with a few scattered shrubs and trees."
+  }
+ },
+ {
+  "id": "grasslands-of-california-52975450",
+  "file": "grasslands-of-california/52975450.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Sac_County_Prairie_-_panoramio.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Kurt Minard",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 20,
+   "notes": "An open grassy field is mostly green with some dry patches."
+  }
+ },
+ {
+  "id": "grasslands-of-california-52975455",
+  "file": "grasslands-of-california/52975455.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Sac_County_Prairie_-_panoramio_-_Kurt_Minard.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Kurt Minard",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A mostly green grassy field with scattered trees."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064206",
+  "file": "grasslands-of-california/55064206.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(20).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 70,
+   "notes": "A dry grassy hillside with scattered green trees and shrubs."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064381",
+  "file": "grasslands-of-california/55064381.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(23).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 90,
+   "notes": "Dry grassland with scattered green trees and rolling hills."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064395",
+  "file": "grasslands-of-california/55064395.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(24).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A broad field of dry golden grass with scattered trees and a small green patch."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064397",
+  "file": "grasslands-of-california/55064397.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(25).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 100,
+   "notes": "A rocky hillside and foreground covered in dry golden grass."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064664",
+  "file": "grasslands-of-california/55064664.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(34).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 98,
+   "notes": "A broad field of dry golden grass stretches toward low hills."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064668",
+  "file": "grasslands-of-california/55064668.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(35).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 45,
+   "notes": "Dry grass covers a hillside with mostly green trees and shrubs."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064694",
+  "file": "grasslands-of-california/55064694.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(37).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A mostly dry grassy field with a narrow green strip and hills in the distance."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064853",
+  "file": "grasslands-of-california/55064853.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(45).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A broad field of dry golden grass with scattered green trees in the distance."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064873",
+  "file": "grasslands-of-california/55064873.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(48).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 25,
+   "notes": "Dry grass covers the foreground beneath mostly green trees and hills."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064920",
+  "file": "grasslands-of-california/55064920.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(49).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 60,
+   "notes": "Dry grass covers a field with green trees and shrubs."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064952",
+  "file": "grasslands-of-california/55064952.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(50).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 45,
+   "notes": "A fallen tree lies in a dry grassy field surrounded by green trees."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064979",
+  "file": "grasslands-of-california/55064979.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(54).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 75,
+   "notes": "A dry grassy field with scattered green trees and shrubs."
+  }
+ },
+ {
+  "id": "grasslands-of-california-55064992",
+  "file": "grasslands-of-california/55064992.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(57).jpg",
+  "license": "CC BY 3.0",
+  "author": "kallahar",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 55,
+   "notes": "Dry grass covers the ground beneath green trees."
+  }
+ },
+ {
+  "id": "grasslands-of-california-666147",
+  "file": "grasslands-of-california/666147.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Russian_Ridge-Wildflowers.jpg",
+  "license": "CC BY 2.0",
+  "author": "Steve Jurvetson",
+  "category": "Grasslands of California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A green hillside meadow covered in wildflowers."
+  }
+ },
+ {
+  "id": "vineyards-in-california-132907263",
+  "file": "vineyards-in-california/132907263.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bechthold_Vineyard_-_Cinsaut_-_planted_1886.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Randy Caparoso",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 10,
+   "notes": "A vineyard with mostly green grapevines and bare soil between rows."
+  }
+ },
+ {
+  "id": "vineyards-in-california-132907264",
+  "file": "vineyards-in-california/132907264.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Brovelli_Ranch_-_Zinfandel_-_planted_1954.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Randy Caparoso",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 20,
+   "notes": "A vineyard with green grapevines and patches of dry grass and weeds."
+  }
+ },
+ {
+  "id": "vineyards-in-california-132914886",
+  "file": "vineyards-in-california/132914886.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bishofberger_Vineyard_-Carignan_-_planted_1936.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Randy Caparoso",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 55,
+   "notes": "A vineyard with autumn-colored vines, trees, and bare soil."
+  }
+ },
+ {
+  "id": "vineyards-in-california-132914888",
+  "file": "vineyards-in-california/132914888.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bonnotto_Vineyard_-_Zinfandel_-_Tokay_sandy_loam_soil_-_planted_1930s.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Randy Caparoso",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A grapevine with mostly green leaves stands in a tilled, bare vineyard."
+  }
+ },
+ {
+  "id": "vineyards-in-california-14423",
+  "file": "vineyards-in-california/14423.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Buberel_Moon_Mountain_vineyards.jpg",
+  "license": "CC BY-SA 1.0",
+  "author": "unknown",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "Green vineyard rows and shrubs cover a hilly landscape with some exposed soil."
+  }
+ },
+ {
+  "id": "vineyards-in-california-16895865",
+  "file": "vineyards-in-california/16895865.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:BOB_MARTINEZ_SPRAYING_GRAPE_VINES_-_NARA_-_542533.jpg",
+  "license": "Public domain",
+  "author": "Gene Daniels",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 10,
+   "notes": "A tractor drives over bare soil beside mostly green vegetation."
+  }
+ },
+ {
+  "id": "vineyards-in-california-16895869",
+  "file": "vineyards-in-california/16895869.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:BOB_MARTINEZ_SPRAYING_GRAPE_VINES_-_NARA_-_542534.jpg",
+  "license": "Public domain",
+  "author": "Gene Daniels",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "A person drives a tractor among grapevines, with no usable view of ground vegetation."
+  }
+ },
+ {
+  "id": "vineyards-in-california-3981971",
+  "file": "vineyards-in-california/3981971.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Beringerredhillslakecounty.png",
+  "license": "CC BY-SA 4.0",
+  "author": "Arnaudh",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 85,
+   "notes": "A vineyard with dormant vines and mostly dry grass between the rows."
+  }
+ },
+ {
+  "id": "vineyards-in-california-52573188",
+  "file": "vineyards-in-california/52573188.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:06694-Kalifornien-1905-Garden_Scene_in_California-Br%C3%BCck_%26_Sohn_Kunstverlag.jpg",
+  "license": "CC0",
+  "author": "Brück &amp; Sohn Kunstverlag Meißen",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "A grapevine canopy stands over mostly bare ground."
+  }
+ },
+ {
+  "id": "vineyards-in-california-61303863",
+  "file": "vineyards-in-california/61303863.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bronco_Winery_Modesto_California.JPG",
+  "license": "Public domain",
+  "author": "Imokurnotok (talk)",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 45,
+   "notes": "A vineyard with dormant vines and sparse green ground cover between rows."
+  }
+ },
+ {
+  "id": "vineyards-in-california-64149982",
+  "file": "vineyards-in-california/64149982.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:California_Vineyards_(15577868872).jpg",
+  "license": "CC BY 2.0",
+  "author": "Tony Hisgett from Birmingham, UK",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 15,
+   "notes": "A hillside vineyard with green vines and some dry grass along the foreground."
+  }
+ },
+ {
+  "id": "vineyards-in-california-69780723",
+  "file": "vineyards-in-california/69780723.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Caffeinated_zeitgeist_-_9594078321.jpg",
+  "license": "CC BY 2.0",
+  "author": "Derek Morrison",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 10,
+   "notes": "A vineyard with mostly green grapevines and dry ground cover."
+  }
+ },
+ {
+  "id": "vineyards-in-california-71307643",
+  "file": "vineyards-in-california/71307643.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:500px_photo_(27949905).jpeg",
+  "license": "CC BY 3.0",
+  "author": "Erick Villegas",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 75,
+   "notes": "Black-and-white view of a dormant vineyard with sparse ground cover and leafless trees."
+  }
+ },
+ {
+  "id": "vineyards-in-california-73797141",
+  "file": "vineyards-in-california/73797141.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:A_California_vineyard_covered_in_snow.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Martin Cathrae from Charlottetown, PE, Canada",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 70,
+   "notes": "Snow-covered vineyard with dormant brown vines and evergreen trees in the distance."
+  }
+ },
+ {
+  "id": "vineyards-in-california-8724432",
+  "file": "vineyards-in-california/8724432.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bella_wine_caves_2006.jpg",
+  "license": "CC BY 2.0",
+  "author": "smpte101",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A vineyard hillside with mostly green vines, trees, and lawn over dry soil."
+  }
+ },
+ {
+  "id": "own-srv1",
+  "file": "own/SRV1.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 30,
+   "notes": "Vineyard rows with dormant vines and mostly green ground cover."
+  }
+ },
+ {
+  "id": "own-srv3",
+  "file": "own/SRV3.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 20,
+   "notes": "A dry, mostly bare vineyard hillside with green grapevines and sparse ground weeds."
+  }
+ },
+ {
+  "id": "own-srv6",
+  "file": "own/SRV6.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 65,
+   "notes": "A vineyard row has dry grass and weeds between green grapevines."
+  }
+ },
+ {
+  "id": "own-srv9",
+  "file": "own/SRV9.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 25,
+   "notes": "Vineyard rows with mostly green vines and sparse dry ground cover."
+  }
+ }
+]

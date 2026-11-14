@@ -63,3 +63,8 @@ next-env.d.ts
 
 # Keep the root credential template trackable
 !/.env.example
+
+# scanner eval: images and API replies are not committed
+/eval/data/
+/eval/cache/
+/eval/sheets/

@@ -206,7 +206,40 @@ export interface FuelMap {
   colourOnly: boolean;
 }
 
-/** Runs the whole analysis in the browser: draw the frame small, rasterise the masks, classify, smooth, group. */
+/** Fills polygons (pixels of a `srcW` wide frame) into a w x h 0/1 mask. Even-odd scanline fill, same result as a canvas fill for simple shapes. */
+export function rasterise(polygons: Polygon[], srcW: number, w: number, h: number): Uint8Array {
+  const mask = new Uint8Array(w * h);
+  const k = w / srcW;
+  for (const poly of polygons) {
+    if (poly.length < 3) continue;
+    const pts = poly.map(([x, y]) => [x * k, y * k]);
+    for (let y = 0; y < h; y++) {
+      const yc = y + 0.5;
+      const xs: number[] = [];
+      for (let i = 0; i < pts.length; i++) {
+        const [ax, ay] = pts[i];
+        const [bx, by] = pts[(i + 1) % pts.length];
+        if (ay > yc !== by > yc) xs.push(ax + ((yc - ay) / (by - ay)) * (bx - ax));
+      }
+      xs.sort((a, b) => a - b);
+      for (let i = 0; i + 1 < xs.length; i += 2) {
+        const from = Math.max(0, Math.round(xs[i]));
+        const to = Math.min(w, Math.round(xs[i + 1]));
+        for (let x = from; x < to; x++) mask[y * w + x] = 1;
+      }
+    }
+  }
+  return mask;
+}
+
+/** The whole analysis on a small RGBA frame (w x h): rasterise masks, classify, smooth, group. Pure, so the app and the eval share it. */
+export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, polygons: Polygon[] | null): FuelMap {
+  const mask = polygons ? rasterise(polygons, srcW, w, h) : null;
+  const labels = smooth(classify(rgba, w, h, mask), w, h);
+  return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h), colourOnly: !polygons };
+}
+
+/** Browser wrapper: draws the frame at MAP_WIDTH and hands the pixels to `scan`. */
 export function analyse(source: CanvasImageSource, srcW: number, srcH: number, polygons: Polygon[] | null): FuelMap | null {
   const w = MAP_WIDTH;
   const h = Math.max(1, Math.round((srcH / srcW) * MAP_WIDTH));
@@ -216,25 +249,7 @@ export function analyse(source: CanvasImageSource, srcW: number, srcH: number, p
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
   ctx.drawImage(source, 0, 0, w, h);
-  const rgba = ctx.getImageData(0, 0, w, h).data;
-  let mask: Uint8Array | null = null;
-  if (polygons) {
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#fff";
-    const k = w / srcW;
-    for (const poly of polygons) {
-      if (poly.length < 3) continue;
-      ctx.beginPath();
-      poly.forEach(([x, y], i) => (i ? ctx.lineTo(x * k, y * k) : ctx.moveTo(x * k, y * k)));
-      ctx.closePath();
-      ctx.fill();
-    }
-    const a = ctx.getImageData(0, 0, w, h).data;
-    mask = new Uint8Array(w * h);
-    for (let i = 0; i < w * h; i++) mask[i] = a[i * 4 + 3] > 127 ? 1 : 0;
-  }
-  const labels = smooth(classify(rgba, w, h, mask), w, h);
-  return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h), colourOnly: !polygons };
+  return scan(ctx.getImageData(0, 0, w, h).data, w, h, srcW, polygons);
 }
 
 /** Decodes an encoded frame (data URL) so it can be drawn. */
