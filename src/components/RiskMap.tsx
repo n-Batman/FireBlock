@@ -6,6 +6,7 @@ import { MapContainer, Polygon, TileLayer, Tooltip, ZoomControl } from "react-le
 import type { LatLngBoundsExpression } from "leaflet";
 import type { Property } from "@/data/types";
 import { levelOf, scoreOf } from "@/lib/score";
+import { ParcelOverlay } from "@/lib/ParcelOverlay";
 
 // Leaflet needs literal colors. Mid-tones that read on both light and dark tiles.
 const RISK_COLOR = { low: "#2f7d4f", medium: "#b97a06", high: "#bf3a28" } as const;
@@ -59,6 +60,7 @@ export default function RiskMap({ property, selectedId, onSelect }: RiskMapProps
           attribution="Imagery &copy; Esri, Maxar, Earthstar Geographics"
         />
         <ZoomControl position="topright" />
+        <ParcelOverlay center={property.center} />
 
         {property.blocks.map((block) => {
           if (block.kind === "habitat") {
