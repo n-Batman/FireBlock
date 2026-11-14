@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fireblock-analysis"
+version = "0.1.0"
+description = "Sentinel-2 and NASA FIRMS analysis using FireBlock C++ storage"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26,<3", "rasterio>=1.4,<2"]
+
+[project.scripts]
+fireblock-analysis = "fireblock_analysis.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fireblock_analysis*"]

@@ -1,0 +1,25 @@
+{
+  "output_root": "analysis",
+  "bbox": null,
+  "min_valid_fraction": 0.6,
+  "valid_scl_classes": [4, 5],
+  "storage": {
+    "executable": "build/native/fireblock.exe",
+    "ingest_executable": "build/native/fireblock_ingest.exe",
+    "env_file": ".env",
+    "bucket": "",
+    "raw_prefix": "raw",
+    "output_prefix": "analysis",
+    "upload_results": true
+  },
+  "scenes": [
+    {
+      "id": "sentinel_scene_1",
+      "acquired_at": "2026-11-10T10:30:00Z",
+      "archive": {"key": "raw/copernicus/PRODUCT_ID/product.zip"}
+    }
+  ],
+  "firms": [
+    {"id": "viirs_noaa20", "input": {"key": "raw/firms/VIIRS_NOAA20_NRT_2026-11-10_2026-11-13.csv"}}
+  ]
+}

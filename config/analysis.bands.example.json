@@ -1,0 +1,26 @@
+{
+  "output_root": "analysis",
+  "min_valid_fraction": 0.6,
+  "storage": {
+    "executable": "build/native/fireblock.exe",
+    "env_file": ".env",
+    "bucket": "",
+    "output_prefix": "analysis",
+    "upload_results": true
+  },
+  "scenes": [{
+    "id": "calibrated_scene",
+    "bands": {
+      "B04": {"key": "raw/scene/B04_10m.tif"},
+      "B08": {"key": "raw/scene/B08_10m.tif"},
+      "B11": {"key": "raw/scene/B11_20m.tif"},
+      "SCL": {"key": "raw/scene/SCL_20m.tif"}
+    },
+    "calibration": {
+      "B04": {"scale": 1.0, "offset": 0.0},
+      "B08": {"scale": 1.0, "offset": 0.0},
+      "B11": {"scale": 1.0, "offset": 0.0}
+    }
+  }],
+  "firms": []
+}

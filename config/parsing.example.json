@@ -1,0 +1,23 @@
+{
+  "input_root": "data",
+  "output_root": "parsed",
+  "firms": {
+    "enabled": true,
+    "invalid_rows": "fail",
+    "columns": {
+      "latitude": "latitude",
+      "longitude": "longitude",
+      "date": "acq_date",
+      "time": "acq_time"
+    }
+  },
+  "copernicus": {
+    "enabled": true
+  },
+  "storage": {
+    "enabled": false,
+    "bucket": "",
+    "prefix": "parsed",
+    "upload_assets": false
+  }
+}

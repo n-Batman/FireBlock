@@ -1,0 +1,19 @@
+{
+  "bbox": [-122.6, 37.0, -121.5, 38.1],
+  "start": "2026-11-10",
+  "end": "2026-11-13",
+  "output": "data",
+  "copernicus": {
+    "enabled": true,
+    "collection": "SENTINEL-2",
+    "product_type": "S2MSI2A",
+    "cloud_cover_max": 30,
+    "max_products": 10,
+    "quicklooks": true,
+    "products": false
+  },
+  "firms": {
+    "enabled": true,
+    "sources": ["VIIRS_NOAA20_NRT", "VIIRS_SNPP_NRT", "MODIS_NRT"]
+  }
+}

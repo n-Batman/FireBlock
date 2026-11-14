@@ -1,0 +1,175 @@
+import hashlib
+import json
+import math
+import re
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+from .bridge import Backend
+from .firms import parse_firms
+
+
+def write_json(path, value):
+    path = Path(path)
+    temporary = path.with_suffix(path.suffix + ".part")
+    temporary.write_text(json.dumps(value, indent=2, allow_nan=False), encoding="utf-8")
+    temporary.replace(path)
+
+
+def digest(path):
+    with open(path, "rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def validate(config):
+    if not isinstance(config, dict) or not isinstance(config.get("storage"), dict):
+        raise ValueError("Job requires a storage configuration")
+    bbox = config.get("bbox")
+    if bbox is not None and (not isinstance(bbox, list) or len(bbox) != 4
+            or not all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in bbox)
+            or not (-180 <= bbox[0] < bbox[2] <= 180 and -90 <= bbox[1] < bbox[3] <= 90)):
+        raise ValueError("bbox must be [west,south,east,north], without antimeridian crossing")
+    minimum = config.get("min_valid_fraction", 0.6)
+    if not isinstance(minimum, (int, float)) or not math.isfinite(minimum) or not 0 <= minimum <= 1:
+        raise ValueError("min_valid_fraction must be 0..1")
+    classes = config.get("valid_scl_classes", [4, 5])
+    if not isinstance(classes, list) or not classes or any(type(c) is not int or c not in {2, 4, 5, 6, 7} for c in classes):
+        raise ValueError("valid_scl_classes must select from 2,4,5,6,7")
+    all_ids = set()
+    for category in ("scenes", "firms"):
+        jobs = config.get(category, [])
+        if not isinstance(jobs, list):
+            raise ValueError(f"{category} must be an array")
+        for item in jobs:
+            name = item.get("id", "")
+            if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", name) or name in all_ids:
+                raise ValueError("Every input needs a unique safe id using letters, digits, underscores or hyphens")
+            all_ids.add(name)
+            if category == "firms":
+                assets = [item.get("input")]
+            elif "archive" in item:
+                if "bands" in item:
+                    raise ValueError("Use archive OR explicit bands for a scene")
+                assets = [item["archive"]]
+            else:
+                bands, calibration = item.get("bands", {}), item.get("calibration", {})
+                if set(bands) != {"B04", "B08", "B11", "SCL"}:
+                    raise ValueError("Scene needs SAFE archive or B04/B08/B11/SCL assets")
+                for band in ("B04", "B08", "B11"):
+                    value = calibration.get(band, {})
+                    if not all(type(value.get(k)) in (float, int) and math.isfinite(value[k]) for k in ("scale", "offset")) or value["scale"] <= 0:
+                        raise ValueError("Explicit bands require per-band scale and offset; do not guess DN calibration")
+                assets = bands.values()
+            for asset in assets:
+                if not isinstance(asset, dict) or len(asset) != 1 or not (set(asset) <= {"key", "local"}) or not isinstance(next(iter(asset.values())), str) or not next(iter(asset.values())):
+                    raise ValueError("Each asset must be {key: B2-object-name} or {local: file-path}")
+    if not all_ids:
+        raise ValueError("Job contains no scenes or FIRMS inputs")
+    prefix = config["storage"].get("output_prefix", "analysis")
+    if not isinstance(prefix, str) or not prefix.strip("/") or "\r" in prefix or "\n" in prefix:
+        raise ValueError("storage.output_prefix must be a nonempty object prefix")
+
+
+def run(config, backend=None):
+    validate(config)
+    backend = backend or Backend(config["storage"])
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-") + uuid.uuid4().hex[:12]
+    root = Path(config.get("output_root", "analysis")) / run_id
+    root.mkdir(parents=True, exist_ok=False)
+    cache = root / "inputs"
+    cache.mkdir()
+    manifest = {"schema_version": 1, "parser_version": "0.1.0", "run_id": run_id, "status": "running",
+                "inputs": [], "scenes": [], "firms": [], "artifacts": []}
+    prefix = config["storage"].get("output_prefix", "analysis").strip("/") + "/" + run_id
+
+    def materialize(asset):
+        if "local" in asset:
+            path = Path(asset["local"])
+            if not path.is_file():
+                raise ValueError("Local asset does not exist")
+        else:
+            # Remote names never become filesystem paths (no traversal or collisions).
+            suffix = Path(asset["key"]).suffix.lower()
+            if not re.fullmatch(r"\.[a-z0-9]{1,8}", suffix):
+                suffix = ".bin"
+            path = cache / (uuid.uuid4().hex + suffix)
+            backend.download(asset["key"], path)
+        manifest["inputs"].append({**asset, "sha256": digest(path), "bytes": path.stat().st_size})
+        return path
+
+    try:
+        for scene in config.get("scenes", []):
+            from .sentinel import analyze_scene, safe_inputs
+            if "archive" in scene:
+                bands, calibration = safe_inputs(materialize(scene["archive"]))
+            else:
+                bands = {b: materialize(asset) for b, asset in scene["bands"].items()}
+                calibration = scene["calibration"]
+            destination = root / scene["id"]
+            summary = analyze_scene(bands, calibration, destination, config.get("bbox"),
+                                    config.get("min_valid_fraction", 0.6), config.get("valid_scl_classes", [4, 5]))
+            summary["id"] = scene["id"]
+            summary["acquired_at"] = scene.get("acquired_at")
+            write_json(destination / "summary.json", summary)
+            manifest["scenes"].append(summary)
+        for source in config.get("firms", []):
+            path = materialize(source["input"])
+            destination = root / source["id"]
+            destination.mkdir()
+            summary = parse_firms(path, destination / "detections.ndjson", config.get("bbox"))
+            summary["id"] = source["id"]
+            write_json(destination / "summary.json", summary)
+            manifest["firms"].append(summary)
+        # Publish only after ALL parsing succeeds; manifest is the commit marker.
+        artifacts = sorted(p for p in root.rglob("*") if p.is_file() and cache not in p.parents and p.name != "manifest.json")
+        for path in artifacts:
+            relative = path.relative_to(root).as_posix()
+            artifact = {"path": relative, "sha256": digest(path), "bytes": path.stat().st_size}
+            if config["storage"].get("upload_results", True):
+                artifact["storage"] = backend.upload(path, prefix + "/" + relative)
+            manifest["artifacts"].append(artifact)
+        manifest["status"] = "complete"
+        manifest["manifest_key"] = prefix + "/manifest.json" if config["storage"].get("upload_results", True) else None
+        write_json(root / "manifest.json", manifest)
+        if config["storage"].get("upload_results", True):
+            backend.upload(root / "manifest.json", manifest["manifest_key"])
+        return root / "manifest.json"
+    except Exception:
+        manifest["status"] = "failed"
+        manifest["error"] = "Processing or storage failed; no completed remote manifest is guaranteed"
+        write_json(root / "manifest.json", manifest)
+        raise
+
+
+def ingest_to_cloud(ingest_path, storage, output_path, backend=None):
+    """Run the C++ scraper, archive its outputs to B2, emit a runnable analysis job."""
+    backend = backend or Backend(storage)
+    config = json.loads(Path(ingest_path).read_text(encoding="utf-8-sig"))
+    input_root = Path(config["output"]).resolve()
+    if not input_root.is_dir():
+        input_root.mkdir(parents=True)
+    # Dedicated empty output prevents stale products from entering a new run.
+    if any(input_root.iterdir()):
+        raise ValueError("Ingestion output must be an empty dedicated directory for this batch")
+    backend.ingest(ingest_path)
+    batch = uuid.uuid4().hex
+    prefix = storage.get("raw_prefix", "raw").strip("/") + "/" + batch
+    job = {"storage": storage, "output_root": "analysis", "bbox": config.get("bbox"), "scenes": [], "firms": [], "raw_objects": []}
+    for path in sorted(input_root.rglob("*")):
+        if not path.is_file() or path.is_symlink() or path.suffix == ".part":
+            continue
+        if not path.resolve().is_relative_to(input_root):
+            continue
+        relative = path.relative_to(input_root).as_posix()
+        key = prefix + "/" + relative
+        job["raw_objects"].append({**backend.upload(path, key), "sha256": digest(path)})
+        identity = "source_" + hashlib.sha256(relative.encode()).hexdigest()[:16]
+        if relative.startswith("firms/") and path.suffix == ".csv":
+            job["firms"].append({"id": identity, "input": {"key": key}})
+        if relative.startswith("copernicus/") and path.name == "product.zip" and config.get("copernicus", {}).get("collection") == "SENTINEL-2" and config["copernicus"].get("product_type") == "S2MSI2A":
+            job["scenes"].append({"id": identity, "archive": {"key": key}})
+    # Raw metadata/products stay in B2, including data the current parser cannot analyze.
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    write_json(output_path, job)
+    return job
