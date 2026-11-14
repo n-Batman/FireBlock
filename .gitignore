@@ -1,0 +1,39 @@
+# Root .gitignore for both halves of FireBlock.
+# The web app keeps its own rules in web/.gitignore.
+
+# Secrets (examples stay committed)
+.env
+.env.*
+!.env.example
+/config/*.json
+!/config/*.example.json
+
+# C++ build output (build.cmd -> build/native)
+/build/
+*.obj
+*.pdb
+*.ilk
+*.exe
+
+# Pipeline output (paths from config/*.example.json)
+/data/
+/parsed/
+/analysis/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node, in case anything runs from the root
+node_modules/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.claude/settings.local.json
