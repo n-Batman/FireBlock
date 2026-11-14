@@ -8,7 +8,7 @@ import { insideSlo } from "./geocode";
 import { OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
 
 /** Independent parcel geometry; never changes or invents risk block scores. `lookup` is a place picked in the address search; a new `id` runs a new lookup. */
-export function ParcelOverlay({center,lookup}:{center:[number,number];lookup?:{lat:number;lon:number;id:number}|null}) {
+export function ParcelOverlay({center,lookup,onPoint}:{center:[number,number];lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void}) {
   const map=useMap();
   const [host,setHost]=useState<HTMLElement|null>(null);
   const [lat,setLat]=useState(String(center[0]));
@@ -31,6 +31,7 @@ export function ParcelOverlay({center,lookup}:{center:[number,number];lookup?:{l
   },[map]);
   async function search(query:URLSearchParams){
     const lat0=Number(query.get("lat")),lon0=Number(query.get("lon"));
+    if(query.has("lat")&&Number.isFinite(lat0)&&Number.isFinite(lon0))onPoint?.({lat:lat0,lon:lon0});
     if(query.has("lat")&&Number.isFinite(lat0)&&Number.isFinite(lon0)&&!insideSlo(lat0,lon0)){pending.current?.abort();setData(null);setMessage(OUTSIDE_COUNTY_MESSAGE);return;}
     pending.current?.abort(); const controller=new AbortController(); pending.current=controller;
     const current=++serial.current;

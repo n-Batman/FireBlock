@@ -57,6 +57,49 @@ export interface Property {
   cachedAt: string;
 }
 
+/** A ring of [lat, lng] points. GeoJSON is [lon, lat]; only `toParcelUnits` flips it. */
+export type Ring = [number, number][];
+/** One polygon part: the outer ring first, then any holes. */
+export type PolygonRings = Ring[];
+
+/** Where a parcel's score came from. A parcel with no source has no score. */
+export type ScoreSource =
+  | { kind: "scan"; at: string; risks: number; clears: number }
+  /** `coverage` is the share of the parcel (0 to 1) that scored cells cover. */
+  | { kind: "risk-map"; asOf: string; modelId: string; coverage: number };
+
+export interface ParcelScore {
+  score: number;
+  level: Level;
+  source: ScoreSource;
+}
+
+/** A county parcel as a unit on the map. Replaces the sample `Block` when a real place is chosen. */
+export interface ParcelUnit {
+  /** The parcel id (APN) from the county service. */
+  id: string;
+  /** One part per Polygon, or per piece of a MultiPolygon. Holes are kept. */
+  parts: PolygonRings[];
+  /** Computed from the geometry, not read from the county. */
+  acres: number;
+  /** [lat, lng] of a point inside the parcel, for its label. */
+  center: [number, number];
+  /** Null means "Not scored yet". Never filled in with a guess. */
+  score: ParcelScore | null;
+  /** True for the parcel the searched point is inside, so it can be listed first. */
+  atPoint?: boolean;
+}
+
+/** An AI scan saved with the device's location, so it can be placed inside a parcel. */
+export interface ParcelScan {
+  lat: number;
+  lon: number;
+  risks: number;
+  clears: number;
+  /** ISO timestamp of the scan. */
+  at: string;
+}
+
 export type Severity = "risk" | "clear";
 
 /** One thing the scanner found in a camera frame. */

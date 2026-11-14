@@ -17,9 +17,9 @@ afterEach(() => {
 });
 
 type Lookup = { lat: number; lon: number; id: number } | null;
-const mount = (lookup?: Lookup) => (
+const mount = (lookup?: Lookup, onPoint?: (p: { lat: number; lon: number }) => void) => (
   <MapContainer center={CENTER} zoom={12} style={{ height: 400, width: 400 }}>
-    <ParcelOverlay center={CENTER} lookup={lookup} />
+    <ParcelOverlay center={CENTER} lookup={lookup} onPoint={onPoint} />
   </MapContainer>
 );
 const parcelUrls = () => fetchMock.mock.calls.map(([u]) => String(u));
@@ -62,6 +62,32 @@ describe("ParcelOverlay lookup", () => {
     fireEvent.click(screen.getByRole("button", { name: "Find at point" }));
     expect(await screen.findByText("Parcel lines cover SLO County only for now.")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("tells the page which point his latitude and longitude fields looked up", async () => {
+    const onPoint = vi.fn();
+    render(mount(null, onPoint));
+    fireEvent.change(screen.getByLabelText("Parcel latitude"), { target: { value: "35.5" } });
+    fireEvent.change(screen.getByLabelText("Parcel longitude"), { target: { value: "-120.7" } });
+    fireEvent.click(screen.getByRole("button", { name: "Find at point" }));
+    await waitFor(() => expect(onPoint).toHaveBeenCalledWith({ lat: 35.5, lon: -120.7 }));
+  });
+
+  it("also tells the page about a point outside the county, so it can say so", async () => {
+    const onPoint = vi.fn();
+    render(mount(null, onPoint));
+    fireEvent.change(screen.getByLabelText("Parcel latitude"), { target: { value: "36.6777" } });
+    fireEvent.change(screen.getByLabelText("Parcel longitude"), { target: { value: "-121.6555" } });
+    fireEvent.click(screen.getByRole("button", { name: "Find at point" }));
+    await waitFor(() => expect(onPoint).toHaveBeenCalledWith({ lat: 36.6777, lon: -121.6555 }));
+  });
+
+  it("does not tell the page about the visible-area search, which has no single point", async () => {
+    const onPoint = vi.fn();
+    render(mount(null, onPoint));
+    fireEvent.click(screen.getByRole("button", { name: "Find in visible area" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(onPoint).not.toHaveBeenCalled();
   });
 
   it("keeps his controls: latitude, longitude, Find at point, Pick on map, Find in visible area", () => {

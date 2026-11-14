@@ -15,7 +15,7 @@ import {
 } from "react-leaflet";
 import { animate } from "motion/react";
 import type { LatLngBoundsExpression } from "leaflet";
-import type { Block, Level, Property } from "@/data/types";
+import type { Block, Level, ParcelUnit, Property } from "@/data/types";
 import { boundsOfPolygon, labelPoint } from "@/lib/geo";
 import { levelOf, scoreOf } from "@/lib/score";
 import { tileSource } from "@/lib/tiles";
@@ -26,6 +26,8 @@ import { ParcelOverlay } from "@/lib/ParcelOverlay";
 // Literal colors for Leaflet: the risk colors from DESIGN.md.
 const RISK_COLOR: Record<Level, string> = { low: "#5db67f", medium: "#e0a83a", high: "#e5675a" };
 const HABITAT_COLOR = "#b7c5bc";
+/** A parcel with no score: a neutral outline, never a risk colour. */
+const PARCEL_NEUTRAL = HABITAT_COLOR;
 const RANK: Record<Level, number> = { high: 0, medium: 1, low: 2 };
 const HABITAT_RANK = 3;
 const STAGGER = 0.06;
@@ -120,21 +122,101 @@ function PlaceFocus({ place }: { place: PickedPlace | null }) {
   return null;
 }
 
+/**
+ * County parcels as the clickable units, styled like the sample blocks: same colours, casing and
+ * selected glow. A parcel with no score is a neutral outline with no pill. It is never given a colour.
+ */
+export function ParcelPolygons({
+  parcels,
+  selectedId,
+  onSelect,
+}: {
+  parcels: ParcelUnit[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const selected = parcels.find((p) => p.id === selectedId) ?? null;
+  const colorOf = (p: ParcelUnit) => (p.score ? RISK_COLOR[p.score.level] : PARCEL_NEUTRAL);
+  return (
+    <>
+      {parcels.map((parcel) => {
+        const isSelected = parcel.id === selected?.id;
+        const dim = selected !== null && !isSelected;
+        const color = colorOf(parcel);
+        const fillOpacity = parcel.score
+          ? isSelected ? 0.22 : dim ? 0.06 : 0.15
+          : isSelected ? 0.1 : dim ? 0.02 : 0.04;
+        return (
+          <Polygon
+            key={parcel.id}
+            positions={parcel.parts}
+            pathOptions={{
+              color,
+              fillColor: color,
+              weight: isSelected ? 4 : 2,
+              opacity: dim ? 0.45 : 1,
+              fillOpacity,
+              lineJoin: "round",
+            }}
+            eventHandlers={{ click: () => onSelect(parcel.id) }}
+          >
+            <Tooltip sticky className="block-label">
+              {`Parcel ${parcel.id}`}
+            </Tooltip>
+          </Polygon>
+        );
+      })}
+
+      {/* Soft glow under the selected parcel's outline. */}
+      {selected && (
+        <Polygon
+          positions={selected.parts}
+          pathOptions={{ color: colorOf(selected), weight: 14, opacity: 0.25, fill: false, interactive: false, lineJoin: "round" }}
+        />
+      )}
+
+      {parcels.map((parcel) => {
+        if (!parcel.score) return null;
+        const isSelected = parcel.id === selected?.id;
+        const dim = selected !== null && !isSelected;
+        const label = `Parcel ${parcel.id}, score ${parcel.score.score}`;
+        return (
+          <Marker
+            key={`pill-${parcel.id}`}
+            position={parcel.center}
+            icon={pillIcon(String(parcel.score.score), PILL_TONE[parcel.score.level], isSelected, dim)}
+            title={label}
+            alt={label}
+            zIndexOffset={isSelected ? 1000 : 0}
+            eventHandlers={{ click: () => onSelect(parcel.id) }}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 interface RiskMapProps {
   property: Property;
   selectedId: string | null;
   onSelect: (id: string) => void;
   panelOpen: boolean;
   place?: PickedPlace | null;
+  /** County parcels for a searched place. When given, they replace the sample blocks. */
+  parcels?: ParcelUnit[] | null;
+  /** A point looked up through his latitude/longitude fields or "Pick on map". */
+  onPoint?: (point: { lat: number; lon: number }) => void;
 }
 
-export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null }: RiskMapProps) {
+export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null, parcels = null, onPoint }: RiskMapProps) {
   const wide = useWide();
   const tiles = tileSource(process.env.NEXT_PUBLIC_ARCGIS_KEY);
   // Three failed tiles in a row means the imagery is not loading. Say so instead of staying grey.
   const [tileErrors, setTileErrors] = useState(0);
 
-  const selected = property.blocks.find((b) => b.id === selectedId && b.kind === "vine") ?? null;
+  // With county parcels on the map the sample blocks are not drawn.
+  const blocks = parcels ? [] : property.blocks;
+  const selected = blocks.find((b) => b.id === selectedId && b.kind === "vine") ?? null;
   const labels = useMemo(
     () => new Map(property.blocks.map((b) => [b.id, labelPoint(b.polygon)] as const)),
     [property],
@@ -190,10 +272,12 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
         {!(wide && panelOpen) && (
           <ZoomControl key={wide ? "wide" : "narrow"} position={wide ? "bottomright" : "topright"} />
         )}
-        <ParcelOverlay center={property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} />
+        <ParcelOverlay center={property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} />
         <PlaceFocus place={place} />
 
-        {property.blocks.map((block) => {
+        {parcels && <ParcelPolygons parcels={parcels} selectedId={selectedId} onSelect={onSelect} />}
+
+        {blocks.map((block) => {
           const dim = selected !== null && block.id !== selected.id;
 
           if (block.kind === "habitat") {
@@ -257,7 +341,7 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
           />
         )}
 
-        {property.blocks.map((block) => {
+        {blocks.map((block) => {
           const point = labels.get(block.id)!;
           const dim = selected !== null && block.id !== selected.id;
           if (block.kind === "habitat") {
@@ -291,8 +375,8 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
           );
         })}
 
-        <Camera property={property} selected={selected} panelOpen={panelOpen} />
-        <Reveal />
+        {!parcels && <Camera property={property} selected={selected} panelOpen={panelOpen} />}
+        {!parcels && <Reveal />}
       </MapContainer>
     </>
   );

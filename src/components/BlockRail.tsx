@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Property } from "@/data/types";
+import type { ParcelUnit, Property } from "@/data/types";
 import { levelOf, rankBlocks, scoreOf } from "@/lib/score";
 import { useDaysUntilJune1 } from "@/lib/useDeadline";
+import { ParcelRows } from "./ParcelRows";
 import { RiskChip } from "./RiskChip";
 import { SavingsLine } from "./SavingsLine";
 
@@ -13,6 +14,10 @@ interface BlockRailProps {
   onSelect: (id: string) => void;
   /** Injectable for tests; defaults to the current date in the browser. */
   today?: Date;
+  /** County parcels for a searched place. When given, they replace the sample blocks. */
+  parcels?: ParcelUnit[];
+  /** Loading, outside the county or an error, shown in place of the parcel list. */
+  parcelNotice?: string | null;
 }
 
 function Deadline({ today }: { today?: Date }) {
@@ -35,7 +40,7 @@ function Deadline({ today }: { today?: Date }) {
   );
 }
 
-export function BlockRail({ property, selectedId, onSelect, today }: BlockRailProps) {
+export function BlockRail({ property, selectedId, onSelect, today, parcels, parcelNotice = null }: BlockRailProps) {
   const ranked = rankBlocks(property.blocks);
   const habitat = property.blocks.filter((b) => b.kind === "habitat");
   const listRef = useRef<HTMLUListElement>(null);
@@ -47,6 +52,15 @@ export function BlockRail({ property, selectedId, onSelect, today }: BlockRailPr
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     row?.scrollIntoView?.({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
   }, [selectedId]);
+
+  if (parcels) {
+    return (
+      <div>
+        <Deadline today={today} />
+        <ParcelRows parcels={parcels} selectedId={selectedId} onSelect={onSelect} notice={parcelNotice} />
+      </div>
+    );
+  }
 
   return (
     <div>

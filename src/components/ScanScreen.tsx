@@ -7,6 +7,8 @@ import { ArrowLeft, Camera } from "@phosphor-icons/react";
 import { properties } from "@/data/properties";
 import { scanDelta, summarize, withScan } from "@/lib/scan";
 import { scoreOf } from "@/lib/score";
+import { currentPosition, LocationError } from "@/lib/geolocate";
+import { saveParcelScan } from "@/lib/parcelScanStore";
 import { saveScan, scanKey } from "@/lib/scanStore";
 import { shownTracks } from "@/lib/scanView";
 import { useScanSession } from "@/lib/useScanSession";
@@ -47,6 +49,10 @@ export function ScanScreen() {
   // The demo switch only shows when /demo/vineyard.mp4 is really there.
   const demoAvailable = useDemoAvailable() === true;
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Opened from a county parcel: the scan is saved with the device's GPS, and lands in whichever parcel that is inside.
+  const parcelId = params.get("parcel");
+  const parcelMode = parcelId !== null;
+  const [saving, setSaving] = useState(false);
 
   const { tracks, status } = session.tracker;
   // The overlay, the card and the score all read the same three findings.
@@ -60,6 +66,22 @@ export function ScanScreen() {
   const to = block ? scoreOf(withScan(block, scanDelta(risks, clears), "")) : null;
 
   const begin = (useDemo: boolean) => session.start(useDemo && demoAvailable ? "demo" : "camera");
+
+  async function saveToParcel() {
+    setSaveError(null);
+    setSaving(true);
+    try {
+      const here = await currentPosition(navigator.geolocation);
+      saveParcelScan(window.localStorage, { lat: here.lat, lon: here.lon, risks, clears, at: new Date().toISOString() });
+      session.stop();
+      router.push(`/?lat=${here.lat}&lon=${here.lon}`);
+    } catch (error) {
+      // No location means no parcel to put the scan in. It is not saved with a guessed one.
+      setSaveError(error instanceof LocationError ? error.message : "The scan could not be saved in this browser.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function save() {
     if (!property || !block) return;
@@ -89,7 +111,7 @@ export function ScanScreen() {
       />
       {running && (
         <>
-          <h1 className="sr-only">Scanning {block ? block.name : "the rows"}</h1>
+          <h1 className="sr-only">Scanning {block ? block.name : parcelMode ? `parcel ${parcelId}` : "the rows"}</h1>
           {/* Tap anywhere on the camera to freeze the frame with its findings, tap again to resume. */}
           <button
             type="button"
@@ -123,12 +145,15 @@ export function ScanScreen() {
             </h1>
             <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
               Point the camera at the rows, brush lines and buildings. FireBlock flags dry growth
-              and brush touching structures, then updates the block&apos;s score.
+              and brush touching structures, then{" "}
+              {parcelMode ? "scores the parcel you are standing in." : "updates the block's score."}
             </p>
             <p className="mt-3 text-[15px]">
-              {property && block
-                ? `Scanning ${block.name} at ${property.name}.`
-                : "Open a block on the map first to save what you find."}
+              {parcelMode
+                ? `Scanning parcel ${parcelId}. Stand inside it: the scan is saved with your location.`
+                : property && block
+                  ? `Scanning ${block.name} at ${property.name}.`
+                  : "Open a block on the map first to save what you find."}
             </p>
             {session.error && (
               <p role="alert" className="mt-4 rounded-[var(--r)] bg-high-bg px-3 py-2 text-[15px] text-high-ink">
@@ -161,6 +186,11 @@ export function ScanScreen() {
             {session.frozen && (
               <p className="text-xs font-medium text-ink-2">Frozen. Tap the screen to resume.</p>
             )}
+            {parcelMode && (
+              <p aria-live="polite" className="text-[15px]">
+                {decided ? `This scan flagged ${risks} of ${risks + clears} areas.` : "Looking for risks..."}
+              </p>
+            )}
             {block && from !== null && to !== null && (
               <p aria-live="polite" className="text-[15px]">
                 {decided ? (
@@ -176,11 +206,11 @@ export function ScanScreen() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={save}
-                disabled={!block || !decided}
+                onClick={parcelMode ? saveToParcel : save}
+                disabled={(parcelMode ? saving : !block) || !decided}
                 className="inline-flex h-11 flex-1 items-center justify-center rounded-[var(--r)] bg-ink px-4 text-[15px] font-semibold text-paper transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
               >
-                Save to block
+                {parcelMode ? (saving ? "Finding your location..." : "Save to parcel") : "Save to block"}
               </button>
               <button
                 type="button"

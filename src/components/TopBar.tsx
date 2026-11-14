@@ -3,11 +3,17 @@ import { Camera, Info } from "@phosphor-icons/react";
 import type { Property } from "@/data/types";
 import { formatAsOf } from "@/lib/format";
 
+/** The picker value for the parcels around the searched place. Any other value is a sample property id. */
+export const PARCELS_OPTION = "__parcels";
+
 interface TopBarProps {
   properties: Property[];
   activeId: string;
+  /** True once a place has been searched, so the parcels around it can be picked. */
+  parcelsAvailable?: boolean;
   onChange: (id: string) => void;
-  cachedAt: string;
+  /** When the sample data was cached. Left out for real parcels, which have no sample date. */
+  cachedAt?: string;
   onOpenLimits: () => void;
   /** Where the Scan button goes: the scanner for this property, and the selected block if any. */
   scanHref: string;
@@ -18,6 +24,7 @@ interface TopBarProps {
 export function TopBar({
   properties,
   activeId,
+  parcelsAvailable = false,
   onChange,
   cachedAt,
   onOpenLimits,
@@ -39,9 +46,10 @@ export function TopBar({
             onChange={(e) => onChange(e.target.value)}
             className="h-11 max-w-[150px] rounded-[var(--r)] border border-[var(--glass-border)] bg-surface px-3 text-[15px] font-medium text-ink sm:max-w-none"
           >
+            {parcelsAvailable && <option value={PARCELS_OPTION}>Parcels near your search</option>}
             {properties.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                Demo: {p.name}
               </option>
             ))}
           </select>
@@ -51,12 +59,14 @@ export function TopBar({
       <div className="order-3 w-full lg:order-2 lg:w-auto">{children}</div>
 
       <div className="glass pointer-events-auto order-2 ml-auto flex items-center gap-1.5 py-1.5 pl-1.5 pr-1.5 sm:gap-3 xl:pl-4 text-[13px] text-ink-2 lg:order-3">
-        <span className="hidden xl:inline">
-          Data as of{" "}
-          <time dateTime={cachedAt} className="tabular-nums text-ink">
-            {formatAsOf(cachedAt)}
-          </time>
-        </span>
+        {cachedAt && (
+          <span className="hidden xl:inline">
+            Data as of{" "}
+            <time dateTime={cachedAt} className="tabular-nums text-ink">
+              {formatAsOf(cachedAt)}
+            </time>
+          </span>
+        )}
         <Link
           href={scanHref}
           aria-label="Scan"

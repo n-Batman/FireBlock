@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { properties } from "@/data/properties";
 import { NO_BLOCKS_MESSAGE, OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
-import { labelPoint } from "./geo";
-import { GeocodeError, insideSlo, locate, noticeFor, SLO_EXTENT, suggest } from "./geocode";
+import { GeocodeError, insideSlo, locate, SLO_EXTENT, suggest } from "./geocode";
 
 const reply = (body: unknown, ok = true) => ({ ok, status: ok ? 200 : 500, json: async () => body });
 const urlOf = (fetcher: ReturnType<typeof vi.fn>) => new URL(fetcher.mock.calls[0][0] as string);
@@ -93,28 +91,9 @@ describe("insideSlo", () => {
   });
 });
 
-describe("noticeFor", () => {
-  const place = (lat: number, lon: number) => ({ lat, lon, label: "somewhere" });
-
-  it("says parcel lines cover SLO County only when the place is outside the county", () => {
-    expect(noticeFor(place(36.6777, -121.6555), properties)).toBe(OUTSIDE_COUNTY_MESSAGE);
+describe("what the map says about places it has no scored parcels for", () => {
+  it("uses the exact words for the county and no-score notices", () => {
     expect(OUTSIDE_COUNTY_MESSAGE).toBe("Parcel lines cover SLO County only for now.");
-  });
-
-  it("says no vineyard blocks are scored when the place is in the county but in none of them", () => {
-    expect(noticeFor(place(35.2828, -120.6596), properties)).toBe(NO_BLOCKS_MESSAGE);
     expect(NO_BLOCKS_MESSAGE).toBe("No vineyard blocks scored here yet. Scan the rows to add one.");
-  });
-
-  it("says nothing when the place is inside a scored vine block", () => {
-    const block = properties[0].blocks.find((b) => b.kind === "vine")!;
-    const [lat, lon] = labelPoint(block.polygon);
-    expect(noticeFor(place(lat, lon), properties)).toBeNull();
-  });
-
-  it("does not count protected habitat as a scored block", () => {
-    const habitat = properties[0].blocks.find((b) => b.kind === "habitat")!;
-    const [lat, lon] = labelPoint(habitat.polygon);
-    expect(noticeFor(place(lat, lon), properties)).toBe(NO_BLOCKS_MESSAGE);
   });
 });

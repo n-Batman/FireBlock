@@ -1,7 +1,3 @@
-import { NO_BLOCKS_MESSAGE, OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
-import type { Property } from "@/data/types";
-import { pointInPolygon } from "./geo";
-
 /** Rough bounding box of San Luis Obispo County. Address search is limited to it. */
 export const SLO_EXTENT = { west: -121.35, south: 34.89, east: -119.44, north: 35.8 } as const;
 
@@ -75,16 +71,4 @@ export async function locate(suggestion: Suggestion, options: Options = {}): Pro
   const lat = candidates?.[0]?.location?.y;
   if (typeof lat !== "number" || typeof lon !== "number" || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   return { lat, lon, label: suggestion.text };
-}
-
-/**
- * What to say about a place the person looked up: outside the county we have no parcel lines,
- * and in the county but outside every scored vine block we have no score. Null when a block covers it.
- */
-export function noticeFor(place: Place, all: Property[]): string | null {
-  if (!insideSlo(place.lat, place.lon)) return OUTSIDE_COUNTY_MESSAGE;
-  const scored = all.some((p) =>
-    p.blocks.some((b) => b.kind === "vine" && pointInPolygon([place.lat, place.lon], b.polygon)),
-  );
-  return scored ? null : NO_BLOCKS_MESSAGE;
 }
