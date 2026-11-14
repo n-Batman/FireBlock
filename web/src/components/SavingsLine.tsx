@@ -11,7 +11,6 @@ export function SavingsLine({ property }: { property: Property }) {
 
   let text: React.ReactNode;
   if (high.blocks === 0) text = "No High-risk blocks. No urgent mowing.";
-  else if (saved.cost === 0) text = `Mow all ${blocks(all.blocks)}.`;
   else
     text = (
       <>

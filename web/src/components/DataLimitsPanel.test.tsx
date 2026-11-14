@@ -9,16 +9,13 @@ describe("DataLimitsPanel", () => {
     expect(screen.getByRole("dialog", { name: "Data & limits" })).toBeInTheDocument();
     expect(screen.getByText(/interim data, final maps expected 2026/)).toBeInTheDocument();
     expect(screen.getByText(/It is not a fire prediction\./)).toBeInTheDocument();
-    expect(
-      screen.getByText("Demo version: 3 properties, sample data cached Nov 13, 2026."),
-    ).toBeInTheDocument();
   });
 
-  it("says demo scores use sample values standing in for the live data feed, with the date", () => {
+  it("says in one line that demo scores use sample values standing in for the live feed, with the date", () => {
     render(<DataLimitsPanel open onClose={() => {}} />);
     expect(
       screen.getByText(
-        "Demo scores use sample values that stand in for the live data feed. Sample values dated Nov 13, 2026.",
+        "Demo version: 3 properties. Scores use sample values that stand in for the live data feed, cached Nov 13, 2026.",
       ),
     ).toBeInTheDocument();
   });
