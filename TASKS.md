@@ -57,6 +57,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P14 | UUID-based satellite reuse, bounded metadata-only index, shared cloud references and restore compatibility | DONE (Codex; docs/satellite-deduplication.md) |
 | P15 | Bound scraper events and cloud discovery memory; reap failed scraper children | DONE (Codex; 43 Python tests and 13 native checks pass; frontend: 59 tests pass, BreakdownPanel suite blocked by missing component) |
 | P17 | Bounded Backblaze 5xx retries, upload receipt recovery, and durable scraper error notifications | DONE (Codex; four attempts with 1/2/4 second waits; 14 native checks and 47 Python tests pass; docs/storage-retries.md) |
+| P18 | Run the real Silver River 50-box risk model and publish a portable result snapshot | DONE (Codex; verified cloud publication, 1,476 scored cells; src/data/real-runs/silver-river-20261114/) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |
