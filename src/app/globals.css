@@ -178,10 +178,10 @@ body {
   background: var(--surface);
   color: var(--ink);
 }
-/* Phones: the zoom control sits top right, below the header and weather strip. */
+/* Phones: the zoom control sits top right, below the header, weather strip and search box. */
 @media (max-width: 1023px) {
   .leaflet-top.leaflet-right {
-    top: 160px;
+    top: 216px;
   }
 }
 
@@ -194,6 +194,14 @@ body {
 :focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
+}
+
+/* Phones: the parcel panel (a Leaflet control in the bottom right) would sit under the block rail,
+   so it stays hidden until "Parcel tools" is opened, which also hides the rail. */
+@media (max-width: 1023px) {
+  [data-parcel-tools="closed"] .leaflet-bottom.leaflet-right {
+    display: none;
+  }
 }
 
 /* No 300 ms tap delay on touch screens. */

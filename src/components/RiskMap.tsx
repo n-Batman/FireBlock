@@ -20,6 +20,7 @@ import { boundsOfPolygon, labelPoint } from "@/lib/geo";
 import { levelOf, scoreOf } from "@/lib/score";
 import { tileSource } from "@/lib/tiles";
 import { useWide } from "@/lib/useWide";
+import type { Place } from "@/lib/geocode";
 import { ParcelOverlay } from "@/lib/ParcelOverlay";
 
 // Literal colors for Leaflet: the risk colors from DESIGN.md.
@@ -69,7 +70,7 @@ function Camera({ property, selected, panelOpen }: { property: Property; selecte
 
   useEffect(() => {
     const h = window.innerHeight;
-    const topLeft: [number, number] = wide ? [416, 96] : [32, panelOpen ? 92 : 172];
+    const topLeft: [number, number] = wide ? [416, 96] : [32, panelOpen ? 92 : 224];
     const bottomRight: [number, number] = wide
       ? [(panelOpen ? 432 : 16) + 24, 88]
       : [76, Math.round(h * (panelOpen ? 0.55 : 0.4)) + (panelOpen ? 48 : 100)];
@@ -105,14 +106,29 @@ function Reveal() {
   return null;
 }
 
+/** A place picked in the address search. A new `id` means a new pick, even at the same point. */
+export type PickedPlace = Place & { id: number };
+
+/** Flies to the picked place (no animation when the visitor prefers reduced motion). */
+function PlaceFocus({ place }: { place: PickedPlace | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!place) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    map.flyTo([place.lat, place.lon], 17, { animate: !reduce, duration: 1 });
+  }, [map, place]);
+  return null;
+}
+
 interface RiskMapProps {
   property: Property;
   selectedId: string | null;
   onSelect: (id: string) => void;
   panelOpen: boolean;
+  place?: PickedPlace | null;
 }
 
-export default function RiskMap({ property, selectedId, onSelect, panelOpen }: RiskMapProps) {
+export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null }: RiskMapProps) {
   const wide = useWide();
   const tiles = tileSource(process.env.NEXT_PUBLIC_ARCGIS_KEY);
   // Three failed tiles in a row means the imagery is not loading. Say so instead of staying grey.
@@ -174,7 +190,8 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen }: R
         {!(wide && panelOpen) && (
           <ZoomControl key={wide ? "wide" : "narrow"} position={wide ? "bottomright" : "topright"} />
         )}
-        <ParcelOverlay center={property.center} />
+        <ParcelOverlay center={property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} />
+        <PlaceFocus place={place} />
 
         {property.blocks.map((block) => {
           const dim = selected !== null && block.id !== selected.id;
