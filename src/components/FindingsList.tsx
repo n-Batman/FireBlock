@@ -1,3 +1,4 @@
+import type { GridFinding } from "@/data/types";
 import type { Track } from "@/lib/scan";
 import { findingLine, toneOf, type Tone } from "@/lib/scanView";
 
@@ -21,6 +22,28 @@ export function FindingsList({ tracks, empty }: { tracks: Track[]; empty: string
             <span>
               <span className="sr-only">{tone.word}: </span>
               {findingLine(t)}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Grid findings, risks first, each with where it is and why; the action only for risks. */
+export function GridFindingsList({ findings }: { findings: GridFinding[] }) {
+  if (findings.length === 0) return <p className="text-[15px] text-ink-2">Nothing flagged in this frame.</p>;
+  return (
+    <ul aria-label="Findings" className="max-h-48 space-y-2 overflow-y-auto">
+      {findings.map((f, i) => {
+        const tone = TONE[f.severity];
+        return (
+          <li key={i} className="flex items-start gap-3 text-[15px] leading-snug">
+            <span aria-hidden="true" className={`mt-1.5 size-2.5 shrink-0 rounded-full ${tone.dot}`} />
+            <span>
+              <span className="sr-only">{tone.word}: </span>
+              <span className="font-medium">{f.label}</span>
+              {f.where ? `, ${f.where}` : ""}. {f.reason} {f.severity === "risk" ? f.action : ""}
             </span>
           </li>
         );

@@ -26,7 +26,7 @@ describe("parseScanRequest", () => {
   });
 
   it("rejects an image that is too large", () => {
-    const big = "data:image/jpeg;base64," + "A".repeat(2_000_000);
+    const big = "data:image/jpeg;base64," + "A".repeat(5_000_000);
     expect(parseScanRequest({ image: big })).toMatchObject({ ok: false });
   });
 

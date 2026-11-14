@@ -146,10 +146,10 @@ describe("score feed", () => {
   });
 
   it("adds 6 per risk and takes off 3 per cleared area, within -15 and +25", () => {
-    expect(scanDelta(3, 0)).toBe(18);
-    expect(scanDelta(5, 0)).toBe(25);
-    expect(scanDelta(0, 2)).toBe(-6);
-    expect(scanDelta(0, 10)).toBe(-15);
+    expect(scanDelta(3, 0)).toBe(25); // all risk
+    expect(scanDelta(0, 10)).toBe(-15); // all clear
+    expect(scanDelta(1, 1)).toBe(5); // half
+    expect(scanDelta(22, 42)).toBe(Math.round((22 / 64) * 40 - 15)); // cell counts work the same way
     expect(scanDelta(0, 0)).toBe(0);
   });
 });

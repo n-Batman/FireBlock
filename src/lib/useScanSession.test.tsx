@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
+import { clearMemoryCache } from "./scanCache";
 import { useScanSession } from "./useScanSession";
 
 const IMAGE = "data:image/jpeg;base64,AAAA";
@@ -41,6 +42,7 @@ async function startSession() {
 }
 
 beforeEach(() => {
+  clearMemoryCache();
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   canvasSize = [];
   jpegQuality = [];
@@ -67,10 +69,10 @@ afterEach(() => {
 const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
 
 describe("useScanSession", () => {
-  it("sends each frame at 1280 px on the long side as JPEG quality 0.85, never upscaled", async () => {
+  it("sends each frame at up to 1536 px on the long side as JPEG quality 0.85, never upscaled", async () => {
     fetchMock.mockResolvedValue(ok());
     await startSession();
-    expect(canvasSize[0]).toEqual([1280, 720]);
+    expect(canvasSize[0]).toEqual([1280, 720]); // a 1280 x 720 camera is not scaled up
     expect(jpegQuality[0]).toBe(0.85);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.image).toBe(IMAGE);
@@ -108,7 +110,7 @@ describe("useScanSession", () => {
     expect(hook.result.current.tracker.tracks.some((t) => t.confidence === 0.4)).toBe(false);
   });
 
-  it("freezes on tap: aborts the request in flight, pauses the video and sends nothing more", async () => {
+  it("freezes on tap: aborts the live request, pauses the video, scans the frozen frame once and then sends nothing", async () => {
     fetchMock.mockImplementation(() => new Promise(() => {}));
     const { video, hook } = await startSession();
     const signal = fetchMock.mock.calls[0][1].signal as AbortSignal;
@@ -117,9 +119,10 @@ describe("useScanSession", () => {
     expect(hook.result.current.frozen).toBe(true);
     expect(signal.aborted).toBe(true);
     expect(video.pause).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(2); // the frozen frame
 
     await advance(10_000);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("resumes on a second tap", async () => {
@@ -159,22 +162,60 @@ describe("useScanSession", () => {
     expect(video).toMatchObject({ width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: [{ focusMode: "continuous" }] });
   });
 
-  it("scans an uploaded photo once, at the same size and quality, and settles the status", async () => {
+  it("scans an uploaded photo once at up to 1536 px, and keeps the grid it gets back", async () => {
     vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 4000, height: 3000, close: () => {} })));
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:photo", revokeObjectURL: () => {} }));
-    fetchMock.mockResolvedValue(ok([finding(0)]));
+    const cells = Array(96).fill("g");
+    cells[11] = "d";
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ findings: [], grid: { cells, findings: [] } }) });
     const hook = renderHook(() => useScanSession({ current: liveVideo() }));
     await act(async () => {
       await hook.result.current.startPhoto(new File(["x"], "row.jpg", { type: "image/jpeg" }));
     });
-    expect(canvasSize[0]).toEqual([1280, 960]);
+    expect(canvasSize[0]).toEqual([1536, 1152]);
     expect(jpegQuality[0]).toBe(0.85);
     expect(hook.result.current.phase).toBe("running");
     expect(hook.result.current.mode).toBe("photo");
     expect(hook.result.current.videoSize).toEqual({ w: 4000, h: 3000 });
-    expect(hook.result.current.tracker.tracks).toHaveLength(1);
-    expect(hook.result.current.tracker.status).toBe("risks");
+    expect(hook.result.current.grid?.cells[11]).toBe("d");
     await advance(10_000);
     expect(fetchMock).toHaveBeenCalledTimes(1); // one photo, one request
+  });
+
+  it("scans the same photo again without a request, and shows the shimmer flag while a request is in flight", async () => {
+    vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 800, height: 600, close: () => {} })));
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:photo", revokeObjectURL: () => {} }));
+    const cells = Array(96).fill("g");
+    let reply!: (v: unknown) => void;
+    fetchMock.mockImplementation(() => new Promise((r) => (reply = r)));
+    const hook = renderHook(() => useScanSession({ current: liveVideo() }));
+    const file = new File(["x"], "row.jpg", { type: "image/jpeg" });
+    await act(async () => {
+      await hook.result.current.startPhoto(file);
+    });
+    expect(hook.result.current.scanning).toBe(true);
+    await act(async () => reply({ ok: true, status: 200, json: async () => ({ findings: [], grid: { cells, findings: [] } }) }));
+    expect(hook.result.current.scanning).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      hook.result.current.stop();
+      await hook.result.current.startPhoto(file);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1); // the second upload came from the cache
+    expect(hook.result.current.grid?.cells).toHaveLength(96);
+  });
+
+  it("scans the frozen frame once when the camera is frozen", async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ findings: [], grid: { cells: Array(96).fill("d"), findings: [] } }) });
+    const { hook } = await startSession();
+    const before = fetchMock.mock.calls.length;
+    await act(async () => hook.result.current.toggleFreeze());
+    await advance(1);
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(before); // never a second request while frozen
+    expect(hook.result.current.grid?.cells[0]).toBe("d");
+    const frozenCalls = fetchMock.mock.calls.length;
+    await advance(10_000);
+    expect(fetchMock.mock.calls.length).toBe(frozenCalls);
   });
 });

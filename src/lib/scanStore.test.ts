@@ -56,7 +56,7 @@ describe("loadScans and saveScan", () => {
 describe("applyScans", () => {
   it("moves only the scanned block's score, without changing the original", () => {
     const scanned = applyScans(adelaida, { "adelaida-hills:adelaida-5": { risks: 2, clears: 0, at } });
-    expect(scoreById(scanned, "adelaida-5")).toBe(83);
+    expect(scoreById(scanned, "adelaida-5")).toBe(96); // all risk: +25
     expect(scoreById(scanned, "adelaida-3")).toBe(78);
     expect(scoreById(adelaida, "adelaida-5")).toBe(71);
   });

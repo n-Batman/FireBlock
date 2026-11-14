@@ -152,9 +152,10 @@ export function summarize(tracks: Track[]): { risks: number; clears: number } {
   };
 }
 
-/** Score change from a scan: +6 per risk, -3 per cleared area, kept within -15 and +25. */
+/** Score change from a scan: the share of risk (risks / (risks + clears)) mapped to -15 (none) .. +25 (all). No rated areas, no change. */
 export function scanDelta(risks: number, clears: number): number {
-  return Math.max(-15, Math.min(25, risks * 6 - clears * 3));
+  if (risks + clears === 0) return 0;
+  return Math.round((risks / (risks + clears)) * 40 - 15);
 }
 
 /** Adds the scan to a block as its own factor, keeping the score between 0 and 100. */

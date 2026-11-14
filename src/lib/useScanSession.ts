@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import type { Finding, ScanResponse } from "@/data/types";
+import type { GridScan, ScanResponse } from "@/data/types";
 import { DEMO_CLIP_URL } from "./demoClip";
 import { encodeFrame, MIN_SHARPNESS } from "./frame";
+import { getCached, hashImage, putCached } from "./scanCache";
 import { createTracker, updateTracker, type TrackerState } from "./scan";
 import { selectFindings } from "./scanView";
 
@@ -34,7 +35,25 @@ function explain(error: unknown, mode: Mode): string {
   return "The camera could not start. Try again.";
 }
 
-async function scanImage(image: string, demoTime: number | undefined, signal: AbortSignal): Promise<Finding[]> {
+const storage = () => {
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+};
+
+/** Sends the frame to /api/scan. A grid for an image seen before comes back from the cache without a request. */
+async function scanImage(image: string, demoTime: number | undefined, signal: AbortSignal): Promise<ScanResponse> {
+  const hash = demoTime === undefined ? hashImage(image) : null;
+  const hit = hash ? getCached(hash, storage()) : null;
+  if (hit) return { findings: [], grid: hit };
+  const data = await post(image, demoTime, signal);
+  if (hash && data.grid) putCached(hash, data.grid, storage());
+  return data;
+}
+
+async function post(image: string, demoTime: number | undefined, signal: AbortSignal): Promise<ScanResponse> {
   const res = await fetch("/api/scan", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -42,7 +61,7 @@ async function scanImage(image: string, demoTime: number | undefined, signal: Ab
     signal,
   });
   if (!res.ok) throw new Error(String(res.status));
-  return ((await res.json()) as ScanResponse).findings;
+  return (await res.json()) as ScanResponse;
 }
 
 /**
@@ -61,9 +80,13 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
   const [videoSize, setVideoSize] = useState<{ w: number; h: number } | null>(null);
   const [problem, setProblem] = useState(false);
   const [frozen, setFrozen] = useState(false);
+  /** A request is in flight: drives the "Scanning every part of the photo..." shimmer. */
+  const [scanning, setScanning] = useState(0);
   const streamRef = useRef<MediaStream | null>(null);
   const trackerRef = useRef<TrackerState>(tracker);
   const [photo, setPhoto] = useState<{ src: string; image: string } | null>(null);
+  /** The latest grid from a live scan or a photo. Null for the demo clip, which uses `tracker`. */
+  const [grid, setGrid] = useState<GridScan | null>(null);
   const photoUrlRef = useRef<string | null>(null);
 
   const release = useCallback(() => {
@@ -94,6 +117,7 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       const fresh = createTracker();
       trackerRef.current = fresh;
       setTracker(fresh);
+      setGrid(null);
       setMode(next);
       setError(null);
       setProblem(false);
@@ -143,6 +167,7 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       const fresh = createTracker();
       trackerRef.current = fresh;
       setTracker(fresh);
+      setGrid(null);
       setMode("photo");
       setError(null);
       setProblem(false);
@@ -150,7 +175,7 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       setPhase("starting");
       try {
         const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-        const { image } = encodeFrame(bitmap, bitmap.width, bitmap.height);
+        const { image } = encodeFrame(bitmap, bitmap.width, bitmap.height, undefined, true);
         const src = URL.createObjectURL(file);
         photoUrlRef.current = src;
         setPhoto({ src, image });
@@ -165,6 +190,16 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     },
     [release],
   );
+
+  /** scanImage, counted while it is in flight. */
+  const tracked = useCallback(async (...args: Parameters<typeof scanImage>) => {
+    setScanning((n) => n + 1);
+    try {
+      return await scanImage(...args);
+    } finally {
+      setScanning((n) => Math.max(0, n - 1));
+    }
+  }, []);
 
   /** Tap to freeze the frame and its findings, tap again to carry on. */
   const toggleFreeze = useCallback(() => {
@@ -193,21 +228,28 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       let delay = PAUSE_MS;
       if (v && v.readyState >= 2 && v.videoWidth) {
         try {
-          const { image, sharp } = encodeFrame(v, v.videoWidth, v.videoHeight, canvas);
+          const { image, sharp } = encodeFrame(v, v.videoWidth, v.videoHeight, canvas, mode !== "demo");
           if (mode === "camera" && sharp !== null && sharp < MIN_SHARPNESS && blurSkips < MAX_BLUR_SKIPS) {
             blurSkips += 1;
             delay = BLUR_RETRY_MS;
           } else {
             blurSkips = 0;
-            const findings = await scanImage(image, mode === "demo" ? v.currentTime : undefined, controller.signal);
+            const data = await tracked(image, mode === "demo" ? v.currentTime : undefined, controller.signal);
             if (cancelled) return;
             failures = 0;
             setProblem(false);
-            const result = updateTracker(trackerRef.current, selectFindings(findings));
-            trackerRef.current = result.state;
-            setTracker(result.state);
-            if (result.newRisks.length > 0 && typeof navigator.vibrate === "function") {
-              navigator.vibrate(20);
+            if (data.grid) {
+              setGrid(data.grid);
+              if (data.grid.cells.some((c) => c === "d" || c === "b" || c === "l") && typeof navigator.vibrate === "function") {
+                navigator.vibrate(20);
+              }
+            } else {
+              const result = updateTracker(trackerRef.current, selectFindings(data.findings));
+              trackerRef.current = result.state;
+              setTracker(result.state);
+              if (result.newRisks.length > 0 && typeof navigator.vibrate === "function") {
+                navigator.vibrate(20);
+              }
             }
           }
         } catch {
@@ -225,28 +267,37 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [phase, mode, frozen, videoRef]);
+  }, [phase, mode, frozen, videoRef, tracked]);
 
-  // An uploaded photo is scanned once. The tracker takes the result twice so the status settles (it needs two agreeing frames).
+  // Freezing scans the frozen frame once (the live loop was stopped). The demo clip keeps its canned boxes.
   useEffect(() => {
-    if (phase !== "running" || mode !== "photo" || !photo) return;
+    const v = videoRef.current;
+    if (phase !== "running" || !frozen || mode !== "camera" || !v?.videoWidth) return;
     const controller = new AbortController();
-    scanImage(photo.image, undefined, controller.signal)
-      .then((findings) => {
-        const shown = selectFindings(findings);
-        const once = updateTracker(trackerRef.current, shown);
-        const twice = updateTracker(once.state, shown);
-        trackerRef.current = twice.state;
-        setTracker(twice.state);
-      })
+    const { image } = encodeFrame(v, v.videoWidth, v.videoHeight, undefined, true);
+    tracked(image, undefined, controller.signal)
+      .then((data) => data.grid && setGrid(data.grid))
       .catch(() => {
         if (!controller.signal.aborted) setProblem(true);
       });
     return () => controller.abort();
-  }, [phase, mode, photo]);
+  }, [phase, mode, frozen, videoRef, tracked]);
+
+  // An uploaded photo is scanned once.
+  useEffect(() => {
+    if (phase !== "running" || mode !== "photo" || !photo) return;
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the request counter is set when the scan starts; it is reset in `finally`
+    tracked(photo.image, undefined, controller.signal)
+      .then((data) => setGrid(data.grid ?? null))
+      .catch(() => {
+        if (!controller.signal.aborted) setProblem(true);
+      });
+    return () => controller.abort();
+  }, [phase, mode, photo, tracked]);
 
   // Leaving the screen always turns the camera off.
   useEffect(() => release, [release]);
 
-  return { phase, mode, error, tracker, videoSize, problem, frozen, photo, start, startPhoto, stop, toggleFreeze };
+  return { phase, mode, error, tracker, videoSize, problem, frozen, photo, grid, scanning: scanning > 0, start, startPhoto, stop, toggleFreeze };
 }
