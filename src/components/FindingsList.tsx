@@ -1,4 +1,5 @@
-import type { GridFinding } from "@/data/types";
+import type { AreaNote } from "@/data/types";
+import type { RiskArea } from "@/lib/fuelMask";
 import type { Track } from "@/lib/scan";
 import { findingLine, toneOf, type Tone } from "@/lib/scanView";
 
@@ -30,20 +31,27 @@ export function FindingsList({ tracks, empty }: { tracks: Track[]; empty: string
   );
 }
 
-/** Grid findings, risks first, each with where it is and why; the action only for risks. */
-export function GridFindingsList({ findings }: { findings: GridFinding[] }) {
-  if (findings.length === 0) return <p className="text-[15px] text-ink-2">Nothing flagged in this frame.</p>;
+/**
+ * The measured risk areas, biggest first, each with where it is and its share of the dry fuel. The model's
+ * words (`notes`) fill in when they arrive; until then, or if they fail, the measured facts still show.
+ */
+export function AreaFindingsList({ areas, notes }: { areas: RiskArea[]; notes: AreaNote[] | null }) {
+  if (areas.length === 0) return <p className="text-[15px] text-ink-2">No dry patches big enough to list.</p>;
   return (
     <ul aria-label="Findings" className="max-h-48 space-y-2 overflow-y-auto">
-      {findings.map((f, i) => {
-        const tone = TONE[f.severity];
+      {areas.map((a) => {
+        const note = notes?.find((n) => n.area === a.id);
         return (
-          <li key={i} className="flex items-start gap-3 text-[15px] leading-snug">
-            <span aria-hidden="true" className={`mt-1.5 size-2.5 shrink-0 rounded-full ${tone.dot}`} />
+          <li key={a.id} className="flex items-start gap-3 text-[15px] leading-snug">
+            <span aria-hidden="true" className={`mt-1.5 size-2.5 shrink-0 rounded-full ${TONE.risk.dot}`} />
             <span>
-              <span className="sr-only">{tone.word}: </span>
-              <span className="font-medium">{f.label}</span>
-              {f.where ? `, ${f.where}` : ""}. {f.reason} {f.severity === "risk" ? f.action : ""}
+              <span className="sr-only">{TONE.risk.word}: </span>
+              <span className="font-medium">{note?.label ?? "Dry fuel"}</span>, {a.where} ({a.pctOfRisk}% of the dry fuel).{" "}
+              {note ? (
+                `${note.reason} ${note.action}`
+              ) : notes === null ? (
+                <span className="scan-shimmer">Writing the findings…</span>
+              ) : null}
             </span>
           </li>
         );

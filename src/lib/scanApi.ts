@@ -1,3 +1,5 @@
+import type { RiskAreaInput } from "@/data/types";
+
 const MAX_IMAGE_CHARS = 4_000_000;
 
 export type ScanRequest =
@@ -20,4 +22,20 @@ export function parseScanRequest(body: unknown): ScanRequest {
     return { ok: false, error: "demoTime must be zero or more seconds." };
   }
   return { ok: true, image, demoTime };
+}
+
+const unit = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
+const pct = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 100;
+
+/** The measured areas from the browser, checked. Null when any is malformed. */
+export function parseAreas(raw: unknown): RiskAreaInput[] | null {
+  if (!Array.isArray(raw) || raw.length > 6) return null;
+  const out: RiskAreaInput[] = [];
+  for (const a of raw) {
+    const { id, box, pctOfRisk, pctOfFrame, where } = (a ?? {}) as Record<string, unknown>;
+    if (!Number.isInteger(id) || !Array.isArray(box) || box.length !== 4 || !box.every(unit)) return null;
+    if (!pct(pctOfRisk) || !pct(pctOfFrame) || typeof where !== "string" || where.length > 40) return null;
+    out.push({ id: id as number, box: box as RiskAreaInput["box"], pctOfRisk: pctOfRisk as number, pctOfFrame: pctOfFrame as number, where });
+  }
+  return out;
 }
