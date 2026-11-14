@@ -31,7 +31,9 @@ The completed analysis manifest and `risk/latest.json` frontend pointer were
 published and verified in Backblaze. The file-version ID in `provenance.json`
 identifies this immutable analysis; the latest pointer may change after future runs.
 
-- Open [risk_map.html](risk_map.html) locally for the standalone interactive map.
+- Open [risk_map.html](risk_map.html) through a web server for the interactive map.
+  The small HTML page fetches the matching `risk_map.geojson` separately. When
+  opening the HTML directly from disk, use its file picker to select that GeoJSON.
 - Use [risk_map.geojson](risk_map.geojson) for the geographic grid.
 - Use [risk_score.tif](risk_score.tif) for the georeferenced raster.
 - [summary.json](summary.json) describes the model and parameters.

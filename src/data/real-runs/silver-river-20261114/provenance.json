@@ -42,9 +42,13 @@
     "features.ndjson": "7c3e0152f97fe052d59aefe30274945ed1dc4b273e9a3ee398525db9d988c982",
     "result-summary.json": "14e0bc5e2d36624252b94f585eadb1f9922b525335796a4677e39f1dacb438c4",
     "risk_map.geojson": "df8c7e0e3e3b31cf57af2dc51a3483515378326d92254ca7781f65f91d5e116b",
-    "risk_map.html": "3a88af640f1dd80bd15e1557412c322e4c8c150f31a620f9f13363f94f114a27",
+    "risk_map.html": "7492673a64642eaeebe33c390a338a2654bae0642a309655962f3658ea1c2610",
     "risk_preview.png": "91ca53dec5ec7716a384c916018c4fd089df444f480cf5ed65e0173efef07cd2",
     "risk_score.tif": "c0c71682817c3e7be4f602ee141835870aa8b60b4c3242bdc52c1c6c4fa387e9",
     "summary.json": "0585e7cf8e872a360b243aa93fc7fedef9eef9cbde6606c25db2c68d2640ed3e"
-  }
+  },
+  "original_cloud_artifact_sha256": {
+    "risk_map.html": "3a88af640f1dd80bd15e1557412c322e4c8c150f31a620f9f13363f94f114a27"
+  },
+  "presentation_note": "HTML re-rendered to load the unchanged GeoJSON separately; original cloud analysis remains immutable."
 }
