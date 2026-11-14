@@ -67,11 +67,11 @@ afterEach(() => {
 const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
 
 describe("useScanSession", () => {
-  it("sends each frame at 640 px on the long side as JPEG quality 0.7", async () => {
+  it("sends each frame at 1280 px on the long side as JPEG quality 0.85, never upscaled", async () => {
     fetchMock.mockResolvedValue(ok());
     await startSession();
-    expect(canvasSize[0]).toEqual([640, 360]);
-    expect(jpegQuality[0]).toBe(0.7);
+    expect(canvasSize[0]).toEqual([1280, 720]);
+    expect(jpegQuality[0]).toBe(0.85);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.image).toBe(IMAGE);
   });
@@ -100,11 +100,11 @@ describe("useScanSession", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("shows at most 3 findings, and none below 0.6 confidence", async () => {
+  it("shows at most 5 findings, and none below 0.6 confidence", async () => {
     const shaky = { ...finding(5), confidence: 0.4 };
-    fetchMock.mockResolvedValue(ok([finding(0), finding(1), finding(2), finding(3), shaky]));
+    fetchMock.mockResolvedValue(ok([finding(0), finding(1), finding(2), finding(3), finding(4), finding(5), shaky]));
     const { hook } = await startSession();
-    expect(hook.result.current.tracker.tracks).toHaveLength(3);
+    expect(hook.result.current.tracker.tracks).toHaveLength(5);
     expect(hook.result.current.tracker.tracks.some((t) => t.confidence === 0.4)).toBe(false);
   });
 
@@ -150,5 +150,31 @@ describe("useScanSession", () => {
     expect(signal.aborted).toBe(true);
     expect(hook.result.current.phase).toBe("idle");
     expect(hook.result.current.frozen).toBe(false);
+  });
+
+  it("asks the camera for 1920x1080 with continuous focus", async () => {
+    fetchMock.mockResolvedValue(ok());
+    await startSession();
+    const { video } = (navigator.mediaDevices.getUserMedia as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(video).toMatchObject({ width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: [{ focusMode: "continuous" }] });
+  });
+
+  it("scans an uploaded photo once, at the same size and quality, and settles the status", async () => {
+    vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 4000, height: 3000, close: () => {} })));
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:photo", revokeObjectURL: () => {} }));
+    fetchMock.mockResolvedValue(ok([finding(0)]));
+    const hook = renderHook(() => useScanSession({ current: liveVideo() }));
+    await act(async () => {
+      await hook.result.current.startPhoto(new File(["x"], "row.jpg", { type: "image/jpeg" }));
+    });
+    expect(canvasSize[0]).toEqual([1280, 960]);
+    expect(jpegQuality[0]).toBe(0.85);
+    expect(hook.result.current.phase).toBe("running");
+    expect(hook.result.current.mode).toBe("photo");
+    expect(hook.result.current.videoSize).toEqual({ w: 4000, h: 3000 });
+    expect(hook.result.current.tracker.tracks).toHaveLength(1);
+    expect(hook.result.current.tracker.status).toBe("risks");
+    await advance(10_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // one photo, one request
   });
 });

@@ -47,9 +47,9 @@ describe("ScanOverlay", () => {
     expect(screen.getAllByTestId("bracket")).toHaveLength(8);
   });
 
-  it("fills risk regions and leaves clear regions as brackets only", () => {
+  it("fills risk and clear regions equally", () => {
     renderOverlay([track(1), track(2, { label: "Green rows", severity: "clear", bbox: [600, 300, 900, 600] })]);
-    expect(screen.getAllByTestId("fill")).toHaveLength(1);
+    expect(screen.getAllByTestId("fill")).toHaveLength(2);
   });
 
   it("colours by tone: red risk, amber watch, green clear", () => {

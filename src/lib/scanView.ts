@@ -6,7 +6,7 @@ const MIN_CONFIDENCE = 0.6;
 const MIN_AREA = 0.04;
 /** Boxes overlapping by more than this (IoU) become one. */
 const MERGE_IOU = 0.4;
-const MAX_SHOWN = 3;
+const MAX_SHOWN = 5;
 /** A risk below this confidence is drawn amber ("watch") instead of red. */
 const WATCH_BELOW = 0.8;
 
@@ -31,7 +31,7 @@ function merge(a: Finding, b: Finding): Finding {
 
 /**
  * What the screen shows for one frame: hide shaky and tiny findings, merge ones that cover the
- * same spot, put risks first, and keep three at most.
+ * same spot, put risks first, and keep five at most.
  */
 export function selectFindings(findings: Finding[]): Finding[] {
   const list = findings.filter((f) => conf(f) >= MIN_CONFIDENCE && areaOf(f.bbox) >= MIN_AREA);
@@ -50,7 +50,7 @@ export function selectFindings(findings: Finding[]): Finding[] {
   return list.sort(byPriority).slice(0, MAX_SHOWN);
 }
 
-/** The tracks on screen right now: seen recently, risk first, three at most. Overlay, card and score all use this. */
+/** The tracks on screen right now: seen recently, risk first, five at most. Overlay, card and score all use this. */
 export function shownTracks(tracks: Track[]): Track[] {
   return tracks.filter(isVisible).sort(byPriority).slice(0, MAX_SHOWN);
 }

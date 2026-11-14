@@ -6,23 +6,29 @@ const MODEL = "gpt-6.1-terra";
 // "none" answers in about 3 s per frame, "low" took 5.6 s on the same frame. The budget is 8 s.
 // Raise it only if the dry/green photo checks need it.
 const REASONING_EFFORT = "none";
-const TIMEOUT_MS = 8000;
-const MAX_FINDINGS = 3;
-// Frames are sent at 640 px, so "low" detail keeps the call fast. Use "auto" if small fuels get missed.
-const IMAGE_DETAIL = "low";
+const TIMEOUT_MS = 15000;
+const MAX_FINDINGS = 5;
+// Frames are sent at up to 1280 px; "high" detail so small dry patches and dead leaves are not missed.
+const IMAGE_DETAIL = "high";
 
-const SYSTEM_PROMPT = `You are a fuels inspector walking a vineyard before fire season. You look at one camera frame and report only vegetation and fuel: grass, brush, leaf litter, dead wood, vines, cover crop. Ignore buildings, pavement, sky, vehicles and people.
+const SYSTEM_PROMPT = `You are a wildfire fuels inspector using defensible-space guidance (CAL FIRE / Ready for Wildfire). Look at the WHOLE frame, edge to edge, not just the obvious subject, and check each of these:
+1. Dead or dry grass and weeds (brown, tan, cured, standing dead).
+2. Dead material on live plants (dead leaves, dead branches, dead fronds still attached).
+3. Brush and shrubs, especially dense, dry or overgrown.
+4. Leaf litter and dead wood on the ground.
+5. Mulch, firewood or wood piles near a structure.
+6. Ladder fuels: low brush, vines or branches that carry fire from the ground up into trees or onto a structure.
 
-Judge each region by how dry it looks:
-- risk: brown, tan, cured or standing-dead grass and weeds; dead brush; leaf litter or dead wood piled against a structure, fence or vine row.
-- clear: green, live plants; green cover crop; irrigated vines; bare dirt or gravel; mowed or cleared ground.
-Green leaves and green cuttings are clear, even when the frame is a close-up of one plant. Dry, tan or brown vegetation is risk, even when it fills the frame or is held in a hand.
+Rate every item you can see, one finding each:
+- risk: it is dry, dead or placed where it can carry fire.
+- clear: it is green and live, bare dirt or gravel, or mowed and cleared. Green leaves are clear even in a close-up; dry tan or brown growth is risk even when it fills the frame.
 
 Rules:
-- Report at most 3 findings, the ones that matter most. Merge neighbouring regions of the same kind into one.
-- Each finding: a short label (2 to 4 words), severity, a bbox [xmin, ymin, xmax, ymax] as integers 0 to 999 relative to the frame with 0,0 at the top left, and a confidence from 0 to 1.
-- For risk, action is a short, concrete instruction like "Mow by June 1" or "Cut back 5 ft from the wall". For clear, action is "Keep it trimmed" or similar.
-- When you are unsure, say clear with a low confidence. Never invent risk. If the frame shows no vegetation, return no findings.`;
+- label: the fuel type in 2 to 4 words ("Dry grass", "Dead oak leaves", "Green cover crop").
+- bbox [xmin, ymin, xmax, ymax], integers 0 to 999, 0,0 at the top left of the frame. Make it a tight box around that item only, not the whole scene. Use separate boxes for separate patches and never one box over everything.
+- action: for risk, the short reason, then one concrete action ("Cured and touching the barn. Cut back 5 ft by June 1."). For clear, exactly "Healthy, no action needed."
+- confidence 0 to 1. When unsure, give a lower confidence instead of guessing. Never invent a risk you cannot see.
+- At most 5 findings, the ones that matter most. If the frame shows no vegetation or fuel, return none.`;
 
 export class VisionError extends Error {
   constructor(
@@ -96,7 +102,7 @@ export async function scanFrame(image: string, { timeoutMs = TIMEOUT_MS } = {}):
           {
             role: "user",
             content: [
-              { type: "input_text", text: "Inspect this frame." },
+              { type: "input_text", text: "Inspect this frame against the checklist." },
               { type: "input_image", image_url: image, detail: IMAGE_DETAIL },
             ],
           },

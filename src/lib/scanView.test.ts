@@ -55,14 +55,16 @@ describe("selectFindings", () => {
     expect(one.label).toBe("Dry patch");
   });
 
-  it("sorts risk first, then by confidence, and keeps at most 3", () => {
+  it("sorts risk first, then by confidence, and keeps at most 5", () => {
     const out = selectFindings([
       f({ label: "Clear hi", severity: "clear", confidence: 0.99, bbox: [0, 0, 300, 300] }),
       f({ label: "Risk lo", confidence: 0.65, bbox: [350, 0, 650, 300] }),
       f({ label: "Risk hi", confidence: 0.95, bbox: [700, 0, 999, 300] }),
       f({ label: "Clear lo", severity: "clear", confidence: 0.7, bbox: [0, 400, 300, 700] }),
+      f({ label: "Clear a", severity: "clear", confidence: 0.8, bbox: [350, 400, 650, 700] }),
+      f({ label: "Clear b", severity: "clear", confidence: 0.75, bbox: [700, 400, 999, 700] }),
     ]);
-    expect(out.map((x) => x.label)).toEqual(["Risk hi", "Risk lo", "Clear hi"]);
+    expect(out.map((x) => x.label)).toEqual(["Risk hi", "Risk lo", "Clear hi", "Clear a", "Clear b"]);
   });
 
   it("returns nothing for nothing", () => {
@@ -73,15 +75,18 @@ describe("selectFindings", () => {
 describe("shownTracks", () => {
   const track = (id: number, over: Partial<Track> = {}): Track => ({ ...f(), id, missed: 0, ...over });
 
-  it("keeps only tracks seen recently, risk first, at most 3", () => {
+  it("keeps only tracks seen recently, risk first, at most 5", () => {
     const out = shownTracks([
       track(1, { severity: "clear", confidence: 0.99 }),
       track(2, { confidence: 0.7 }),
       track(3, { confidence: 0.95 }),
       track(4, { confidence: 0.9 }),
       track(5, { confidence: 0.99, missed: 3 }), // gone from the last frames
+      track(6, { confidence: 0.6 }),
+      track(7, { confidence: 0.65 }),
+      track(8, { confidence: 0.5 }),
     ]);
-    expect(out.map((t) => t.id)).toEqual([3, 4, 2]);
+    expect(out.map((t) => t.id)).toEqual([3, 4, 2, 7, 6]);
   });
 });
 

@@ -26,9 +26,9 @@ describe("parseFindings", () => {
     expect(out.map((x) => x.confidence)).toEqual([1, 0]);
   });
 
-  it("keeps at most 3 findings", () => {
-    const five = Array.from({ length: 5 }, (_, i) => ({ ...finding, label: `F${i}` }));
-    expect(parseFindings(JSON.stringify({ findings: five }))).toHaveLength(3);
+  it("keeps at most 5 findings", () => {
+    const seven = Array.from({ length: 7 }, (_, i) => ({ ...finding, label: `F${i}` }));
+    expect(parseFindings(JSON.stringify({ findings: seven }))).toHaveLength(5);
   });
 
   it("drops malformed findings and keeps the good ones", () => {
@@ -78,8 +78,11 @@ describe("scanFrame", () => {
     expect(body.model).toBe("gpt-6.1-terra");
     expect(body.text.format).toMatchObject({ type: "json_schema", name: "scan_response", strict: true });
     const content = body.input.flatMap((m: { content: unknown }) => m.content);
-    expect(content).toContainEqual({ type: "input_image", image_url: IMAGE, detail: "low" });
-    expect(body.instructions).toMatch(/at most 3/i);
+    expect(content).toContainEqual({ type: "input_image", image_url: IMAGE, detail: "high" });
+    expect(body.instructions).toMatch(/at most 5/i);
+    for (const item of ["ladder fuels", "leaf litter", "mulch", "dead material on live plants", "Healthy, no action needed", "tight box"]) {
+      expect(body.instructions.toLowerCase()).toContain(item.toLowerCase());
+    }
     expect(body.instructions).toMatch(/confidence/i);
     expect(body.reasoning).toEqual({ effort: "none" });
     expect(content.some((c: { type: string }) => c.type === "input_text")).toBe(true);

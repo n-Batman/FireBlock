@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Camera } from "@phosphor-icons/react";
+import { ArrowLeft, Camera, UploadSimple } from "@phosphor-icons/react";
 import { properties } from "@/data/properties";
 import { scanDelta, summarize, withScan } from "@/lib/scan";
 import { scoreOf } from "@/lib/score";
@@ -16,6 +16,10 @@ import { useDemoAvailable } from "@/lib/useDemoAvailable";
 import { FindingsList } from "./FindingsList";
 import { ScanOverlay } from "./ScanOverlay";
 import { StatusChip } from "./StatusChip";
+
+const BTN = "inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--r)] px-4 text-[15px] transition-opacity active:scale-[0.98] disabled:opacity-60";
+const PRIMARY = `${BTN} bg-ink font-semibold text-paper hover:opacity-90`;
+const SECONDARY = `${BTN} border border-[var(--glass-border)] font-medium hover:bg-white/5`;
 
 function DemoSwitch({ checked, onChange }: { checked: boolean; onChange: (on: boolean) => void }) {
   return (
@@ -44,10 +48,19 @@ export function ScanScreen() {
     property?.blocks.find((b) => b.id === params.get("block") && b.kind === "vine") ?? null;
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const session = useScanSession(videoRef);
   const [demo, setDemo] = useState(false);
   // The demo switch only shows when /demo/vineyard.mp4 is really there.
   const demoAvailable = useDemoAvailable() === true;
+  // No camera API here (desktop, plain http) or the camera was blocked: uploading becomes the main option.
+  const noCameraApi = useSyncExternalStore(
+    () => () => {},
+    () => !window.isSecureContext || !navigator.mediaDevices?.getUserMedia,
+    () => false,
+  );
+  const noCamera = noCameraApi || (session.mode === "camera" && session.error !== null);
+  const photoMode = session.mode === "photo";
   const [saveError, setSaveError] = useState<string | null>(null);
   // Opened from a county parcel: the scan is saved with the device's GPS, and lands in whichever parcel that is inside.
   const parcelId = params.get("parcel");
@@ -101,9 +114,13 @@ export function ScanScreen() {
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-paper text-ink">
+      {photoMode && session.photo && (
+        // eslint-disable-next-line @next/next/no-img-element -- a local blob URL, nothing for next/image to optimise
+        <img src={session.photo.src} alt="The photo being scanned" className="absolute inset-0 h-full w-full object-cover" />
+      )}
       <video
         ref={videoRef}
-        className="absolute inset-0 h-full w-full object-cover"
+        className={`absolute inset-0 h-full w-full object-cover ${photoMode ? "hidden" : ""}`}
         autoPlay
         muted
         playsInline
@@ -113,13 +130,15 @@ export function ScanScreen() {
         <>
           <h1 className="sr-only">Scanning {block ? block.name : parcelMode ? `parcel ${parcelId}` : "the rows"}</h1>
           {/* Tap anywhere on the camera to freeze the frame with its findings, tap again to resume. */}
-          <button
-            type="button"
-            onClick={session.toggleFreeze}
-            aria-pressed={session.frozen}
-            aria-label={session.frozen ? "Resume scanning" : "Freeze the frame"}
-            className="absolute inset-0 cursor-pointer"
-          />
+          {!photoMode && (
+            <button
+              type="button"
+              onClick={session.toggleFreeze}
+              aria-pressed={session.frozen}
+              aria-label={session.frozen ? "Resume scanning" : "Freeze the frame"}
+              className="absolute inset-0 cursor-pointer"
+            />
+          )}
           <ScanOverlay videoSize={session.videoSize} tracks={shown} running frozen={session.frozen} />
         </>
       )}
@@ -166,15 +185,39 @@ export function ScanScreen() {
                 <DemoSwitch checked={demo} onChange={setDemo} />
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => begin(demo)}
-              disabled={session.phase === "starting"}
-              className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--r)] bg-ink px-4 text-[15px] font-semibold text-paper transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
-            >
-              <Camera size={18} aria-hidden="true" />
-              {session.phase === "starting" ? "Starting..." : session.error ? "Try again" : "Start scan"}
-            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              tabIndex={-1}
+              aria-label="Upload a photo to scan"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) session.startPhoto(file);
+              }}
+            />
+            <div className={`mt-4 flex gap-2 ${noCamera ? "flex-col-reverse" : "flex-col"}`}>
+              <button
+                type="button"
+                onClick={() => begin(demo)}
+                disabled={session.phase === "starting"}
+                className={`${noCamera ? SECONDARY : PRIMARY}`}
+              >
+                <Camera size={18} aria-hidden="true" />
+                {session.phase === "starting" && !photoMode ? "Starting..." : session.error && !photoMode ? "Try again" : "Start scan"}
+              </button>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={session.phase === "starting"}
+                className={noCamera ? PRIMARY : SECONDARY}
+              >
+                <UploadSimple size={18} aria-hidden="true" />
+                Upload a photo
+              </button>
+            </div>
           </section>
         </div>
       )}
@@ -220,7 +263,7 @@ export function ScanScreen() {
                 Stop
               </button>
             </div>
-            {demoAvailable && (
+            {demoAvailable && !photoMode && (
               <DemoSwitch
                 checked={demo}
                 onChange={(on) => {

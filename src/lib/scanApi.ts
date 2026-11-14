@@ -14,7 +14,7 @@ export function parseScanRequest(body: unknown): ScanRequest {
     return { ok: false, error: "image must be a JPEG data URL." };
   }
   if (image.length > MAX_IMAGE_CHARS) {
-    return { ok: false, error: "image is too large. Send the longest side at 768 px or less." };
+    return { ok: false, error: "image is too large. Send the longest side at 1280 px or less." };
   }
   if (demoTime !== undefined && (typeof demoTime !== "number" || !Number.isFinite(demoTime) || demoTime < 0)) {
     return { ok: false, error: "demoTime must be zero or more seconds." };
