@@ -82,22 +82,24 @@ describe("scoreFromCells: area-weighted mean of the overlapping cells", () => {
   });
 
   it("skips cells with no data, and reports how much of the parcel the scored cells cover", () => {
-    // Scored cell over the west 60%, a no-data cell over the east 40%.
+    // Scored cell over the west 70%, a no-data cell over the east 30%.
     const cells = cellsOf(
-      cellFeature("a", band(LON - 0.001, LON + 0.0012), 40),
-      cellFeature("n", band(LON + 0.0012, LON + 0.003), null),
+      cellFeature("a", band(LON - 0.001, LON + 0.0014), 40),
+      cellFeature("n", band(LON + 0.0014, LON + 0.003), null),
     );
     const score = scoreFromCells(parcel(), cells)!;
     expect(score.score).toBe(40);
-    expect((score.source as { coverage: number }).coverage).toBeCloseTo(0.6, 2);
+    expect((score.source as { coverage: number }).coverage).toBeCloseTo(0.7, 2);
   });
 
-  it("gives no score when scored cells cover less than half the parcel", () => {
+  it("gives no score when scored cells cover less than 60% of the parcel, the same rule as Nick's display", () => {
     const cells = cellsOf(
-      cellFeature("a", band(LON - 0.001, LON + 0.0008), 40), // 40% of the parcel
-      cellFeature("n", band(LON + 0.0008, LON + 0.003), null),
+      cellFeature("a", band(LON - 0.001, LON + 0.0011), 40), // 55% of the parcel
+      cellFeature("n", band(LON + 0.0011, LON + 0.003), null),
     );
     expect(scoreFromCells(parcel(), cells)).toBeNull();
+    // 40% is no better.
+    expect(scoreFromCells(parcel(), cellsOf(cellFeature("a", band(LON - 0.001, LON + 0.0008), 40)))).toBeNull();
   });
 
   it("gives no score when no cell touches the parcel", () => {
@@ -116,11 +118,18 @@ describe("scoreFromCells: area-weighted mean of the overlapping cells", () => {
     expect((score.source as { coverage: number }).coverage).toBeCloseTo(1, 2);
   });
 
-  it("handles a MultiPolygon: a cell over one of two equal parts covers half", () => {
-    const multi = unitOf({ type: "MultiPolygon", coordinates: [[square(LON, LAT, 0.002)], [square(LON + 0.01, LAT, 0.002)]] });
-    const score = scoreFromCells(multi, cellsOf(cellFeature("a", square(LON - 0.001, LAT - 0.001, 0.004), 55)))!;
+  it("handles a MultiPolygon: a cell over two of three equal parts covers two thirds", () => {
+    const parts = [0, 0.01, 0.02].map((dx) => [square(LON + dx, LAT, 0.002)]);
+    const multi = unitOf({ type: "MultiPolygon", coordinates: parts });
+    // One cell wide enough to cover the first two parts only.
+    const score = scoreFromCells(multi, cellsOf(cellFeature("a", square(LON - 0.001, LAT - 0.001, 0.0145, 0.004), 55)))!;
     expect(score.score).toBe(55);
-    expect((score.source as { coverage: number }).coverage).toBeCloseTo(0.5, 2);
+    expect((score.source as { coverage: number }).coverage).toBeCloseTo(2 / 3, 2);
+  });
+
+  it("gives a MultiPolygon no score when the cell covers only one of two parts", () => {
+    const multi = unitOf({ type: "MultiPolygon", coordinates: [[square(LON, LAT, 0.002)], [square(LON + 0.01, LAT, 0.002)]] });
+    expect(scoreFromCells(multi, cellsOf(cellFeature("a", square(LON - 0.001, LAT - 0.001, 0.004), 55)))).toBeNull();
   });
 });
 
