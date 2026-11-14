@@ -34,12 +34,24 @@ export interface Block {
   reason: string;
 }
 
+export interface Weather {
+  windMph: number;
+  /** Compass direction the wind blows from, for example "NW". */
+  windDir: string;
+  humidityPct: number;
+  /** True while a Red Flag Warning is in effect for the property's weather zone. */
+  redFlag: boolean;
+  /** ISO timestamp of the forecast. */
+  updatedAt: string;
+}
+
 export interface Property {
   id: string;
   name: string;
   center: [number, number];
   blocks: Block[];
   activeFires25mi: number;
+  weather: Weather;
   /** ISO timestamp the sample data was cached. */
   cachedAt: string;
 }

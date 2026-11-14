@@ -55,7 +55,7 @@ const adelHistory = (pts: number): Pair => [
 const adelaidaBlocks: Block[] = [
   {
     id: "adelaida-1",
-    name: "Block 1",
+    name: "Cabernet East",
     kind: "vine",
     acres: 5.5,
     polygon: cell(ADEL.lat, ADEL.lng, 0, 1),
@@ -71,7 +71,7 @@ const adelaidaBlocks: Block[] = [
   },
   {
     id: "adelaida-2",
-    name: "Block 2",
+    name: "Creek Bottom",
     kind: "vine",
     acres: 5,
     polygon: cell(ADEL.lat, ADEL.lng, 1, 1),
@@ -87,7 +87,7 @@ const adelaidaBlocks: Block[] = [
   },
   {
     id: "adelaida-3",
-    name: "Block 3",
+    name: "Ridge Top",
     kind: "vine",
     acres: 6,
     polygon: cell(ADEL.lat, ADEL.lng, 2, 1),
@@ -103,7 +103,7 @@ const adelaidaBlocks: Block[] = [
   },
   {
     id: "adelaida-4",
-    name: "Block 4",
+    name: "Old Vine Row",
     kind: "vine",
     acres: 5.5,
     polygon: cell(ADEL.lat, ADEL.lng, 0, 0),
@@ -119,7 +119,7 @@ const adelaidaBlocks: Block[] = [
   },
   {
     id: "adelaida-5",
-    name: "Block 5",
+    name: "South Slope",
     kind: "vine",
     acres: 5,
     polygon: cell(ADEL.lat, ADEL.lng, 1, 0),
@@ -156,7 +156,7 @@ const pasoHistory = (pts: number): Pair => [
 const pasoBlocks: Block[] = [
   {
     id: "paso-1",
-    name: "Block 1",
+    name: "Highway Edge",
     kind: "vine",
     acres: 6,
     polygon: cell(PASO.lat, PASO.lng, 0, 0),
@@ -172,7 +172,7 @@ const pasoBlocks: Block[] = [
   },
   {
     id: "paso-2",
-    name: "Block 2",
+    name: "Zinfandel Flats",
     kind: "vine",
     acres: 5,
     polygon: cell(PASO.lat, PASO.lng, 1, 0),
@@ -188,7 +188,7 @@ const pasoBlocks: Block[] = [
   },
   {
     id: "paso-3",
-    name: "Block 3",
+    name: "Syrah North",
     kind: "vine",
     acres: 4.5,
     polygon: cell(PASO.lat, PASO.lng, 0, 1),
@@ -215,7 +215,7 @@ const pasoBlocks: Block[] = [
 ];
 
 const EDNA = { lat: 35.225, lng: -120.585 };
-const ednaWeather: Pair = [8, "Sample forecast: calm, cool and humid, with humidity near 55%."];
+const ednaWeather: Pair = [8, "Sample forecast: light wind near 6 mph, cool and humid, with humidity near 55%."];
 const ednaHazard = (pts: number): Pair => [pts, "CAL FIRE rates this area low to moderate fire hazard."];
 const ednaHistory = (pts: number): Pair => [
   pts,
@@ -225,7 +225,7 @@ const ednaHistory = (pts: number): Pair => [
 const ednaBlocks: Block[] = [
   {
     id: "edna-1",
-    name: "Block 1",
+    name: "Chardonnay Terrace",
     kind: "vine",
     acres: 5,
     polygon: cell(EDNA.lat, EDNA.lng, 0, 0),
@@ -241,7 +241,7 @@ const ednaBlocks: Block[] = [
   },
   {
     id: "edna-2",
-    name: "Block 2",
+    name: "Pinot Slope",
     kind: "vine",
     acres: 5.5,
     polygon: cell(EDNA.lat, EDNA.lng, 1, 0),
@@ -257,7 +257,7 @@ const ednaBlocks: Block[] = [
   },
   {
     id: "edna-3",
-    name: "Block 3",
+    name: "Home Block",
     kind: "vine",
     acres: 4.5,
     polygon: cell(EDNA.lat, EDNA.lng, 0, 1),
@@ -283,6 +283,7 @@ export const properties: Property[] = [
     id: "adelaida-hills",
     name: "Adelaida Hills",
     center: centerOf(ADEL, 3, 2),
+    weather: { windMph: 22, windDir: "NW", humidityPct: 14, redFlag: true, updatedAt: CACHED_AT },
     blocks: adelaidaBlocks,
     activeFires25mi: 0,
     cachedAt: CACHED_AT,
@@ -291,6 +292,7 @@ export const properties: Property[] = [
     id: "paso-hwy-46-east",
     name: "Paso Hwy 46 East",
     center: centerOf(PASO, 2, 2),
+    weather: { windMph: 15, windDir: "W", humidityPct: 22, redFlag: false, updatedAt: CACHED_AT },
     blocks: pasoBlocks,
     activeFires25mi: 0,
     cachedAt: CACHED_AT,
@@ -299,6 +301,7 @@ export const properties: Property[] = [
     id: "edna-valley",
     name: "Edna Valley",
     center: centerOf(EDNA, 2, 2),
+    weather: { windMph: 6, windDir: "SW", humidityPct: 55, redFlag: false, updatedAt: CACHED_AT },
     blocks: ednaBlocks,
     activeFires25mi: 0,
     cachedAt: CACHED_AT,

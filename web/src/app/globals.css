@@ -1,44 +1,32 @@
 @import "tailwindcss";
 
-/* Palette: cool sage-gray neutrals, near-black green ink.
+/* Design system: see DESIGN.md. Dark only.
    Green / amber / red mean RISK and nothing else. Primary actions use ink. */
 :root {
-  --r: 8px; /* one corner radius for everything */
-  --paper: #f1f3ee;
-  --surface: #fafbf8;
-  --ink: #15241d;
-  --ink-2: #4a5a52;
-  --line: #d9ded5;
+  color-scheme: dark;
+  --r: 8px; /* controls, chips, inputs */
+  --r-panel: 16px; /* glass panels and sheets */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --low: #2f7d4f;
-  --low-bg: #e1efe5;
-  --low-ink: #1e5a37;
-  --med: #b97a06;
-  --med-bg: #f8ebc8;
-  --med-ink: #6e4600;
-  --high: #bf3a28;
-  --high-bg: #f6dad4;
-  --high-ink: #8a2214;
-}
+  --paper: #0e1512;
+  --surface: #141d18;
+  --ink: #e9eee8;
+  --ink-2: #a4b4aa;
+  --line: #26362d;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0f1713;
-    --surface: #16211b;
-    --ink: #e6ebe5;
-    --ink-2: #9daea4;
-    --line: #26362d;
+  --glass-bg: rgba(16, 24, 20, 0.62);
+  --glass-border: rgba(233, 238, 232, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
 
-    --low: #5db67f;
-    --low-bg: #173325;
-    --low-ink: #8fd6ab;
-    --med: #e0a83a;
-    --med-bg: #392c10;
-    --med-ink: #f0c879;
-    --high: #e5675a;
-    --high-bg: #3d1c17;
-    --high-ink: #f5a398;
-  }
+  --low: #5db67f;
+  --low-bg: #173325;
+  --low-ink: #8fd6ab;
+  --med: #e0a83a;
+  --med-bg: #392c10;
+  --med-ink: #f0c879;
+  --high: #e5675a;
+  --high-bg: #3d1c17;
+  --high-ink: #f5a398;
 }
 
 @theme inline {
@@ -64,6 +52,32 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+/* Frosted glass panel. Falls back to a solid surface where blur is unsupported or unwanted. */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-panel);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px rgb(0 0 0 / 0.2);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--surface);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 /* No-mow habitat: diagonal hatch, used in the rail, legend and (via SVG pattern) on the map. */
@@ -75,22 +89,93 @@ body {
   fill: url(#habitat-hatch) !important;
   fill-opacity: 1 !important;
 }
+
+/* Map: only the tile layer is desaturated and dimmed, so risk colors stay vivid. */
+.leaflet-tile-pane {
+  filter: saturate(0.65) brightness(0.72) contrast(1.15);
+}
 .leaflet-container {
   font-family: inherit;
   background: var(--paper);
 }
+/* Block outlines start hidden and are revealed by risk (RiskMap). */
+.block-poly {
+  opacity: 0;
+}
+@keyframes label-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.label-in {
+  animation: label-in 300ms var(--ease) both;
+}
 .leaflet-tooltip.block-label {
-  background: var(--surface);
+  background: var(--glass-bg);
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: var(--r);
   box-shadow: none;
   padding: 2px 8px;
   font-size: 12px;
   font-weight: 600;
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  backdrop-filter: blur(20px) saturate(1.2);
 }
 .leaflet-tooltip.block-label::before {
   display: none;
+}
+/* On phones the blocks are small, so labels wrap and shrink instead of overlapping. */
+@media (max-width: 767px) {
+  .leaflet-tooltip.block-label {
+    white-space: normal;
+    max-width: 76px;
+    text-align: center;
+    font-size: 11px;
+    line-height: 13px;
+    padding: 2px 6px;
+  }
+}
+.leaflet-container .leaflet-control-attribution {
+  background: var(--glass-bg);
+  color: var(--ink-2);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-top-left-radius: var(--r);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  backdrop-filter: blur(20px) saturate(1.2);
+}
+.leaflet-control-attribution a {
+  color: var(--ink);
+}
+.leaflet-bar,
+.leaflet-touch .leaflet-bar {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r);
+  overflow: hidden;
+  box-shadow: none;
+}
+.leaflet-bar a,
+.leaflet-touch .leaflet-bar a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  background: var(--glass-bg);
+  color: var(--ink);
+  border-bottom: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  backdrop-filter: blur(20px) saturate(1.2);
+}
+.leaflet-bar a:last-child {
+  border-bottom: 0;
+}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+  background: var(--surface);
+  color: var(--ink);
 }
 
 /* Numbers line up in columns. */
@@ -110,6 +195,7 @@ body {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
   }
 }
 

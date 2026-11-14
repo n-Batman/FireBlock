@@ -60,8 +60,8 @@ export function BlockRail({ property, selectedId, onSelect, today }: BlockRailPr
                 type="button"
                 aria-pressed={selected}
                 onClick={() => onSelect(block.id)}
-                className={`block w-full px-6 py-4 text-left transition-colors hover:bg-paper ${
-                  selected ? "bg-paper shadow-[inset_3px_0_0_var(--ink)]" : ""
+                className={`block w-full px-6 py-4 text-left transition-colors hover:bg-white/5 ${
+                  selected ? "bg-white/[0.07] shadow-[inset_3px_0_0_var(--ink)]" : ""
                 }`}
               >
                 <span className="flex items-center justify-between gap-3">

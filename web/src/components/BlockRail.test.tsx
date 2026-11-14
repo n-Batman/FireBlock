@@ -16,11 +16,11 @@ describe("BlockRail", () => {
     renderRail();
     const rows = screen.getAllByRole("button");
     const expected: [string, number][] = [
-      ["Block 3", 78],
-      ["Block 5", 71],
-      ["Block 4", 58],
-      ["Block 1", 49],
-      ["Block 2", 33],
+      ["Ridge Top", 78],
+      ["South Slope", 71],
+      ["Old Vine Row", 58],
+      ["Cabernet East", 49],
+      ["Creek Bottom", 33],
     ];
     expect(rows).toHaveLength(5);
     expected.forEach(([name, score], i) => {
@@ -59,7 +59,7 @@ describe("BlockRail", () => {
     renderRail({ selectedId: "adelaida-5" });
     const pressed = screen.getAllByRole("button").filter((r) => r.getAttribute("aria-pressed") === "true");
     expect(pressed).toHaveLength(1);
-    expect(pressed[0]).toHaveTextContent("Block 5");
+    expect(pressed[0]).toHaveTextContent("South Slope");
   });
 
   it("lists habitat as no-mow and not as a clickable row", () => {
