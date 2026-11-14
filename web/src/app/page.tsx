@@ -74,6 +74,11 @@ function MapShell() {
           onChange={changeProperty}
           cachedAt={property.cachedAt}
           onOpenLimits={openLimits}
+          scanHref={
+            selectedBlock
+              ? `/scan?property=${property.id}&block=${selectedBlock.id}`
+              : `/scan?property=${property.id}`
+          }
         >
           {/* On phones the strip steps aside while the breakdown sheet is open. */}
           {(wide || !hasSelection) && <WeatherStrip property={property} />}
