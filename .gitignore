@@ -14,6 +14,7 @@ __pycache__/
 /raw-work/
 /parser-input/
 /config/scraper-ui.local.json
+/.cache/
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 

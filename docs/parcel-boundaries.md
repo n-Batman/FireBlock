@@ -1,5 +1,9 @@
 # Property-line lookup and risk-map overlay
 
+To color complete properties from the backend risk grid, use the new
+[parcel risk display](parcel-risk-display.md). The lookup and boundaries below
+also remain available on their own.
+
 The main Leaflet risk map now includes **Property boundaries** in the lower-right
 corner. Enter latitude/longitude, click **Pick on map**, or zoom to a small region
 and click **Find in visible area**. Returned parcel outlines appear in cyan over

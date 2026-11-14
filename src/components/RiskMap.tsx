@@ -1,7 +1,7 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { MapContainer, Polygon, TileLayer, Tooltip, ZoomControl } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { Property } from "@/data/types";
@@ -28,6 +28,7 @@ interface RiskMapProps {
 }
 
 export default function RiskMap({ property, selectedId, onSelect }: RiskMapProps) {
+  const [gridActive,setGridActive]=useState(false);
   return (
     <>
       {/* Hatch pattern for no-mow habitat polygons (referenced from CSS). */}
@@ -60,9 +61,9 @@ export default function RiskMap({ property, selectedId, onSelect }: RiskMapProps
           attribution="Imagery &copy; Esri, Maxar, Earthstar Geographics"
         />
         <ZoomControl position="topright" />
-        <ParcelOverlay center={property.center} />
+        <ParcelOverlay center={property.center} onGridActive={setGridActive} />
 
-        {property.blocks.map((block) => {
+        {property.blocks.filter(block=>!gridActive||block.kind==="habitat").map((block) => {
           if (block.kind === "habitat") {
             return (
               <Polygon

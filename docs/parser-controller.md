@@ -74,6 +74,17 @@ atomic publication. Use manifest IDs for production batch handoffs.
 it fails instead of silently processing part of the selection. Use a narrower
 prefix or explicit manifest to select a smaller dataset.
 
+Discovery also stops before accumulating more than `max_discovery_entries`
+inventory records (default 10000, maximum 100000) or `max_discovery_bytes`
+raw manifest bytes across batches (default 32 MiB, maximum 128 MiB). Each
+individual manifest is limited to 32 MiB and checked before JSON parsing.
+The object listing is capped separately by the same entry/byte budgets;
+the C++ backend additionally enforces a 32 MiB listing ceiling while paginating.
+Its `list` and `versions` commands accept `--max-files` (default 100000).
+Exceeding any limit fails with a narrower-prefix/batch diagnostic; discovery
+never silently returns a partial dataset. Injected storage adapters must accept
+`list_objects(prefix, max_files=...)` and enforce the limit while listing.
+
 ## Python backend use
 
 ```python

@@ -214,12 +214,14 @@ Json ParsingController::run(const Json& c, Controller* storage) const {
         require(manifest["errors"].empty(),"One or more input files failed; inspect the run manifest");
         manifest["status"]="parsed"; save(manifestPath,manifest);
         if (upload) {
+            bool verified=true;
             auto bucket=settings.at("bucket").get<std::string>(); auto prefix=remotePrefix(settings)+"/"+id+"/";
             manifest["status"]="uploading"; save(manifestPath,manifest);
             for (auto& artifact : manifest["artifacts"]) {
                 auto relative=artifact.at("output").get<std::string>();
                 artifact["upload_status"]="uploading"; save(manifestPath,manifest);
                 auto response=storage->upload(bucket,root/std::filesystem::u8path(relative),prefix+relative,"application/x-ndjson");
+                verified=verified && response.value("contentSha1",std::string())==artifact.at("sha1").get<std::string>() && response.value("contentLength",uintmax_t(-1))==artifact.at("bytes").get<uintmax_t>();
                 artifact["upload_status"]="uploaded";
                 artifact["storage"]={{"bucket",bucket},{"key",prefix+relative},{"file_id",response.at("fileId")}};
                 save(manifestPath,manifest);
@@ -234,7 +236,17 @@ Json ParsingController::run(const Json& c, Controller* storage) const {
             manifest["status"]="complete";
             manifest["storage"]={{"bucket",bucket},{"manifest_key",prefix+"manifest.json"}}; save(manifestPath,manifest);
             // Publish last: this is the marker that the batch is ready to consume.
-            storage->upload(bucket,manifestPath,prefix+"manifest.json","application/json");
+            auto receipt=storage->upload(bucket,manifestPath,prefix+"manifest.json","application/json");
+            verified=verified && receipt.value("contentSha1",std::string())==sha1File(manifestPath) && receipt.value("contentLength",uintmax_t(-1))==std::filesystem::file_size(manifestPath);
+            if(verified && !settings.value("keep_local_files",false)) {
+                for(const auto& artifact : manifest["artifacts"]) {
+                    auto file=root/std::filesystem::u8path(artifact.at("output").get<std::string>());
+                    if(!std::filesystem::is_symlink(file) && within(std::filesystem::canonical(file),std::filesystem::canonical(root))) {
+                        std::error_code ec; std::filesystem::remove(file,ec);
+                    }
+                }
+                save(root/"cloud-receipt.json",{{"manifest_file_id",receipt.at("fileId")},{"manifest_key",prefix+"manifest.json"},{"verified",true}});
+            }
         } else manifest["status"]="complete";
         save(manifestPath,manifest); return manifest;
     } catch (...) {

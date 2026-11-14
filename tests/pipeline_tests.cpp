@@ -29,6 +29,7 @@ int main() {
     auto root=std::filesystem::temp_directory_path()/("fireblock-pipeline-"+std::to_string(GetCurrentProcessId())+"-"+
         std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::filesystem::create_directory(root);
+    _putenv_s("FIREBLOCK_INDEX_DIR",(root/"index").u8string().c_str());
     struct Cleanup { std::filesystem::path path; ~Cleanup() { std::error_code ec; std::filesystem::remove_all(path,ec); } } cleanup{root};
     try {
         std::map<std::string,Object> objects; int uploads=0,downloads=0,authorizations=0,manifests=0;
@@ -37,6 +38,8 @@ int main() {
             if (r.url.find("b2_authorize_account")!=std::string::npos) { ++authorizations; return response(auth()); }
             if (r.url.find("b2_get_upload_url")!=std::string::npos)
                 return response({{"uploadUrl","https://upload.test"},{"authorizationToken","upload-secret"}});
+            if (r.url.find("b2_list_file_versions")!=std::string::npos)
+                return response({{"files",Json::array()},{"nextFileName",nullptr}});
             if (r.url=="https://upload.test") {
                 ++uploads;
                 if (uploadFailure) return {500,"{\"code\":\"server_error\"}"};
@@ -47,7 +50,7 @@ int main() {
                     ++manifests; check(j["status"]=="complete","Partial raw manifest was uploaded");
                     for (const auto& f : j["files"]) check(objects.count(f["file_id"].get<std::string>())==1,"Manifest references an unuploaded object");
                 }
-                return response({{"fileId",id}});
+                return response({{"fileId",id},{"contentSha1",hash},{"contentLength",data.size()}});
             }
             if (r.url.find("b2_get_file_info")!=std::string::npos) {
                 auto id=Json::parse(r.body).at("fileId").get<std::string>(); const auto& obj=objects.at(id);
@@ -60,7 +63,7 @@ int main() {
             if (expire) { expire=false; return {401,"{\"code\":\"expired_auth_token\"}"}; }
             auto id=r.url.substr(p+query.size());
             write(r.download,corrupt ? "damaged" : objects.at(id).data); return {200,""};
-        });
+        },[](unsigned){});
         RawDataController pipeline(storage);
         _putenv_s("FIRMS_MAP_KEY","test-map-key");
         Json cfg={{"bbox",{-123,37,-121,39}},{"start","2026-11-10"},{"end","2026-11-11"},{"output","ignored"},
@@ -72,6 +75,7 @@ int main() {
             write(r.download,csv); return {200,""};
         });
         check(result["files"]==3 && manifests==1,"Scraper outputs/sidecars not all archived");
+        check(result["local_raw_files_removed"]==true,"Verified fresh scrape was not cleaned up");
         auto manifestId=result["manifest_file_id"].get<std::string>();
         check(manifestId==lastUpload,"Manifest was not uploaded last");
         expire=true; int previousAuth=authorizations;
@@ -119,7 +123,7 @@ int main() {
         check(uploads==before,"Failed scraper published raw batch");
         uploadFailure=true; before=uploads; int completed=manifests;
         fails([&] { pipeline.publish(root/"parser-input","raw-bucket"); });
-        check(uploads==before+1 && manifests==completed,"Upload failure retried or published ready manifest");
+        check(uploads==before+4 && manifests==completed,"Upload failure did not stop at four attempts or published ready manifest");
         for (const auto& e : std::filesystem::directory_iterator(root))
             check(e.path().filename().u8string().rfind(".raw-pull-",0)!=0,"Failed restore left staging directory");
         std::cout << "Raw scraper/B2/restore contract tests passed\n"; return 0;

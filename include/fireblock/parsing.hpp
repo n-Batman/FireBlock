@@ -20,7 +20,7 @@ public:
                                      const std::string& sourceName);
     // Reads the existing ingestion directory layout. A supplied Controller is
     // required only when storage.enabled=true. Uploads artifacts and the run
-    // manifest through the existing B2 layer; never retries ambiguous uploads.
+    // manifest through the B2 layer, including bounded 5xx retries with receipt checks.
     Json run(const Json& config, Controller* storage = nullptr) const;
 };
 }

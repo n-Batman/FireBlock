@@ -71,6 +71,27 @@ int main() {
         fails([&] { c.download("photos", "a", source); });
         check(sha1File(source) == "a9993e364706816aba3e25717850c26c9cd0d89d");
         check(authorizations == 1);
+        int listCalls = 0;
+        Controller bounded("id", "key", [&](const Request& r) -> Response {
+            if (r.url.find("b2_authorize_account") != std::string::npos) return auth();
+            ++listCalls;
+            return json({{"files", Json::array({{{"fileName", "a"}}, {{"fileName", "b"}}})},
+                         {"nextFileName", "next"}});
+        });
+        fails([&] { bounded.files("photos", "", false, 1); });
+        check(listCalls == 1); // Fail on the first overflowing page, never scan the rest.
+        fails([&] { bounded.files("photos", "", false, 0); });
+        check(listCalls == 1);
+        int exactCalls = 0;
+        Controller exact("id", "key", [&](const Request& r) -> Response {
+            if (r.url.find("b2_authorize_account") != std::string::npos) return auth();
+            ++exactCalls;
+            return json({{"files", Json::array({{{"fileName", "a"}}})},
+                         {"nextFileName", exactCalls == 1 ? Json() : Json("more")}});
+        });
+        check(exact.files("photos", "", false, 1).size() == 1);
+        fails([&] { exact.files("photos", "", true, 1); });
+        check(exactCalls == 2); // A continuation at the limit fails without another page.
         int attempts = 0;
         Controller refresh("id", "key", [&](const Request& r) -> Response {
             if (r.url.find("b2_authorize_account") != std::string::npos) return auth();

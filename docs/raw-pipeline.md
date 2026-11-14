@@ -132,8 +132,9 @@ publication. Use ASCII paths produced by ingestion; reserved Windows filenames
 and ambiguous path forms are rejected. Don't modify the source tree during upload.
 
 Uploads use the existing B2 streaming layer. Each file must be at most 5 GB;
-manifests are limited to 32 MiB and batches to 100,000 files. Uploads aren't retried
-automatically because a failed response may still mean B2 accepted the file.
+manifests are limited to 32 MiB and batches to 100,000 files. HTTP 5xx upload errors
+get up to four attempts with receipt verification before replay; see
+[storage retries](storage-retries.md). Unverifiable results stop collection.
 Failure can leave raw objects in B2, but no intentionally published complete
 manifest references a partial batch. Check B2 after ambiguous upload failures.
 Rerunning publication creates a new batch ID; automatic resume, remote cleanup,

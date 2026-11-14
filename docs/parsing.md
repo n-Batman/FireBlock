@@ -126,8 +126,9 @@ sequentially against a given input tree. Symlink inputs are ignored and resolved
 file paths must remain inside the input root.
 
 An upload failure preserves prior uploaded objects and a failed local manifest.
-Uploads are not retried automatically: an ambiguous network failure could mean
-the server accepted the upload. Check B2 before retrying. A new invocation creates
+HTTP 5xx uploads receive up to four attempts with receipt verification; see
+[storage retries](storage-retries.md). Ambiguous transport failures still stop;
+check B2 before restarting those. A new invocation creates
 a new run ID and reprocesses the input tree; automatic resume, deduplication and
 cleanup of partial remote batches are not implemented. Do not consume objects
 from a run without its completed manifest. No database or background service is

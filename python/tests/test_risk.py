@@ -92,10 +92,12 @@ class RiskTests(unittest.TestCase):
             with self.assertRaises((ValueError, KeyError)):
                 validate_risk({**self.options, **changes}, self.bbox)
         self.assertEqual(grid(self.bbox, self.options), (2, 2))
+        # Default analysis cells target 200 m, independently of collection boxes.
+        self.assertEqual(grid([0, 0, .01, .01], {}), (6, 6))
 
     def test_cloud_discovery_loads_version_pinned_scene_time(self):
         class Storage:
-            def list_objects(self, prefix):
+            def list_objects(self, prefix, max_files=10000):
                 return [{"fileName": "raw/b/copernicus/p/product.zip", "fileId": "zip-v1"},
                         {"fileName": "raw/b/copernicus/p/metadata.json", "fileId": "metadata-v1"}]
             def download_version(self, identity, path):
