@@ -127,7 +127,7 @@ Don't:
 
 ## Scanner visual language
 
-- Full-bleed camera. Edges dimmed by four inset gradients so attention goes to the center.
+- Full-bleed camera. Edges dimmed by a soft radial vignette so attention goes to the center.
 - Corner-bracket reticle: four L-shaped corners, 2px stroke, 28px arms, inset 12% from the edges, ink color.
 - Sweep line: a 2px line with a soft fade, travels top to bottom in a 1.5s linear loop, transform only. Paused when reduced motion is on.
 - Detection boxes: 2px border plus 12% tint of the risk color. Red means risk (dry growth over 4 ft, brush touching a structure). Green means cleared. Below each box a short label and the action, for example "Dry growth - mow by June 1".

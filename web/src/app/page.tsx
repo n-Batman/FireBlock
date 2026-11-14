@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { properties } from "@/data/properties";
 import { BlockRail } from "@/components/BlockRail";
@@ -10,6 +11,8 @@ import { DataLimitsPanel } from "@/components/DataLimitsPanel";
 import { Legend } from "@/components/Legend";
 import { TopBar } from "@/components/TopBar";
 import { WeatherStrip } from "@/components/WeatherStrip";
+import { applyScans } from "@/lib/scanStore";
+import { useScans } from "@/lib/useScans";
 import { useWide } from "@/lib/useWide";
 
 // Leaflet touches `window`, so the map loads in the browser only.
@@ -18,15 +21,21 @@ const RiskMap = dynamic(() => import("@/components/RiskMap"), {
   loading: () => <div className="absolute inset-0 bg-paper" aria-hidden="true" />,
 });
 
-export default function Home() {
-  const [activeId, setActiveId] = useState(properties[0].id);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+function MapShell() {
+  const params = useSearchParams();
+  const scans = useScans();
+  const [activeId, setActiveId] = useState(
+    () => properties.find((p) => p.id === params.get("property"))?.id ?? properties[0].id,
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(() => params.get("block"));
   const [limitsOpen, setLimitsOpen] = useState(false);
   const wide = useWide();
   const openLimits = useCallback(() => setLimitsOpen(true), []);
   const closeLimits = useCallback(() => setLimitsOpen(false), []);
 
-  const property = properties.find((p) => p.id === activeId) ?? properties[0];
+  const base = properties.find((p) => p.id === activeId) ?? properties[0];
+  // Saved scans show up as a "Photo scan" factor on the blocks they were run for.
+  const property = useMemo(() => applyScans(base, scans), [base, scans]);
   const selectedBlock =
     property.blocks.find((b) => b.id === selectedId && b.kind === "vine") ?? null;
   const hasSelection = selectedBlock !== null;
@@ -104,5 +113,13 @@ export default function Home() {
 
       <DataLimitsPanel open={limitsOpen} onClose={closeLimits} />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="h-[100dvh] bg-paper" aria-hidden="true" />}>
+      <MapShell />
+    </Suspense>
   );
 }

@@ -22,6 +22,7 @@ interface BreakdownPanelProps {
 export function BreakdownPanel({ block, propertyId, onClose }: BreakdownPanelProps) {
   const score = scoreOf(block);
   const level = levelOf(score);
+  const scanFactor = block.factors.find((f) => f.key === "photoScan");
   const wide = useWide();
   const reduce = useReducedMotion();
 
@@ -85,7 +86,8 @@ export function BreakdownPanel({ block, propertyId, onClose }: BreakdownPanelPro
               <span className="font-medium">{f.label}</span>
               <span className="num">
                 <span data-testid="factor-points" className="text-base font-semibold">
-                  +{f.points}
+                  {f.points >= 0 ? "+" : ""}
+                  {f.points}
                 </span>
                 <span className="text-xs text-ink-2"> of {f.max}</span>
               </span>
@@ -93,7 +95,7 @@ export function BreakdownPanel({ block, propertyId, onClose }: BreakdownPanelPro
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
               <motion.div
                 className={`h-full rounded-full ${BAR[level]}`}
-                style={{ width: `${(f.points / f.max) * 100}%`, originX: 0 }}
+                style={{ width: `${Math.max(0, f.points / f.max) * 100}%`, originX: 0 }}
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{ duration: 0.22, delay: 0.1 + i * 0.06, ease: EASE }}
@@ -114,17 +116,17 @@ export function BreakdownPanel({ block, propertyId, onClose }: BreakdownPanelPro
         >
           <p className="text-[15px] font-medium">Photo scan</p>
           <p className="mt-1 text-[15px] leading-snug text-ink-2">
-            No photos yet. Photos from the rows will correct this score.
+            {scanFactor
+              ? `Scan changed score from ${score - scanFactor.points} to ${score}. ${scanFactor.reason}`
+              : "No scan yet. Walk the rows with the camera to correct this score."}
           </p>
-          <button
-            type="button"
-            disabled
-            className="mt-3 inline-flex h-11 cursor-not-allowed items-center gap-2 rounded-[var(--r)] border border-[var(--glass-border)] px-3 text-[15px] font-medium text-ink-2"
+          <Link
+            href={`/scan?property=${propertyId}&block=${block.id}`}
+            className="mt-3 inline-flex h-11 items-center gap-2 rounded-[var(--r)] border border-[var(--glass-border)] px-3 text-[15px] font-medium text-ink transition-colors hover:bg-white/5 active:scale-[0.98]"
           >
             <Camera size={18} aria-hidden="true" />
-            Add photos from the rows
-          </button>
-          <p className="mt-2 text-xs text-ink-2">The photo scan is the next thing we are building.</p>
+            {scanFactor ? "Scan again" : "Scan the rows"}
+          </Link>
         </div>
 
         <details className="rounded-[var(--r)] border border-[var(--glass-border)]">

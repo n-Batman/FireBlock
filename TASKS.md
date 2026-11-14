@@ -70,8 +70,8 @@ Workflow: pull before you start → work on your own branch (`milo/...` or `part
 | M14 | Submit project link by Sat 2 PM | TODO |
 | M15 | `web/DESIGN.md`: palette, type, glass spec, motion, scanner visual language | DONE |
 | M16 | Premium map shell: full-bleed satellite map, glass panels, weather strip, motion | DONE |
-| M17 | Live scanner UI at `/scan`: camera, reticle, boxes, stub `/api/scan`, demo mode, score feed | DOING (Milo/Claude) |
-| M18 | Polish pass on every screen: focus, tap targets, contrast, keyboard, states | TODO |
+| M17 | Live scanner UI at `/scan`: camera, reticle, boxes, stub `/api/scan`, demo mode, score feed | DONE (needs real demo clip: M6) |
+| M18 | Polish pass on every screen: focus, tap targets, contrast, keyboard, states | DOING (Milo/Claude) |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15

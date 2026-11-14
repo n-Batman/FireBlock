@@ -5,7 +5,8 @@ export type FactorKey =
   | "fuelDryness"
   | "slope"
   | "hazardZone"
-  | "fireHistory";
+  | "fireHistory"
+  | "photoScan";
 
 export interface Factor {
   key: FactorKey;
@@ -55,3 +56,55 @@ export interface Property {
   /** ISO timestamp the sample data was cached. */
   cachedAt: string;
 }
+
+export type Severity = "risk" | "clear";
+
+/** One thing the scanner found in a camera frame. */
+export interface Finding {
+  /** Short name, for example "Dry growth". */
+  label: string;
+  severity: Severity;
+  /** What to do about it, for example "Mow by June 1". */
+  action: string;
+  /** [xmin, ymin, xmax, ymax], each 0 to 999, relative to the frame that was sent. */
+  bbox: [number, number, number, number];
+}
+
+/** Body of a successful POST /api/scan response. */
+export interface ScanResponse {
+  findings: Finding[];
+}
+
+/**
+ * JSON Schema for ScanResponse, ready for OpenAI structured outputs
+ * (Responses API, text.format type "json_schema", strict true).
+ */
+export const SCAN_JSON_SCHEMA = {
+  name: "scan_response",
+  strict: true,
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["findings"],
+    properties: {
+      findings: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["label", "severity", "action", "bbox"],
+          properties: {
+            label: { type: "string" },
+            severity: { type: "string", enum: ["risk", "clear"] },
+            action: { type: "string" },
+            bbox: {
+              type: "array",
+              description: "[xmin, ymin, xmax, ymax], integers 0 to 999",
+              items: { type: "integer" },
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
