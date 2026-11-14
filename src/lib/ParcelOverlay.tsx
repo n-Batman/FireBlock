@@ -23,6 +23,7 @@ export function ParcelOverlay({center}:{center:[number,number]}) {
     const node=L.DomUtil.create("div");
     node.style.cssText="background:white;color:#18241d;padding:12px;width:270px;max-height:45vh;overflow:auto;border:1px solid #aaa;border-radius:6px;font:13px system-ui";
     L.DomEvent.disableClickPropagation(node); L.DomEvent.disableScrollPropagation(node);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the Leaflet control's host node exists only after mount
     control.onAdd=()=>node; control.addTo(map); setHost(node);
     return ()=>{serial.current++;pending.current?.abort();control.remove();};
   },[map]);
