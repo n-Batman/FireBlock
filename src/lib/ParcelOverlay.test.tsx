@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MapContainer } from "react-leaflet";
 import { ParcelOverlay } from "./ParcelOverlay";
+import { clearParcelCache } from "./parcelCache";
 
 const CENTER: [number, number] = [35.63, -120.85];
 const EMPTY = { type: "FeatureCollection", features: [], metadata: { truncated: false, source: "https://example.test", fetchedAt: "t1" } };
 
 const fetchMock = vi.fn();
 beforeEach(() => {
+  clearParcelCache();
   // His overlay also asks /api/risk-grid when it mounts. Here that grid is simply not available.
   fetchMock.mockImplementation(async (url: string) =>
     String(url).includes("/api/risk-grid")
@@ -17,6 +19,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => {
+  clearParcelCache();
   fetchMock.mockReset();
   vi.unstubAllGlobals();
 });
@@ -47,13 +50,14 @@ describe("ParcelOverlay lookup", () => {
     expect(parcelCalls()).toBe(0);
   });
 
-  it("looks up again for a new search at the same point, but not on an unrelated re-render", async () => {
+  it("reuses cached boundaries for a new search at the same point without extra requests", async () => {
     const { rerender } = render(mount({ lat: 35.6363, lon: -120.8597, id: 1 }));
     await waitFor(() => expect(parcelCalls()).toBe(1));
     rerender(mount({ lat: 35.6363, lon: -120.8597, id: 1 }));
     expect(parcelCalls()).toBe(1);
     rerender(mount({ lat: 35.6363, lon: -120.8597, id: 2 }));
-    await waitFor(() => expect(parcelCalls()).toBe(2));
+    expect(await screen.findByText("0 parcels.")).toBeInTheDocument();
+    expect(parcelCalls()).toBe(1);
   });
 
   it("does not call the API outside SLO County, and says why", async () => {

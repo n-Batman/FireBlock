@@ -8,6 +8,8 @@ import { lookupParcels, lookupParcelsInView, type ParcelLookup, type View, type 
 import { loadRiskCells, scoreParcel, type RiskCell } from "./parcelScore";
 import { toGeoJSON } from "./parcelUnits";
 import { useParcelScans } from "./useParcelScans";
+import { preloadNearbyParcels } from "./parcelCache";
+import { ParcelScoreCache } from "./parcelScoreCache";
 
 export interface ParcelState {
   /** "zoom" means the map view is too wide to search, so the parcels are not shown. */
@@ -35,7 +37,16 @@ export function useParcels(place: Place | null, view: View | null = null): Parce
   const scans = useParcelScans();
   const [cells, setCells] = useState<RiskCell[]>([]);
   const [lookup, setLookup] = useState<{ id: number; result: ParcelLookup } | null>(null);
-  const [viewLookup, setViewLookup] = useState<{ placeId: number; result: ViewLookup } | null>(null);
+  const [viewLookup, setViewLookup] = useState<{ placeId: number; viewKey:string; result: ViewLookup } | null>(null);
+  // A new map or scan array creates a fresh memo, so stale scores cannot survive
+  // new evidence. The cache never stores raw scans, photos or GPS coordinates.
+  const scoreCache=useMemo(()=>new ParcelScoreCache(),[cells,scans]);
+  useEffect(()=>{
+    const clear=()=>scoreCache.clear();
+    const timer=setInterval(clear,5*60_000);
+    window.addEventListener("pagehide",clear);
+    return ()=>{clearInterval(timer);window.removeEventListener("pagehide",clear);clear();};
+  },[scoreCache]);
 
   useEffect(() => {
     let alive = true;
@@ -82,11 +93,11 @@ export function useParcels(place: Place | null, view: View | null = null): Parce
     const controller = new AbortController();
     lookupParcelsInView({ west, south, east, north }, { signal: controller.signal }).then(
       (result) => {
-        if (!controller.signal.aborted) setViewLookup({ placeId: forPlace, result });
+        if (!controller.signal.aborted) setViewLookup({ placeId: forPlace, viewKey, result });
       },
       () => {
         if (!controller.signal.aborted) {
-          setViewLookup({ placeId: forPlace, result: { kind: "error", message: "The parcel lookup failed. Try again." } });
+          setViewLookup({ placeId: forPlace, viewKey, result: { kind: "error", message: "The parcel lookup failed. Try again." } });
         }
       },
     );
@@ -96,15 +107,27 @@ export function useParcels(place: Place | null, view: View | null = null): Parce
   // The latest view's answer replaces the 300 m one, and stays on screen until the next arrives.
   const viewCurrent = place && viewLookup?.placeId === place.id ? viewLookup.result : null;
   const current: ParcelLookup | ViewLookup | null = viewCurrent ?? (place && lookup?.id === place.id ? lookup.result : null);
+  useEffect(()=>{
+    if(!place||current?.kind!=="ok"||current.truncated)return;
+    // Do not let speculative work race ahead of a still-loading viewport.
+    if(viewKey&&(viewLookup?.viewKey!==viewKey||viewLookup.placeId!==place.id))return;
+    const dy=300/111195,dx=dy/Math.cos(place.lat*Math.PI/180);
+    const box:[number,number,number,number]=view
+      ?[view.west,view.south,view.east,view.north]
+      :[place.lon-dx,place.lat-dy,place.lon+dx,place.lat+dy];
+    const controller=new AbortController();
+    const timer=setTimeout(()=>{void preloadNearbyParcels(box,controller.signal);},500);
+    return ()=>{clearTimeout(timer);controller.abort();};
+  },[current,place,viewKey,view,viewLookup]);
   const units = useMemo(() => {
     if (current?.kind !== "ok") return [];
     const here = place ? point([place.lon, place.lat]) : null;
     return current.units.map((u) => ({
       ...u,
       atPoint: u.atPoint ?? (here ? booleanPointInPolygon(here, toGeoJSON(u)) : false),
-      score: scoreParcel(u, scans, cells),
+      score: scoreCache.get(u,()=>scoreParcel(u, scans, cells)),
     }));
-  }, [current, place, scans, cells]);
+  }, [current, place, scans, cells, scoreCache]);
 
   if (!place) return { phase: "idle", units: [], truncated: false, message: null };
   if (!current) return { phase: "loading", units: [], truncated: false, message: null };
