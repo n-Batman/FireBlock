@@ -15,6 +15,7 @@ struct Request {
 };
 struct Response { unsigned status; std::string body; std::string location; };
 using Transport = std::function<Response(const Request&)>;
+using RetryWait = std::function<void(unsigned seconds)>;
 Response windowsHttp(const Request& request);
 std::string sha1File(const std::filesystem::path& file);
 std::string encode(const std::string& value, bool preserveSlash = false);
@@ -24,14 +25,16 @@ std::string environment(const char* name);
 // One instance per thread. Tokens stay in memory; API results omit auth tokens.
 class Controller {
 public:
-    Controller(std::string keyId, std::string applicationKey, Transport transport = windowsHttp);
+    Controller(std::string keyId, std::string applicationKey, Transport transport = windowsHttp,
+               RetryWait retryWait = {});
     Json account();
     Json buckets();
     Json bucket(const std::string& name);
     Json createBucket(const std::string& name, bool publicRead = false);
     Json setBucketPublic(const std::string& name, bool publicRead);
     Json deleteBucket(const std::string& name);
-    Json files(const std::string& bucketName, const std::string& prefix = "", bool versions = false);
+    Json files(const std::string& bucketName, const std::string& prefix = "", bool versions = false,
+               size_t maxFiles = 100000);
     Json upload(const std::string& bucketName, const std::filesystem::path& local,
                 const std::string& remote, const std::string& contentType = "b2/x-auto");
     void download(const std::string& bucketName, const std::string& remote, const std::filesystem::path& local);
@@ -46,8 +49,11 @@ private:
     void authorize();
     Json api(const std::string& operation, const Json& body);
     Json checked(const Response& response) const;
+    Response readWithRetry(const Request& request, const std::string& operation);
+    void retryPause(unsigned attempt, unsigned status, const std::string& operation);
     std::string keyId_, key_, token_, apiUrl_, downloadUrl_, accountId_;
     Json allowed_;
     Transport transport_;
+    RetryWait retryWait_;
 };
 }

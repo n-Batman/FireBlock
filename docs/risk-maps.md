@@ -62,6 +62,15 @@ It uses a geographic grid without a basemap. Cell sizes are approximate kilometr
 
 ## Scoring and missing data
 
+The analysis grid defaults to `risk.cell_km: 0.2` (**200 m × 200 m nominal
+cells**), independently of the scraper's **1 km × 1 km collection boxes**.
+The prior runtime fallback was 1 km and the cloud example explicitly used 2 km;
+both now use 200 m. The example analysis bbox is smaller to remain below its
+10,000-cell limit at the finer resolution. Broader jobs should be split into
+regional analysis runs. Existing grids retain their original resolution until
+analysis is run again. Because the WGS84 grid fits the requested bbox, actual
+cell sides can be slightly smaller than the nominal metre target.
+
 For every cell, select the newest scene no later than `as_of`, no older than
 `scene_max_age_days`, with sufficient sampled valid coverage in both indices.
 Cloud/nodata pixels remain invalid. Each scene's NDVI and NDMI are resampled to

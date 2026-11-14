@@ -1,6 +1,7 @@
 """JSON/files connector to existing C++ executables; never passes keys in argv."""
 import json
 import subprocess
+import hashlib
 from pathlib import Path
 
 
@@ -32,15 +33,21 @@ class Backend:
     def download(self, key, destination):
         self.call("download", key, destination)
 
-    def list_objects(self, prefix):
-        return self.call("list", prefix)
+    def list_objects(self, prefix, max_files=10000):
+        return self.call("list", prefix, "--max-files", max_files)
 
     def download_version(self, file_id, destination):
         self.call("download-version", file_id, destination)
 
     def upload(self, source, key):
         response = self.call("upload", source, key)
-        return {"key": key, "file_id": response["fileId"]}
+        path = Path(source)
+        verified = False
+        if "contentLength" in response and "contentSha1" in response:
+            with path.open("rb") as stream:
+                checksum = hashlib.file_digest(stream, "sha1").hexdigest()
+            verified = response["contentLength"] == path.stat().st_size and response["contentSha1"] == checksum
+        return {"key": key, "file_id": response["fileId"], "verified": verified}
 
     def ingest(self, config_path):
         executable = str(Path(self.config.get("ingest_executable", "build/native/fireblock_ingest.exe")).resolve())

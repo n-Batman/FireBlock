@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
+    "@turf/area": "^7.3.0",
+    "@turf/intersect": "^7.3.0",
     "leaflet": "^1.9.4",
     "next": "16.4.6",
     "react": "19.3.0",

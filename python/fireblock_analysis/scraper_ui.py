@@ -7,7 +7,7 @@ from queue import Empty
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from .scraper_control import ScraperControl, SOURCES, config_for
+from .scraper_control import ScraperControl, SOURCES, config_for, collection_tiles
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
     settings = {"area": "My area", "west": "-122.6", "south": "37.0", "east": "-121.5", "north": "38.1",
         "start": str(today - timedelta(days=3)), "end": str(today), "copernicus": True, "firms": True,
         "cloud_cover": "30", "max_products": "10", "quicklooks": True, "products": False,
-        "archive": False, "bucket": "", "sources": [SOURCES[0]]}
+        "archive": True, "bucket": "", "sources": [SOURCES[0]], "spiral": True, "box_m": "1000", "box_count": "9"}
     if saved.is_file():
         try:
             previous = json.loads(saved.read_text(encoding="utf-8"))
@@ -31,12 +31,12 @@ def main():
             pass
     window = tk.Tk()
     window.title("FireBlock — scraper control")
-    window.geometry("790x830")
+    window.geometry("850x940")
     frame = ttk.Frame(window, padding=16)
     frame.pack(fill="both", expand=True)
     variables, widgets = {}, []
     ttk.Label(frame, text="Scraper control", font=("Segoe UI", 18, "bold")).pack(anchor="w")
-    ttk.Label(frame, text="One area · one job at a time. Settings are locked while collecting.").pack(anchor="w", pady=(2, 12))
+    ttk.Label(frame, text="Start at your area's center, then expand outward. One collection at a time.").pack(anchor="w", pady=(2, 12))
     def group(title):
         box = ttk.LabelFrame(frame, text=title, padding=8)
         box.pack(fill="x", pady=4)
@@ -58,6 +58,15 @@ def main():
     field(area, "East", "east", 1, 2)
     field(area, "South", "south", 2)
     field(area, "North", "north", 2, 2)
+    expansion = ttk.Frame(area)
+    expansion.grid(row=3, column=0, columnspan=4, sticky="w")
+    check(expansion, "Expand outward in a square spiral from this area's center", "spiral")
+    sizing = ttk.Frame(area)
+    sizing.grid(row=4, column=0, columnspan=4, sticky="w")
+    field(sizing, "Collection box side (m)", "box_m", 0, width=8)
+    field(sizing, "Total boxes", "box_count", 0, 2, width=8)
+    grid_info = tk.StringVar()
+    ttk.Label(area, textvariable=grid_info, wraplength=740).grid(row=5, column=0, columnspan=4, sticky="w", padx=5)
     dates = group("2. Dates — YYYY-MM-DD, UTC; end date is excluded")
     field(dates, "Start", "start", 0)
     field(dates, "End", "end", 0, 2)
@@ -110,10 +119,25 @@ def main():
         result = {key: var.get() for key, var in variables.items()}
         result["sources"] = [source for source, var in sensors.items() if var.get()]
         return result
+    def refresh_grid(*unused):
+        try:
+            value = collect()
+            tiles = collection_tiles(value)
+            if value["spiral"]:
+                side = float(value["box_m"])
+                grid_info.set(f"Each collection box: approximately {side:g} × {side:g} m ({side*side/1e6:g} km²). {len(tiles)} boxes, approximately {len(tiles)*side*side/1e6:g} km² total.")
+            else:
+                grid_info.set("Single area: collect the exact entered rectangle; no outward expansion.")
+        except (ValueError, TypeError):
+            grid_info.set("Enter valid coordinates, box size and box count.")
+    for key in ("west", "east", "south", "north", "spiral", "box_m", "box_count"):
+        variables[key].trace_add("write", refresh_grid)
+    refresh_grid()
     def save():
         try:
             value = collect()
             config_for(value, "raw-work/preview")
+            collection_tiles(value)
             saved.write_text(json.dumps(value, indent=2), encoding="utf-8")
             append("Saved one-area settings.")
         except (ValueError, OSError) as exc:
@@ -123,6 +147,7 @@ def main():
         try:
             value = collect()
             config_for(value, "raw-work/preview")
+            collection_tiles(value)
             saved.write_text(json.dumps(value, indent=2), encoding="utf-8")
             last_folder = control.start(value)
             append(f"Area: {value['area']} | W/S/E/N: {value['west']}, {value['south']}, {value['east']}, {value['north']}")
@@ -132,7 +157,7 @@ def main():
             start_button.configure(state="disabled")
             save_button.configure(state="disabled")
             stop_button.configure(state="normal")
-            activity.start()
+            activity.configure(mode="determinate", maximum=len(collection_tiles(value)), value=0)
         except (ValueError, OSError) as exc:
             messagebox.showerror("Cannot start scraper", str(exc))
     start_button = ttk.Button(actions, text="Start scrape", command=start)
@@ -146,9 +171,14 @@ def main():
         try:
             while True:
                 kind, value = control.events.get_nowait()
+                if kind == "progress":
+                    activity.configure(maximum=value[1], value=value[0])
+                    continue
                 if kind == "state":
                     status.set(value)
                 append(value)
+                if kind == "error":
+                    messagebox.showerror("Scraper stopped", value)
         except Empty:
             pass
         if not control.active and str(start_button["state"]) == "disabled":

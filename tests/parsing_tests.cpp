@@ -110,10 +110,11 @@ int main() {
         Controller failing("id","key",[&](const Request& r)->Response {
             if (r.url.find("b2_authorize_account")!=std::string::npos) return response(auth());
             if (r.url.find("b2_get_upload_url")!=std::string::npos) return response({{"uploadUrl","https://upload.test"},{"authorizationToken","secret"}});
+            if (r.url.find("b2_list_file_versions")!=std::string::npos) return response({{"files",Json::array()},{"nextFileName",nullptr}});
             ++failedUploads; return {500,"{\"code\":\"server_error\"}"};
-        });
+        },[](unsigned){});
         fails([&] { ParsingController{}.run(c,&failing); });
-        check(failedUploads==1,"Ambiguous upload was retried");
+        check(failedUploads==4,"Upload did not stop after four attempts");
         bool foundFailure=false;
         for (const auto& e : std::filesystem::directory_iterator(root/"output"))
             if (read(e.path()/"manifest.json")["status"]=="failed") foundFailure=true;

@@ -13,8 +13,8 @@ Usage: fireblock COMMAND [arguments] [--bucket NAME] [--env FILE]
   create-bucket NAME [--public]        Create encrypted private bucket by default
   visibility private|public --yes      Change selected bucket visibility
   delete-bucket --yes                  Delete selected EMPTY bucket
-  list [PREFIX]                       List all current files (JSON)
-  versions [PREFIX]                   List all versions and hide markers (JSON)
+  list [PREFIX] [--max-files 100000]   List current files; fail if limit exceeded
+  versions [PREFIX] [--max-files 100000] List versions; fail if limit exceeded
   upload LOCAL [REMOTE] [--type MIME]  Upload any file; default REMOTE is LOCAL basename
   download REMOTE LOCAL               Download without overwriting an existing file
   download-version FILE_ID LOCAL      Download and verify an exact stored version
@@ -39,7 +39,7 @@ int run(int argc, char** argv) {
         std::vector<std::string> args;
         std::map<std::string, std::string> options;
         const std::set<std::string> flags{"--yes", "--public"};
-        const std::set<std::string> values{"--bucket", "--env", "--type", "--seconds"};
+        const std::set<std::string> values{"--bucket", "--env", "--type", "--seconds", "--max-files"};
         for (int i = 2; i < argc; ++i) {
             std::string arg = argv[i];
             if (arg.rfind("--", 0) != 0) { args.push_back(arg); continue; }
@@ -60,6 +60,7 @@ int run(int argc, char** argv) {
         if (command == "create-bucket") allowed.insert("--public");
         if (command == "upload") allowed.insert("--type");
         if (command == "share") allowed.insert("--seconds");
+        if (command == "list" || command == "versions") allowed.insert("--max-files");
         if (command == "delete" || command == "delete-bucket" || command == "visibility") allowed.insert("--yes");
         for (const auto& o : options) if (!allowed.count(o.first)) throw std::runtime_error("Option not supported by this command: " + o.first);
         if ((command == "delete" || command == "delete-bucket" || command == "visibility") && !options.count("--yes"))
@@ -69,6 +70,12 @@ int run(int argc, char** argv) {
         if (options.count("--seconds")) {
             size_t end = 0; seconds = std::stoi(options["--seconds"], &end);
             if (end != options["--seconds"].size() || seconds < 1 || seconds > 604800) throw std::runtime_error("--seconds must be 1..604800");
+        }
+        int maxFiles = 100000;
+        if (options.count("--max-files")) {
+            size_t end = 0; maxFiles = std::stoi(options["--max-files"], &end);
+            if (end != options["--max-files"].size() || maxFiles < 1 || maxFiles > 100000)
+                throw std::runtime_error("--max-files must be 1..100000");
         }
         auto envFile = options.count("--env") ? std::filesystem::u8path(options["--env"]) : std::filesystem::path(".env");
         if (options.count("--env") && !std::filesystem::exists(envFile)) throw std::runtime_error("Specified --env file does not exist");
@@ -81,7 +88,7 @@ int run(int argc, char** argv) {
         else if (command == "create-bucket") result = controller.createBucket(args[0], options.count("--public") != 0);
         else if (command == "visibility") result = controller.setBucketPublic(bucket, args[0] == "public");
         else if (command == "delete-bucket") result = controller.deleteBucket(bucket);
-        else if (command == "list" || command == "versions") result = controller.files(bucket, args.empty() ? "" : args[0], command == "versions");
+        else if (command == "list" || command == "versions") result = controller.files(bucket, args.empty() ? "" : args[0], command == "versions", maxFiles);
         else if (command == "upload") {
             auto local = std::filesystem::u8path(args[0]);
             result = controller.upload(bucket, local, args.size() == 2 ? args[1] : local.filename().u8string(), options.count("--type") ? options["--type"] : "b2/x-auto");

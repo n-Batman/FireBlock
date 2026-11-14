@@ -3,9 +3,25 @@
 #include <fstream>
 #include <stdexcept>
 #include <cctype>
+#include <algorithm>
+#include <chrono>
+#include <thread>
+#include <random>
+#include <sstream>
+#include <iomanip>
+#include <iostream>
 
 namespace fireblock {
 namespace {
+constexpr unsigned maxAttempts = 4;
+bool serverError(unsigned status) { return status >= 500 && status <= 599; }
+std::string uploadIdentity() {
+    std::random_device random;
+    std::ostringstream id;
+    id << std::hex << std::setfill('0');
+    for (int i=0;i<4;++i) id << std::setw(8) << static_cast<unsigned>(random());
+    return id.str();
+}
 std::string base64(const std::string& input) {
     constexpr char table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     std::string result;
@@ -60,11 +76,29 @@ std::string encode(const std::string& value, bool preserveSlash) {
     }
     return result;
 }
-Controller::Controller(std::string id, std::string key, Transport transport)
-    : keyId_(std::move(id)), key_(std::move(key)), transport_(std::move(transport)) {
+Controller::Controller(std::string id, std::string key, Transport transport, RetryWait retryWait)
+    : keyId_(std::move(id)), key_(std::move(key)), transport_(std::move(transport)), retryWait_(std::move(retryWait)) {
     if (keyId_.empty() || key_.empty() || keyId_.rfind("replace-with-", 0) == 0 || key_.rfind("replace-with-", 0) == 0)
         throw std::runtime_error("Set B2_APPLICATION_KEY_ID and B2_APPLICATION_KEY in .env or your environment. See .env.example.");
     headerValue(keyId_); headerValue(key_);
+    if (!retryWait_) retryWait_ = [](unsigned seconds) { std::this_thread::sleep_for(std::chrono::seconds(seconds)); };
+}
+void Controller::retryPause(unsigned attempt, unsigned status, const std::string& operation) {
+    auto seconds = 1u << attempt;
+    std::cerr << "Backblaze " << operation << ": HTTP " << status << "; retry "
+              << attempt+2 << '/' << maxAttempts << " in " << seconds << " seconds\n";
+    retryWait_(seconds);
+}
+Response Controller::readWithRetry(const Request& request, const std::string& operation) {
+    for (unsigned attempt=0;attempt<maxAttempts;++attempt) {
+        auto response = transport_(request);
+        if (!serverError(response.status)) return response;
+        if (attempt+1 == maxAttempts)
+            throw std::runtime_error("Backblaze " + operation + " failed with HTTP " +
+                std::to_string(response.status) + " after 4 attempts. Collection stopped; check progress.log.");
+        retryPause(attempt,response.status,operation);
+    }
+    throw std::runtime_error("Backblaze retry limit reached");
 }
 Json Controller::checked(const Response& r) const {
     auto data = Json::parse(r.body, nullptr, false);
@@ -78,8 +112,8 @@ Json Controller::checked(const Response& r) const {
     return data;
 }
 void Controller::authorize() {
-    auto data = checked(transport_({"GET", "https://api.backblazeb2.com/b2api/v4/b2_authorize_account",
-        {{"Authorization", "Basic " + base64(keyId_ + ":" + key_)}}, "", {}, {}}));
+    auto data = checked(readWithRetry({"GET", "https://api.backblazeb2.com/b2api/v4/b2_authorize_account",
+        {{"Authorization", "Basic " + base64(keyId_ + ":" + key_)}}, "", {}, {}}, "authorization"));
     token_ = data.at("authorizationToken"); accountId_ = data.at("accountId");
     const auto& storage = data.at("apiInfo").at("storageApi");
     apiUrl_ = storage.at("apiUrl"); downloadUrl_ = storage.at("downloadUrl"); allowed_ = storage.at("allowed");
@@ -87,8 +121,11 @@ void Controller::authorize() {
 Json Controller::api(const std::string& operation, const Json& body) {
     if (token_.empty()) authorize();
     for (int attempt = 0; attempt < 2; ++attempt) {
-        auto r = transport_({"POST", apiUrl_ + "/b2api/v4/" + operation,
-            {{"Authorization", token_}, {"Content-Type", "application/json"}}, body.dump(), {}, {}});
+        Request request{"POST", apiUrl_ + "/b2api/v4/" + operation,
+            {{"Authorization", token_}, {"Content-Type", "application/json"}}, body.dump(), {}, {}};
+        // Mutations (hide/create/delete/update) are not safe to replay blindly.
+        bool safe = operation.rfind("b2_list_",0)==0 || operation.rfind("b2_get_",0)==0;
+        auto r = safe ? readWithRetry(request,operation) : transport_(request);
         if (r.status == 401 && attempt == 0) {
             auto error = Json::parse(r.body, nullptr, false);
             if (error.is_object() && (error.value("code", "") == "expired_auth_token" || error.value("code", "") == "bad_auth_token")) {
@@ -131,14 +168,25 @@ Json Controller::deleteBucket(const std::string& name) {
     auto b = bucket(name);
     return api("b2_delete_bucket", {{"accountId", accountId_}, {"bucketId", b.at("bucketId")}});
 }
-Json Controller::files(const std::string& name, const std::string& prefix, bool versions) {
+Json Controller::files(const std::string& name, const std::string& prefix, bool versions, size_t maxFiles) {
+    if (maxFiles < 1 || maxFiles > 100000) throw std::runtime_error("max-files must be 1..100000");
     auto b = bucket(name);
-    Json body = {{"bucketId", b.at("bucketId")}, {"prefix", prefix}, {"maxFileCount", 1000}};
+    Json body = {{"bucketId", b.at("bucketId")}, {"prefix", prefix}, {"maxFileCount", (std::min)(size_t(1000), maxFiles + 1)}};
     Json results = Json::array();
+    size_t resultBytes = 2;
     do {
         auto page = api(versions ? "b2_list_file_versions" : "b2_list_file_names", body);
-        for (auto& f : page.at("files")) results.push_back(std::move(f));
+        for (auto& f : page.at("files")) {
+            if (results.size() >= maxFiles)
+                throw std::runtime_error("Cloud listing exceeds max-files; use a narrower prefix");
+            resultBytes += f.dump().size() + 1;
+            if (resultBytes > 32 * 1024 * 1024)
+                throw std::runtime_error("Cloud listing exceeds 32 MB; use a narrower prefix");
+            results.push_back(std::move(f));
+        }
         if (!page.contains("nextFileName") || page["nextFileName"].is_null()) break;
+        if (results.size() >= maxFiles)
+            throw std::runtime_error("Cloud listing exceeds max-files; use a narrower prefix");
         if (body.contains("startFileName") && body["startFileName"] == page["nextFileName"] &&
             (!versions || body.value("startFileId", Json()) == page.value("nextFileId", Json())))
             throw std::runtime_error("Backblaze pagination did not advance");
@@ -154,11 +202,43 @@ Json Controller::upload(const std::string& name, const std::filesystem::path& lo
     if (std::filesystem::file_size(local) > 5000000000ULL) throw std::runtime_error("Files above 5 GB require multipart upload, which this controller does not yet support");
     auto checksum = sha1File(local);
     auto b = bucket(name);
-    auto destination = api("b2_get_upload_url", {{"bucketId", b.at("bucketId")}});
-    // Streaming upload with a precomputed SHA-1; never retry an ambiguous upload automatically.
-    return checked(transport_({"POST", destination.at("uploadUrl"),
-        {{"Authorization", destination.at("authorizationToken")}, {"X-Bz-File-Name", encode(remote)},
-         {"Content-Type", type}, {"X-Bz-Content-Sha1", checksum}}, "", local, {}}));
+    auto bytes = std::filesystem::file_size(local);
+    auto identity = uploadIdentity();
+    for (unsigned attempt=0;attempt<maxAttempts;++attempt) {
+        if (attempt && (std::filesystem::file_size(local)!=bytes || sha1File(local)!=checksum))
+            throw std::runtime_error("Upload source changed before retry; collection stopped");
+        auto destination = api("b2_get_upload_url", {{"bucketId", b.at("bucketId")}});
+        auto response = transport_({"POST", destination.at("uploadUrl"),
+            {{"Authorization", destination.at("authorizationToken")}, {"X-Bz-File-Name", encode(remote)},
+             {"Content-Type", type}, {"X-Bz-Content-Sha1", checksum},
+             {"X-Bz-Info-fireblock_upload_id", identity}}, "", local, {}});
+        if (!serverError(response.status)) return checked(response);
+        // A 500 may arrive after storage accepted the bytes. Match this logical
+        // upload's random receipt, not an unrelated older version with equal data.
+        Json page;
+        try {
+            page = api("b2_list_file_versions", {{"bucketId",b.at("bucketId")},
+                {"prefix",remote},{"maxFileCount",1000}});
+            for (const auto& file : page.at("files")) {
+                if (file.value("fileName","")!=remote || file.value("action","")!="upload") continue;
+                if (file.value("fileInfo",Json::object()).value("fireblock_upload_id","")!=identity) continue;
+                if (file.value("contentSha1","")!=checksum || file.at("contentLength")!=bytes || file.value("fileId","").empty())
+                    throw std::runtime_error("Upload receipt does not match source");
+                std::cerr << "Backblaze upload recovered: stored version verified after HTTP " << response.status << '\n';
+                return file;
+            }
+            if (page.value("nextFileName",Json())==remote)
+                throw std::runtime_error("Upload version verification limit exceeded");
+        } catch (const std::exception&) {
+            throw std::runtime_error("Backblaze upload HTTP " + std::to_string(response.status) +
+                ": could not verify whether the upload succeeded. Collection stopped to avoid duplicate versions; check list/read permissions and progress.log.");
+        }
+        if (attempt+1 == maxAttempts)
+            throw std::runtime_error("Backblaze upload failed with HTTP " + std::to_string(response.status) +
+                " after 4 attempts. Collection stopped; completed boxes are preserved. Check progress.log.");
+        retryPause(attempt,response.status,"upload");
+    }
+    throw std::runtime_error("Backblaze upload retry limit reached");
 }
 std::string Controller::url(const std::string& name, const std::string& remote) {
     bucket(name);

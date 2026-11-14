@@ -69,12 +69,20 @@ def validate(config):
     if "risk" in config:
         from .risk import validate_risk
         validate_risk(config["risk"], bbox)
+    if config["storage"].get("local_retention", "manifest_only") not in ("manifest_only", "keep"):
+        raise ValueError("storage.local_retention must be manifest_only or keep")
+    if config["storage"].get("publish_frontend", False):
+        if not config.get("risk", {}).get("enabled") or not config["storage"].get("upload_results", True):
+            raise ValueError("Frontend publication requires risk generation and cloud uploads")
+        pointer = config["storage"].get("frontend_pointer_key", "risk/latest.json")
+        if not isinstance(pointer, str) or not pointer or any(c in pointer for c in "\r\n\0\\") or pointer.startswith("/") or ".." in pointer.split("/"):
+            raise ValueError("Invalid frontend pointer key")
     prefix = config["storage"].get("output_prefix", "analysis")
     if not isinstance(prefix, str) or not prefix.strip("/") or "\r" in prefix or "\n" in prefix:
         raise ValueError("storage.output_prefix must be a nonempty object prefix")
 
 
-def run(config, backend=None):
+def run(config, backend=None, risk_model=None):
     validate(config)
     backend = backend or Backend(config["storage"])
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-") + uuid.uuid4().hex[:12]
@@ -109,7 +117,10 @@ def run(config, backend=None):
                 checksum = hashlib.file_digest(stream, "sha1").hexdigest()
             if path.stat().st_size != expected["bytes"] or checksum != expected["sha1"]:
                 raise ValueError("Downloaded file does not match the raw dataset manifest")
-        manifest["inputs"].append({**asset, "sha256": digest(path), "bytes": path.stat().st_size})
+        record = {**asset, "sha256": digest(path), "bytes": path.stat().st_size}
+        if "local" in asset and config["storage"].get("upload_results", True):
+            record["storage"] = backend.upload(path, prefix + "/raw-inputs/" + uuid.uuid4().hex + path.suffix)
+        manifest["inputs"].append(record)
         return path
 
     try:
@@ -137,7 +148,7 @@ def run(config, backend=None):
             manifest["firms"].append(summary)
         if config.get("risk", {}).get("enabled", False):
             from .risk import build_risk
-            manifest["risk"] = build_risk(manifest, root, config["risk"], config["bbox"])
+            manifest["risk"] = build_risk(manifest, root, config["risk"], config["bbox"], model=risk_model)
         # Publish only after ALL parsing/map generation succeeds; manifest is the commit marker.
         artifacts = sorted(p for p in root.rglob("*") if p.is_file() and cache not in p.parents and p.name != "manifest.json")
         for path in artifacts:
@@ -150,7 +161,42 @@ def run(config, backend=None):
         manifest["manifest_key"] = prefix + "/manifest.json" if config["storage"].get("upload_results", True) else None
         write_json(root / "manifest.json", manifest)
         if config["storage"].get("upload_results", True):
-            backend.upload(root / "manifest.json", manifest["manifest_key"])
+            receipt = backend.upload(root / "manifest.json", manifest["manifest_key"])
+            # Never discard a dataset based solely on an attempted upload. Older
+            # adapters without checksum verification retain their working files.
+            verified = receipt.get("verified") is True and all(a.get("storage", {}).get("verified") is True for a in manifest["artifacts"]) and all(
+                item.get("storage", {}).get("verified") is True for item in manifest["inputs"] if "local" in item)
+            if config["storage"].get("publish_frontend", False):
+                if not verified:
+                    raise ValueError("Do not publish unverified analysis to the frontend")
+                pointer_path = root / "frontend-pointer.json"
+                write_json(pointer_path, {"kind":"fireblock.risk-pointer", "schema_version":1,
+                    "manifest_file_id":receipt["file_id"], "manifest_sha256":digest(root/"manifest.json"),
+                    "manifest_bytes":(root/"manifest.json").stat().st_size,
+                    "model_id":manifest["risk"]["model_id"], "as_of":manifest["risk"]["as_of"],
+                    "bbox":config["bbox"], "run_id":run_id})
+                publication = backend.upload(pointer_path, config["storage"].get("frontend_pointer_key", "risk/latest.json"))
+                if publication.get("verified") is not True:
+                    raise ValueError("Frontend pointer upload did not verify")
+            if verified:
+                write_json(root / "cloud-receipt.json", {"manifest": receipt, "local_artifacts_removed": False})
+            if verified and config["storage"].get("local_retention", "manifest_only") == "manifest_only":
+                cleanup_complete = True
+                # Only files created in this unique run are removed. Local source
+                # paths outside it are never touched; failed runs are retained.
+                for artifact in artifacts:
+                    if not artifact.is_symlink() and artifact.resolve().is_relative_to(root.resolve()):
+                        try:
+                            artifact.unlink()
+                        except OSError:
+                            cleanup_complete = False  # Cloud run remains complete.
+                for downloaded in cache.iterdir():
+                    if downloaded.is_file() and not downloaded.is_symlink():
+                        try:
+                            downloaded.unlink()
+                        except OSError:
+                            cleanup_complete = False
+                write_json(root / "cloud-receipt.json", {"manifest": receipt, "local_artifacts_removed": cleanup_complete})
         return root / "manifest.json"
     except Exception:
         manifest["status"] = "failed"
@@ -173,6 +219,7 @@ def ingest_to_cloud(ingest_path, storage, output_path, backend=None):
     batch = uuid.uuid4().hex
     prefix = storage.get("raw_prefix", "raw").strip("/") + "/" + batch
     job = {"storage": storage, "output_root": "analysis", "bbox": config.get("bbox"), "scenes": [], "firms": [], "raw_objects": []}
+    uploaded_paths = []
     for path in sorted(input_root.rglob("*")):
         if not path.is_file() or path.is_symlink() or path.suffix == ".part":
             continue
@@ -181,6 +228,7 @@ def ingest_to_cloud(ingest_path, storage, output_path, backend=None):
         relative = path.relative_to(input_root).as_posix()
         key = prefix + "/" + relative
         job["raw_objects"].append({**backend.upload(path, key), "sha256": digest(path)})
+        uploaded_paths.append(path)
         identity = "source_" + hashlib.sha256(relative.encode()).hexdigest()[:16]
         if relative.startswith("firms/") and path.suffix == ".csv":
             job["firms"].append({"id": identity, "input": {"key": key}})
@@ -189,4 +237,9 @@ def ingest_to_cloud(ingest_path, storage, output_path, backend=None):
     # Raw metadata/products stay in B2, including data the current parser cannot analyze.
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     write_json(output_path, job)
+    receipt = backend.upload(output_path, prefix + "/analysis-job.json")
+    if receipt.get("verified") is True and all(obj.get("verified") is True for obj in job["raw_objects"]) and storage.get("local_retention", "manifest_only") == "manifest_only":
+        for path in uploaded_paths:
+            if not path.is_symlink() and path.resolve().is_relative_to(input_root):
+                path.unlink()
     return job

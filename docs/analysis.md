@@ -172,8 +172,9 @@ The manifest includes schema/parser version, input SHA-256 values, per-source
 summaries, output SHA-256 values and uploaded file IDs. It is uploaded **last**,
 after all parsing and artifact uploads succeed. Consume a run only after its
 completed manifest appears. Failures leave a failed local manifest and may leave
-uploaded artifacts; there is no automatic remote rollback, resume, or ambiguous
-upload retry. Local downloaded inputs are retained for inspection/reprocessing.
+uploaded artifacts; there is no automatic remote rollback or run-level resume.
+HTTP 5xx storage requests have bounded [retries](storage-retries.md), with upload
+receipt checks before replay. Local downloaded inputs are retained for inspection/reprocessing.
 Workers should run against independent output directories and stable input objects.
 
 ## Verification

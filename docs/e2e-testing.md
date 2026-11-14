@@ -67,8 +67,9 @@ artifacts had been recorded. Its local manifest was marked failed, and cleanup
 completed. The worker's generic backend error did not identify the underlying
 provider or transport cause. A subsequent full run completed that path; the
 earlier failure should still be considered when assessing storage reliability.
-Uploads are deliberately not retried automatically because a failed response
-can be ambiguous about whether the provider accepted the object.
+At that time uploads were not retried automatically because acceptance could be
+ambiguous. The controller now has bounded HTTP 5xx [retries](storage-retries.md)
+with upload receipt checks and an explicit exhaustion error.
 
 ## Limits
 
