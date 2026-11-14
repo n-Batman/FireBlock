@@ -115,10 +115,67 @@ export interface Finding {
   confidence?: number;
 }
 
-/** Body of a successful POST /api/scan response. */
+/** One letter per grid cell: d dry grass, b dead brush/wood, l leaf litter/mulch, w dormant woody plant, g green cover crop, v green vine canopy, s bare soil, o structure/sky/other. */
+export type CellCode = "d" | "b" | "l" | "w" | "g" | "v" | "s" | "o";
+
+/** A group of cells the model describes: where it is, why it is a risk, what to do. */
+export interface GridFinding {
+  label: string;
+  /** Location words, for example "right edge between rows". */
+  where: string;
+  severity: Severity;
+  reason: string;
+  /** Empty for clear findings. */
+  action: string;
+  /** Cell indexes, row by row: row * 12 + column. */
+  cells: number[];
+}
+
+/** The frame split into 12 columns by 8 rows, one class per cell (96, row by row). */
+export interface GridScan {
+  cells: CellCode[];
+  findings: GridFinding[];
+}
+
+/** Body of a successful POST /api/scan response. Live scans and photos fill `grid`; the demo clip fills `findings`. */
 export interface ScanResponse {
   findings: Finding[];
+  grid?: GridScan;
 }
+
+/**
+ * JSON Schema for the grid scan (Responses API, strict). `rows` is 8 strings of 12 class letters.
+ * A finding names its class `code` and one `anchor` cell like "C5" (column A to L, row 1 to 8) of that class.
+ */
+export const GRID_JSON_SCHEMA = {
+  name: "grid_scan",
+  strict: true,
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["rows", "findings"],
+    properties: {
+      rows: { type: "array", minItems: 8, maxItems: 8, items: { type: "string" } },
+      findings: {
+        type: "array",
+        maxItems: 6,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["label", "where", "reason", "action", "code", "anchor"],
+          properties: {
+            label: { type: "string" },
+            where: { type: "string" },
+            reason: { type: "string" },
+            action: { type: "string" },
+            code: { type: "string", enum: ["d", "b", "l", "g", "v", "s"] },
+            anchor: { type: "string" },
+          },
+        },
+      },
+    },
+  },
+} as const;
 
 /**
  * JSON Schema for ScanResponse, ready for OpenAI structured outputs

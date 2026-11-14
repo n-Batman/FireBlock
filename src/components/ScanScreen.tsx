@@ -13,7 +13,9 @@ import { saveScan, scanKey } from "@/lib/scanStore";
 import { shownTracks } from "@/lib/scanView";
 import { useScanSession } from "@/lib/useScanSession";
 import { useDemoAvailable } from "@/lib/useDemoAvailable";
-import { FindingsList } from "./FindingsList";
+import { listFindings, verdict } from "@/lib/grid";
+import { FindingsList, GridFindingsList } from "./FindingsList";
+import { GridOverlay } from "./GridOverlay";
 import { ScanOverlay } from "./ScanOverlay";
 import { StatusChip } from "./StatusChip";
 
@@ -67,10 +69,14 @@ export function ScanScreen() {
   const parcelMode = parcelId !== null;
   const [saving, setSaving] = useState(false);
 
-  const { tracks, status } = session.tracker;
-  // The overlay, the card and the score all read the same three findings.
+  const { tracks } = session.tracker;
+  // The overlay, the card and the score all read the same result: the grid (live and photo) or the tracked boxes (demo clip).
+  const grid = session.grid;
+  const call = grid ? verdict(grid.cells) : null;
   const shown = shownTracks(tracks);
-  const { risks, clears } = summarize(shown);
+  const counts = call ? { risks: call.risk, clears: call.clear } : summarize(shown);
+  const { risks, clears } = counts;
+  const status = call ? (call.risk > 0 ? "risks" : call.clear > 0 ? "clear" : "scanning") : session.tracker.status;
   const running = session.phase === "running";
   const decided = status !== "scanning";
   const mapHref = property && block ? `/?property=${property.id}&block=${block.id}` : "/";
@@ -139,7 +145,11 @@ export function ScanScreen() {
               className="absolute inset-0 cursor-pointer"
             />
           )}
-          <ScanOverlay videoSize={session.videoSize} tracks={shown} running frozen={session.frozen} />
+          {grid ? (
+            <GridOverlay videoSize={session.videoSize} cells={grid.cells} />
+          ) : (
+            <ScanOverlay videoSize={session.videoSize} tracks={shown} running frozen={session.frozen} />
+          )}
         </>
       )}
 
@@ -225,7 +235,16 @@ export function ScanScreen() {
       {running && (
         <div className="absolute inset-x-0 bottom-0 z-10 px-4 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <section className="glass mx-auto w-full max-w-md space-y-3 p-4" aria-label="Scan result">
-            <FindingsList tracks={shown} empty="Looking for dry fuel in view..." />
+            {call && grid && (
+              <p aria-live="polite" className="text-[15px] font-semibold">
+                {call.text}
+              </p>
+            )}
+            {grid ? (
+              <GridFindingsList findings={listFindings(grid)} />
+            ) : (
+              <FindingsList tracks={shown} empty="Looking for dry fuel in view..." />
+            )}
             {session.frozen && (
               <p className="text-xs font-medium text-ink-2">Frozen. Tap the screen to resume.</p>
             )}

@@ -1,34 +1,29 @@
-import { SCAN_JSON_SCHEMA, type Finding } from "@/data/types";
+import { GRID_JSON_SCHEMA, type GridScan } from "@/data/types";
+import { parseGrid } from "./grid";
 
-// OpenAI model ID from https://developers.openai.com/api/docs/models/gpt-6.1-terra
-// (text and image input, Responses API, structured outputs).
-const MODEL = "gpt-6.1-terra";
-// "none" answers in about 3 s per frame, "low" took 5.6 s on the same frame. The budget is 8 s.
-// Raise it only if the dry/green photo checks need it.
-const REASONING_EFFORT = "none";
-const TIMEOUT_MS = 15000;
-const MAX_FINDINGS = 5;
-// Frames are sent at up to 1280 px; "high" detail so small dry patches and dead leaves are not missed.
+// The newest model on our key. It does not accept `temperature` (the API rejects it), so the answer is
+// pinned by the strict JSON schema and low reasoning effort instead.
+const MODEL = "gpt-6.1-sol";
+const REASONING_EFFORT = "low";
+const TIMEOUT_MS = 40000;
 const IMAGE_DETAIL = "high";
 
-const SYSTEM_PROMPT = `You are a wildfire fuels inspector using defensible-space guidance (CAL FIRE / Ready for Wildfire). Look at the WHOLE frame, edge to edge, not just the obvious subject, and check each of these:
-1. Dead or dry grass and weeds (brown, tan, cured, standing dead).
-2. Dead material on live plants (dead leaves, dead branches, dead fronds still attached).
-3. Brush and shrubs, especially dense, dry or overgrown.
-4. Leaf litter and dead wood on the ground.
-5. Mulch, firewood or wood piles near a structure.
-6. Ladder fuels: low brush, vines or branches that carry fire from the ground up into trees or onto a structure.
+const SYSTEM_PROMPT = `You are a wildfire fuels inspector using defensible-space guidance (CAL FIRE / Ready for Wildfire). The photo has a 12 x 8 grid drawn on it: columns A to L left to right, rows 1 to 8 top to bottom, and every cell has its label (A1, B1 ... L8) in its top-left corner.
 
-Rate every item you can see, one finding each:
-- risk: it is dry, dead or placed where it can carry fire.
-- clear: it is green and live, bare dirt or gravel, or mowed and cleared. Green leaves are clear even in a close-up; dry tan or brown growth is risk even when it fills the frame.
+Step 1: classify EVERY cell, all 96, by what covers most of it. One letter each:
+d = dry, cured, tan or brown grass and weeds (standing or flattened). Treat brown or tan grass as cured fuel even when green grass is right next to it.
+b = dead brush, dead branches or dead wood.
+l = leaf litter, dead leaves on the ground, or mulch.
+w = dormant woody plant: bare or leafless vines, trunks, canes, shrubs with no live foliage.
+g = green cover crop, green grass or green weeds.
+v = green vine or tree canopy, live foliage.
+s = bare soil, gravel or pavement.
+o = structure, vehicle, sky, distant hills or anything else.
+Rules: look at the WHOLE frame, edges, corners and background as carefully as the centre. Do not let the middle of the picture decide the cells around it. A cell with dry grass under a live canopy is d only if the dry grass is clearly visible. Judge each cell on its own.
 
-Rules:
-- label: the fuel type in 2 to 4 words ("Dry grass", "Dead oak leaves", "Green cover crop").
-- bbox [xmin, ymin, xmax, ymax], integers 0 to 999, 0,0 at the top left of the frame. Make it a tight box around that item only, not the whole scene. Use separate boxes for separate patches and never one box over everything.
-- action: for risk, the short reason, then one concrete action ("Cured and touching the barn. Cut back 5 ft by June 1."). For clear, exactly "Healthy, no action needed."
-- confidence 0 to 1. When unsure, give a lower confidence instead of guessing. Never invent a risk you cannot see.
-- At most 5 findings, the ones that matter most. If the frame shows no vegetation or fuel, return none.`;
+Step 2: "rows" is 8 strings, row 1 first, each exactly 12 letters (columns A to L).
+
+Step 3: "findings": at most 6 specific findings, one per distinct patch, the risks first. Each has label (the fuel, 2 to 4 words), where (location words: "right edge between rows", "at post base", "background hillside"), reason (one short sentence on what you see), action (a concrete instruction for d, b and l; an empty string for g, v and s), code (the letter of that patch: d, b, l, g, v or s) and anchor (one cell of that patch, like "L4", that you gave that same letter in the rows). Cover every patch of d, b and l; do not leave dry fuel without a finding.`;
 
 export class VisionError extends Error {
   constructor(
@@ -38,39 +33,6 @@ export class VisionError extends Error {
   ) {
     super(message);
   }
-}
-
-const clamp = (n: number) => Math.min(999, Math.max(0, Math.round(n)));
-
-function toFinding(raw: unknown): Finding | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const { label, severity, action, bbox, confidence } = raw as Record<string, unknown>;
-  if (typeof label !== "string" || label.trim() === "") return null;
-  if (typeof action !== "string" || action.trim() === "") return null;
-  if (severity !== "risk" && severity !== "clear") return null;
-  if (typeof confidence !== "number" || !Number.isFinite(confidence)) return null;
-  if (!Array.isArray(bbox) || bbox.length !== 4 || !bbox.every((v) => typeof v === "number" && Number.isFinite(v))) {
-    return null;
-  }
-  const box = bbox.map(clamp) as Finding["bbox"];
-  if (box[2] <= box[0] || box[3] <= box[1]) return null;
-  return { label, severity, action, bbox: box, confidence: Math.min(1, Math.max(0, confidence)) };
-}
-
-/** Reads the model's JSON text, clamps each bbox to 0..999 and drops findings that are malformed. */
-export function parseFindings(text: string): Finding[] {
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return [];
-  }
-  const list = (data as { findings?: unknown } | null)?.findings;
-  if (!Array.isArray(list)) return [];
-  return list
-    .map(toFinding)
-    .filter((f): f is Finding => f !== null)
-    .slice(0, MAX_FINDINGS);
 }
 
 /** The model's text out of a Responses API reply. A refusal or empty reply is an error. */
@@ -84,8 +46,8 @@ function outputText(reply: unknown): string {
   throw new VisionError("The vision model did not return a result.", 502);
 }
 
-/** Sends one JPEG data URL to the vision model and returns its findings. Throws VisionError. */
-export async function scanFrame(image: string, { timeoutMs = TIMEOUT_MS } = {}): Promise<Finding[]> {
+/** Sends one grid-labelled JPEG data URL to the vision model and returns the 12 x 8 grid. Throws VisionError. */
+export async function scanGrid(image: string, { timeoutMs = TIMEOUT_MS } = {}): Promise<GridScan> {
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) throw new VisionError("The scanner is not set up on this server.", 503);
 
@@ -102,12 +64,12 @@ export async function scanFrame(image: string, { timeoutMs = TIMEOUT_MS } = {}):
           {
             role: "user",
             content: [
-              { type: "input_text", text: "Inspect this frame against the checklist." },
+              { type: "input_text", text: "Classify every cell of this frame." },
               { type: "input_image", image_url: image, detail: IMAGE_DETAIL },
             ],
           },
         ],
-        text: { format: { type: "json_schema", ...SCAN_JSON_SCHEMA } },
+        text: { format: { type: "json_schema", ...GRID_JSON_SCHEMA } },
         store: false,
       }),
       signal: AbortSignal.timeout(timeoutMs),
@@ -121,5 +83,17 @@ export async function scanFrame(image: string, { timeoutMs = TIMEOUT_MS } = {}):
 
   // Upstream error bodies are never passed on: they can quote the key or the request.
   if (!res.ok) throw new VisionError(`The vision service returned an error (${res.status}).`, 502);
-  return parseFindings(outputText(await res.json()));
+  const grid = parseGrid(outputText(await res.json()));
+  if (!grid) throw new VisionError("The vision model returned a grid that could not be read.", 502);
+  return grid;
+}
+
+/** scanGrid, once more if the model's grid came back unreadable (it is not deterministic). */
+export async function scanGridWithRetry(image: string, options?: { timeoutMs?: number }): Promise<GridScan> {
+  try {
+    return await scanGrid(image, options);
+  } catch (error) {
+    if (error instanceof VisionError && error.message.includes("could not be read")) return scanGrid(image, options);
+    throw error;
+  }
 }

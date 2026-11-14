@@ -1,7 +1,7 @@
 import { demoFindingsAt } from "@/content/demoFindings";
 import type { ScanResponse } from "@/data/types";
 import { parseScanRequest } from "@/lib/scanApi";
-import { scanFrame, VisionError } from "@/lib/vision";
+import { scanGridWithRetry, VisionError } from "@/lib/vision";
 
 // Live requests go to the OpenAI vision model (gpt-6.1-terra, Responses API, strict
 // text.format = SCAN_JSON_SCHEMA), see src/lib/vision.ts. The key is read there, on the server only.
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response: ScanResponse = { findings: await scanFrame(parsed.image) };
+    const response: ScanResponse = { findings: [], grid: await scanGridWithRetry(parsed.image) };
     return Response.json(response);
   } catch (error) {
     if (error instanceof VisionError) return Response.json({ error: error.message }, { status: error.status });

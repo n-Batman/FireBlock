@@ -67,10 +67,10 @@ afterEach(() => {
 const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
 
 describe("useScanSession", () => {
-  it("sends each frame at 1280 px on the long side as JPEG quality 0.85, never upscaled", async () => {
+  it("sends each frame at up to 1536 px on the long side as JPEG quality 0.85, never upscaled", async () => {
     fetchMock.mockResolvedValue(ok());
     await startSession();
-    expect(canvasSize[0]).toEqual([1280, 720]);
+    expect(canvasSize[0]).toEqual([1280, 720]); // a 1280 x 720 camera is not scaled up
     expect(jpegQuality[0]).toBe(0.85);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.image).toBe(IMAGE);
@@ -159,21 +159,22 @@ describe("useScanSession", () => {
     expect(video).toMatchObject({ width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: [{ focusMode: "continuous" }] });
   });
 
-  it("scans an uploaded photo once, at the same size and quality, and settles the status", async () => {
+  it("scans an uploaded photo once at up to 1536 px, and keeps the grid it gets back", async () => {
     vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 4000, height: 3000, close: () => {} })));
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:photo", revokeObjectURL: () => {} }));
-    fetchMock.mockResolvedValue(ok([finding(0)]));
+    const cells = Array(96).fill("g");
+    cells[11] = "d";
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ findings: [], grid: { cells, findings: [] } }) });
     const hook = renderHook(() => useScanSession({ current: liveVideo() }));
     await act(async () => {
       await hook.result.current.startPhoto(new File(["x"], "row.jpg", { type: "image/jpeg" }));
     });
-    expect(canvasSize[0]).toEqual([1280, 960]);
+    expect(canvasSize[0]).toEqual([1536, 1152]);
     expect(jpegQuality[0]).toBe(0.85);
     expect(hook.result.current.phase).toBe("running");
     expect(hook.result.current.mode).toBe("photo");
     expect(hook.result.current.videoSize).toEqual({ w: 4000, h: 3000 });
-    expect(hook.result.current.tracker.tracks).toHaveLength(1);
-    expect(hook.result.current.tracker.status).toBe("risks");
+    expect(hook.result.current.grid?.cells[11]).toBe("d");
     await advance(10_000);
     expect(fetchMock).toHaveBeenCalledTimes(1); // one photo, one request
   });
