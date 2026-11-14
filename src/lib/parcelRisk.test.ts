@@ -33,11 +33,13 @@ describe("backend grid to property display",()=>{
     const p=projectGridToParcels(parcels(polygon),grid(cell("a",0,1,0),cell("b",1,2,100))).features[0].properties;
     expect(p.coverage).toBeCloseTo(1,4);expect(p.risk_score!).toBeGreaterThan(70);
   });
-  it("rejects overlapping cells, duplicate IDs and mixed issue times",()=>{
+  it("rejects overlapping cells and duplicate IDs while preserving mixed issue times",()=>{
     expect(()=>parseRiskGrid(grid(cell("a",0,2,0),cell("b",1,3,100)))).toThrow(/Overlapping/);
     expect(()=>parseRiskGrid(grid(cell("a",0,1,0),cell("a",1,2,100)))).toThrow(/unique/);
     const b=cell("b",1,2,10);b.properties.as_of="2026-11-15T12:00:00Z";
-    expect(()=>parseRiskGrid(grid(cell("a",0,1,0),b))).toThrow(/different model runs/);
+    expect(parseRiskGrid(grid(cell("a",0,1,0),b)).features[1].properties.as_of).toBe(b.properties.as_of);
+    const projected=projectGridToParcels(parcels(),grid(cell("a",0,1,0),b));
+    expect(projected.features[0].properties.as_of).toBe("multiple-observation-times");
   });
   it("summarizes disconnected plots of a multipart parcel",()=>{
     const input=parcels();input.features[0].geometry={type:"MultiPolygon",coordinates:[box(0,1).coordinates,box(2,3).coordinates]};

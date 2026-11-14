@@ -91,6 +91,26 @@ class RiskTests(unittest.TestCase):
             known = [json.loads(line)["properties"] for line in (root / "risk/features.ndjson").read_text().splitlines()]
             self.assertEqual({p["scene_id"] for p in known if p["risk_score"] is not None}, {"newer"})
 
+    def test_existing_scored_cells_are_excluded_but_unknown_cells_remain(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = {"scenes": [self.scene(root)], "firms": []}
+            build_risk(manifest, root, self.options, self.bbox)
+            original = json.loads((root / "risk/risk_map.geojson").read_text())
+            excluded = original["features"][0]
+            exclusion = root / "existing.geojson"
+            exclusion.write_text(json.dumps(original))
+            (root / "risk").rename(root / "original-risk")
+            summary = build_risk(manifest, root, {**self.options, "exclude_grid": str(exclusion)}, self.bbox)
+            self.assertEqual(summary["excluded_previously_mapped_cells"], 3)
+            self.assertEqual(summary["total_cells"], 1)
+            remaining = json.loads((root / "risk/risk_map.geojson").read_text())["features"]
+            self.assertEqual(len(remaining), 1)
+            self.assertIsNone(remaining[0]["properties"]["risk_score"])
+            self.assertNotEqual(remaining[0]["geometry"], excluded["geometry"])
+            with rasterio.open(root / "risk/risk_score.tif") as raster:
+                self.assertTrue((raster.read(1) == -9999).all())
+
     def test_config_rejects_resource_and_time_errors(self):
         for changes in ({"as_of": "2026-11-13"}, {"cell_km": 0}, {"max_cells": 1},
                 {"dryness_weight": 0, "hotspot_weight": 0}, {"samples_per_cell": 100}):
@@ -122,7 +142,7 @@ class RiskTests(unittest.TestCase):
                 Path(destination).write_text("latitude,longitude,acq_date,acq_time\n.015,.005,2026-11-13,1200\n")
             def upload(self, path, key):
                 self.uploads.append(key)
-                return {"key": key, "file_id": str(len(self.uploads))}
+                return {"key": key, "file_id": str(len(self.uploads)), "verified": True}
         with tempfile.TemporaryDirectory() as tmp:
             backend = Backend()
             result = run({"output_root": tmp, "bbox": self.bbox, "risk": self.options,
@@ -131,7 +151,7 @@ class RiskTests(unittest.TestCase):
             self.assertEqual(manifest["status"], "complete")
             self.assertEqual(manifest["risk"]["known_cells"], 0)
             self.assertTrue(any(key.endswith("/risk/risk_map.html") for key in backend.uploads))
-            self.assertTrue(backend.uploads[-1].endswith("/manifest.json"))
+            self.assertTrue(backend.uploads[-1].startswith("risk/catalog/"))
 
     def test_future_model_interface_validates_provenance_and_unknowns(self):
         class Model:

@@ -65,6 +65,8 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P22 | Preload nearby parcels with bounded session and score caches | DONE (Codex; 48 targeted checks and changed-file type checks pass; cancellation, private-field stripping and no persistent cache writes; docs/parcel-preloading.md) |
 | P23 | Simplify dense city parcels into zoom-dependent area summaries | DONE (Codex; approximate blocks below zoom 17, original property ratings on zoom-in, selected properties retained; docs/parcel-detail-levels.md) |
 | P24 | Analyze and publish the completed downtown SLO satellite collection | DONE (Codex; 50 boxes, 1,466/1,476 scored cells, verified cloud manifest/pointer and dated website snapshot; src/data/real-runs/slo-town-20261114/) |
+| P25 | Analyze West Foothill Madonna Ranch neighborhood without duplicating SLO coverage | DONE (Codex; 60 new scored cells, 180 overlapping candidates excluded, reused cloud satellite IDs, regional Backblaze publication; fresh FIRMS unavailable because no key is configured; 8 risk tests pass) |
+| P26 | Discover and display all published cloud risk regions automatically | DONE (Codex; per-run catalog, viewport loading and 60-second refresh, overlap-safe mosaic and parcel scoring, three regions registered; 33 targeted JS and 48 Python checks, TypeScript, production build and live B2 API pass; hosted site needs deployment; docs/risk-catalog.md) |
 | P27 | Connect NWS hourly forecasts and active alerts to the real parcel map with GeoJSON and application User-Agent | DONE (Codex; 41 focused checks and production build pass; 421 total tests pass, 2 pre-existing scan failures; live request blocked by network; docs/weather.md) |
 
 ### Milo (product, words, proof, pitch)

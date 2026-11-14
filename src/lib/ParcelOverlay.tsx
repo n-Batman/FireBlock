@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { GeoJSON, Pane, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
@@ -28,9 +28,10 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
   const [grid,setGrid]=useState<RiskGrid|null>(null);
   const [gridRevision,setGridRevision]=useState(0);
   const gridGeneration=useRef(0);
+  const automaticGrid=useRef(true);
   const [showGrid,setShowGrid]=useState(showGridByDefault);
   const [gridMessage,setGridMessage]=useState("Load backend risk_map.geojson to color whole properties.");
-  useEffect(()=>{onGridActive?.(!!grid);},[grid,onGridActive]);
+  useEffect(()=>{onGridActive?.(!!grid?.features.length);},[grid,onGridActive]);
   const projection=useMemo(()=>{
     if(!data||!grid)return {data:null,error:null};
     try{return {data:projectGridToParcels(data,grid),error:null};}
@@ -38,22 +39,33 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
   },[data,grid]);
   // The grid is drawn only where no parcel covers it. Scoring above still uses the whole grid.
   const visibleGrid=useMemo(()=>grid&&gridOutsideParcels(grid,[...(parcelMask??[]),...(data?.features.map(f=>f.geometry)??[])]),[grid,parcelMask,data]);
-  function loadGrid(value:unknown){
-    const parsed=parseRiskGrid(value);gridGeneration.current++;setGrid(parsed);setGridRevision(v=>v+1);
+  const loadGrid=useCallback((value:unknown,focus=true)=>{
+    const parsed=parseRiskGrid(value);
+    if(focus)automaticGrid.current=false;
+    gridGeneration.current++;setGrid(parsed);setGridRevision(v=>v+1);
     const publication=(value as {publication?:{source?:string}}).publication;
-    setGridMessage(`${publication?.source==="published-snapshot"?"Published real-data snapshot · ":""}${parsed.features.length} cells · ${parsed.features[0].properties.model_id} · ${parsed.features[0].properties.as_of}`);
-    setShowGrid(showGridByDefault);
+    const times=[...new Set(parsed.features.map(f=>f.properties.as_of))].sort();
+    setGridMessage(parsed.features.length?`${publication?.source==="published-snapshot"?"Published real-data snapshot · ":""}${parsed.features.length} cells · ${times.length===1?times[0]:"multiple observation times"}`:"No published risk coverage in this area.");
+    if(focus)setShowGrid(showGridByDefault);
     const bounds=L.geoJSON(parsed).getBounds();
-    if(bounds.isValid())map.fitBounds(bounds,{padding:[40,40],maxZoom:14});
-  }
+    if(focus&&bounds.isValid())map.fitBounds(bounds,{padding:[40,40],maxZoom:14});
+  },[map,showGridByDefault]);
   useEffect(()=>{
-    const abort=new AbortController();const generation=gridGeneration.current;
-    void fetch("/api/risk-grid",{signal:abort.signal}).then(async response=>{
-      const value=await response.json();if(!response.ok)throw new Error(value.error);
-      if(gridGeneration.current===generation)loadGrid(value);
-    }).catch(()=>{if(!abort.signal.aborted&&gridGeneration.current===generation)setGridMessage("No published cloud grid available yet. Run the cloud risk pipeline or load a grid file.");});
-    return ()=>abort.abort();
-  },[]);
+    let abort:AbortController|undefined,timer:ReturnType<typeof setTimeout>|undefined;
+    function refresh(){
+      if(!automaticGrid.current)return;
+      abort?.abort();const control=new AbortController();abort=control;
+      const generation=gridGeneration.current,b=map.getBounds();
+      const bbox=[Math.max(-180,b.getWest()),Math.max(-85,b.getSouth()),Math.min(180,b.getEast()),Math.min(85,b.getNorth())].join(",");
+      void fetch(`/api/risk-grid?bbox=${bbox}`,{signal:control.signal,cache:"no-store"}).then(async response=>{
+        const value=await response.json();if(!response.ok)throw new Error(value.error);
+        if(!control.signal.aborted&&gridGeneration.current===generation)loadGrid(value,false);
+      }).catch(error=>{if(!control.signal.aborted&&gridGeneration.current===generation){setGrid(null);setGridMessage(error instanceof Error?error.message:"Risk coverage is unavailable");}});
+    }
+    const moved=()=>{abort?.abort();clearTimeout(timer);timer=setTimeout(refresh,250);};
+    refresh();map.on("moveend",moved);const interval=setInterval(refresh,60000);
+    return ()=>{abort?.abort();clearTimeout(timer);clearInterval(interval);map.off("moveend",moved);};
+  },[map,loadGrid]);
   const pending=useRef<AbortController|null>(null);
   const serial=useRef(0);
   useEffect(()=>{
@@ -110,10 +122,9 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
         catch(error){setGridMessage(error instanceof Error?error.message:"Invalid grid file");}
         e.target.value="";
       }}/></label>
-      <button style={buttonStyle} onClick={async()=>{
+      <button style={buttonStyle} onClick={()=>{
         setGridMessage("Loading backend grid…");
-        try{const response=await fetch("/api/risk-grid");const value=await response.json();if(!response.ok)throw new Error(value.error);loadGrid(value);}
-        catch(error){setGridMessage(error instanceof Error?error.message:"Grid unavailable");}
+        automaticGrid.current=true;map.fire("moveend");
       }}>Load configured backend grid</button>
       <label style={{display:"block"}}><input type="checkbox" checked={showGrid} onChange={e=>setShowGrid(e.target.checked)}/> Show underlying grid</label>
       <p role="status">{gridMessage}</p>

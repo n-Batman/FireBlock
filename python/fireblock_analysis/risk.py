@@ -1,6 +1,7 @@
 """Versioned, explainable relative susceptibility map; never an ignition probability."""
 import json
 import math
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -242,11 +243,38 @@ def build_risk(manifest, root, options, bbox, model=None):
                     "layer": "thermal_detection", "acquired_at": p["acquired_at"], "age_hours": age,
                     "frp_mw": p.get("frp_mw"), "confidence": confidence, "source_id": source["id"]}})
     score = evaluate_model(model, {"ndvi":ndvi,"ndmi":ndmi,"hotspot_pressure":pressure}, options)
+    excluded = np.zeros((rows, cols), dtype=bool)
+    exclusion_hash = None
+    if options.get("exclude_grid"):
+        exclusion_path = Path(options["exclude_grid"])
+        if exclusion_path.stat().st_size > 25 * 1024 * 1024:
+            raise ValueError("Coverage exclusion grid exceeds 25 MiB")
+        content = exclusion_path.read_bytes()
+        exclusion_hash = hashlib.sha256(content).hexdigest()
+        existing = json.loads(content)
+        for feature in existing.get("features", []):
+            if feature.get("properties", {}).get("risk_score") is None:
+                continue
+            geometry = feature["geometry"]
+            if geometry["type"] != "Polygon" or len(geometry["coordinates"]) != 1:
+                raise ValueError("Coverage exclusions must be rectangular grid cells")
+            ring = geometry["coordinates"][0]
+            w, e = min(p[0] for p in ring), max(p[0] for p in ring)
+            s, n = min(p[1] for p in ring), max(p[1] for p in ring)
+            if any(p[0] not in (w,e) or p[1] not in (s,n) for p in ring):
+                raise ValueError("Coverage exclusions must be axis-aligned")
+            # Reject the whole new cell if it has positive overlap. Shared edges
+            # are allowed; this deliberately leaves a narrow boundary gap rather
+            # than double-mapping an already scored region.
+            excluded |= (lon-dx/2 < e-1e-12) & (lon+dx/2 > w+1e-12) & (lat-dy/2 < n-1e-12) & (lat+dy/2 > s+1e-12)
+        score[excluded] = np.nan
     vegetation, dryness = np.clip((ndvi-.2)/.6,0,1), np.clip((.4-ndmi)/.8,0,1)
     features = []
     with open(destination / "features.ndjson", "w", encoding="utf-8") as out:
         for r in range(rows):
             for c in range(cols):
+                if excluded[r,c]:
+                    continue
                 known = bool(np.isfinite(score[r, c]))
                 x, top = west + c * dx, north - r * dy
                 props = {"layer": "relative_risk", "cell_id": f"r{r}c{c}", "feature_schema": FEATURE_SCHEMA,
@@ -262,7 +290,7 @@ def build_risk(manifest, root, options, bbox, model=None):
                 out.write(json.dumps(feature, allow_nan=False) + "\n")
                 features.append(feature)
     summary = {"model_id": model.model_id, "model_kind": "mathematical" if isinstance(model, MathematicalRiskModel) else "custom", "feature_schema": FEATURE_SCHEMA, "as_of": options["as_of"], "bbox": bbox,
-        "rows": rows, "columns": cols, "total_cells": rows * cols, "known_cells": int(np.isfinite(score).sum()),
+        "rows": rows, "columns": cols, "total_cells": int((~excluded).sum()), "excluded_previously_mapped_cells": int(excluded.sum()), "exclusion_grid_sha256": exclusion_hash, "known_cells": int(np.isfinite(score).sum()),
         "recent_detections": len(detections), "ignored_detections": ignored, "scenes": scene_diagnostics,
         "parameters": options, "prediction_available": False, "data_label": options.get("data_label", "Parsed satellite observations"),
         "interpretation": "Experimental relative susceptibility index, not ignition probability or operational fire danger",

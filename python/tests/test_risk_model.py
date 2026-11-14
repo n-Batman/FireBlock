@@ -29,10 +29,11 @@ class ModelTests(unittest.TestCase):
 
     def test_cloud_publish_pointer_references_completed_manifest(self):
         class Storage:
-            def __init__(self,fail=False):self.objects={};self.keys=[];self.fail=fail
+            def __init__(self,fail=False,fail_catalog=False):self.objects={};self.keys=[];self.fail=fail;self.fail_catalog=fail_catalog
             def download_version(self,identity,path):
                 Path(path).write_text("latitude,longitude,acq_date,acq_time\n0.005,0.005,2026-11-14,1000\n")
             def upload(self,path,key):
+                if self.fail_catalog and key.startswith("risk/catalog/"):raise RuntimeError("Catalog unavailable")
                 if self.fail and key.endswith("manifest.json"):raise RuntimeError("Cloud unavailable")
                 identity="id-"+str(len(self.keys));self.objects[identity]=Path(path).read_bytes();self.keys.append(key)
                 return {"key":key,"file_id":identity,"verified":True}
@@ -41,7 +42,8 @@ class ModelTests(unittest.TestCase):
                 "bbox":[0,0,.01,.01],"risk":{"enabled":True,"as_of":"2026-11-14T12:00:00Z"},
                 "firms":[{"id":"fires","input":{"file_id":"raw-id"}}]}
             storage=Storage();path=run(config,storage)
-            self.assertEqual(storage.keys[-1],"risk/latest.json")
+            self.assertEqual(storage.keys[-2],"risk/latest.json")
+            self.assertTrue(storage.keys[-1].startswith("risk/catalog/"))
             pointer=json.loads(list(storage.objects.values())[-1]);manifest=json.loads(storage.objects[pointer["manifest_file_id"]])
             self.assertEqual(pointer["kind"],"fireblock.risk-pointer")
             self.assertEqual(manifest["status"],"complete")
@@ -50,6 +52,11 @@ class ModelTests(unittest.TestCase):
             storage=Storage(True)
             with self.assertRaises(RuntimeError):run(config,storage)
             self.assertNotIn("risk/latest.json",storage.keys)
+            storage=Storage(fail_catalog=True)
+            with self.assertRaises(RuntimeError):run(config,storage)
+            self.assertFalse(any(key.startswith("risk/catalog/") for key in storage.keys))
+            # Failed registration retains outputs, so publishing can be retried.
+            self.assertEqual(len(list(Path(tmp).glob("*/risk/risk_map.geojson"))),2)
 
 
 if __name__=="__main__":unittest.main()

@@ -1,6 +1,7 @@
 import {findParcels} from "@/lib/parcels";
 import {projectGridToParcels} from "@/lib/parcelRisk";
-import {archiveParcelDisplay,cloudRiskGrid} from "@/lib/cloudStorage";
+import {archiveParcelDisplay,cloudRiskMosaic} from "@/lib/cloudStorage";
+import {riskBounds} from "@/lib/riskMosaic";
 export const runtime="nodejs";
 export async function POST(request:Request){
   // Same-origin writes: a third-party page must not create cloud objects.
@@ -13,7 +14,10 @@ export async function POST(request:Request){
   try{
     const query=new URL(request.url).searchParams;
     const parcels=await findParcels(query);
-    const {grid,...source}=await cloudRiskGrid();
+    const points=parcels.features.flatMap(p=>p.geometry.type==="Polygon"?p.geometry.coordinates.flat():p.geometry.coordinates.flat(2));
+    if(!points.length)throw new Error("No parcels found");
+    const bounds=riskBounds([Math.min(...points.map(p=>p[0])),Math.min(...points.map(p=>p[1])),Math.max(...points.map(p=>p[0])),Math.max(...points.map(p=>p[1]))]);
+    const {grid,...source}=await cloudRiskMosaic(undefined,bounds);
     const projection=projectGridToParcels(parcels,grid);
     const receipt=await archiveParcelDisplay(parcels,projection,{...source,parcel_source:parcels.metadata});
     return Response.json({projection,receipt},{headers:{"Cache-Control":"no-store"}});

@@ -1,6 +1,6 @@
 import {afterEach,describe,expect,it,vi} from "vitest";
 import {createHash} from "node:crypto";
-import {CloudStorage,archiveParcelDisplay,cloudRiskGrid} from "./cloudStorage";
+import {CloudStorage,archiveParcelDisplay,cloudRiskGrid,cloudRiskMosaic} from "./cloudStorage";
 import {POST} from "@/app/api/parcel-display/route";
 afterEach(()=>{vi.unstubAllEnvs();vi.unstubAllGlobals();});
 function backend(failAt=0){
@@ -11,9 +11,9 @@ function backend(failAt=0){
     if(url.includes("b2_authorize_account"))return Response.json({accountId:"account",authorizationToken:"secret",apiInfo:{storageApi:{apiUrl:"https://api.test",downloadUrl:"https://download.test",allowed:{buckets:[{id:"bucket-id",name:"bucket"}]}}}});
     if(url.endsWith("b2_get_upload_url"))return Response.json({uploadUrl:"https://upload.test",authorizationToken:"upload-secret"});
     if(url.endsWith("b2_list_file_names")){
-      const prefix=JSON.parse(String(init!.body)).prefix;let found;
-      for(const [id,bytes] of stored){const index=Number(id.replace("id-",""))-1;if(keys[index]===prefix)found={fileId:id,fileName:prefix};void bytes;}
-      return Response.json({files:found?[found]:[]});
+      const {prefix,maxFileCount}=JSON.parse(String(init!.body));const files=[];
+      for(const [id] of stored){const index=Number(id.replace("id-",""))-1;if(keys[index].startsWith(prefix))files.push({fileId:id,fileName:keys[index]});}
+      return Response.json({files:files.sort((a,b)=>a.fileName.localeCompare(b.fileName)).slice(0,maxFileCount)});
     }
     if(url==="https://upload.test"){
       const bytes=Buffer.from(init!.body as Uint8Array);const key=decodeURIComponent(new Headers(init!.headers).get("X-Bz-File-Name")!);keys.push(key);
@@ -67,5 +67,23 @@ describe("verified cloud storage",()=>{
     await storage.uploadJson("risk/latest.json",{kind:"fireblock.risk-pointer",schema_version:1,manifest_file_id:manifest.file_id,manifest_sha256:manifest.sha256,manifest_bytes:manifest.bytes});
     vi.stubEnv("B2_RISK_MANIFEST_FILE_ID","");vi.stubEnv("B2_RISK_POINTER_KEY","risk/latest.json");
     expect((await cloudRiskGrid(storage)).grid_file_id).toBe(artifact.file_id);
+  });
+  it("discovers regional publications, skips remote grids, and notices newly registered runs",async()=>{
+    const {storage,fetcher}=backend();
+    async function publish(name:string,w:number){
+      const grid={type:"FeatureCollection",features:[{type:"Feature",geometry:{type:"Polygon",coordinates:[[[w,0],[w+1,0],[w+1,1],[w,1],[w,0]]]},properties:{layer:"relative_risk",cell_id:"a",risk_score:70,model_id:"model",as_of:"2026-11-14T00:00:00Z"}}]};
+      const artifact=await storage.uploadJson(`risk/${name}/risk/risk_map.geojson`,grid);
+      const manifest=await storage.uploadJson(`risk/${name}/manifest.json`,{status:"complete",artifacts:[{path:"risk/risk_map.geojson",storage:artifact,sha256:artifact.sha256,bytes:artifact.bytes}]});
+      await storage.uploadJson(`risk/catalog/${name}.json`,{kind:"fireblock.risk-pointer",schema_version:1,manifest_file_id:manifest.file_id,manifest_sha256:manifest.sha256,manifest_bytes:manifest.bytes,bbox:[w,0,w+1,1]});
+      return artifact;
+    }
+    const first=await publish("first",0);const remote=await publish("remote",10);
+    fetcher.mockClear();
+    const concurrent=await Promise.all([cloudRiskMosaic(storage,[0,0,2,1]),cloudRiskMosaic(storage,[0,0,2,1])]);
+    expect(concurrent[0].grid.features).toHaveLength(1);
+    expect(fetcher.mock.calls.filter(([url])=>String(url).includes(`fileId=${first.file_id}`))).toHaveLength(1);
+    expect(fetcher.mock.calls.some(([url])=>String(url).includes(`fileId=${remote.file_id}`))).toBe(false);
+    await publish("second",1);
+    expect((await cloudRiskMosaic(storage,[0,0,2,1])).grid.features).toHaveLength(2);
   });
 });

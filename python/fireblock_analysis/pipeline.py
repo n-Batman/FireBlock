@@ -166,7 +166,7 @@ def run(config, backend=None, risk_model=None):
             # adapters without checksum verification retain their working files.
             verified = receipt.get("verified") is True and all(a.get("storage", {}).get("verified") is True for a in manifest["artifacts"]) and all(
                 item.get("storage", {}).get("verified") is True for item in manifest["inputs"] if "local" in item)
-            if config["storage"].get("publish_frontend", False):
+            if config["storage"].get("publish_frontend", bool(manifest.get("risk"))):
                 if not verified:
                     raise ValueError("Do not publish unverified analysis to the frontend")
                 pointer_path = root / "frontend-pointer.json"
@@ -178,6 +178,11 @@ def run(config, backend=None, risk_model=None):
                 publication = backend.upload(pointer_path, config["storage"].get("frontend_pointer_key", "risk/latest.json"))
                 if publication.get("verified") is not True:
                     raise ValueError("Frontend pointer upload did not verify")
+                # Each run gets its own immutable catalog entry. Independent
+                # writers never overwrite a shared catalog or lose other areas.
+                catalog = backend.upload(pointer_path, "risk/catalog/" + run_id + ".json")
+                if catalog.get("verified") is not True:
+                    raise ValueError("Risk catalog publication did not verify")
             if verified:
                 write_json(root / "cloud-receipt.json", {"manifest": receipt, "local_artifacts_removed": False})
             if verified and config["storage"].get("local_retention", "manifest_only") == "manifest_only":
