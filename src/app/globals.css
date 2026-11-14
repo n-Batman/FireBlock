@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+/* Palette: cool sage-gray neutrals, near-black green ink.
+   Green / amber / red mean RISK and nothing else. Primary actions use ink. */
+:root {
+  --r: 8px; /* one corner radius for everything */
+  --paper: #f1f3ee;
+  --surface: #fafbf8;
+  --ink: #15241d;
+  --ink-2: #4a5a52;
+  --line: #d9ded5;
+
+  --low: #2f7d4f;
+  --low-bg: #e1efe5;
+  --low-ink: #1e5a37;
+  --med: #b97a06;
+  --med-bg: #f8ebc8;
+  --med-ink: #6e4600;
+  --high: #bf3a28;
+  --high-bg: #f6dad4;
+  --high-ink: #8a2214;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f1713;
+    --surface: #16211b;
+    --ink: #e6ebe5;
+    --ink-2: #9daea4;
+    --line: #26362d;
+
+    --low: #5db67f;
+    --low-bg: #173325;
+    --low-ink: #8fd6ab;
+    --med: #e0a83a;
+    --med-bg: #392c10;
+    --med-ink: #f0c879;
+    --high: #e5675a;
+    --high-bg: #3d1c17;
+    --high-ink: #f5a398;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-line: var(--line);
+  --color-low: var(--low);
+  --color-low-bg: var(--low-bg);
+  --color-low-ink: var(--low-ink);
+  --color-med: var(--med);
+  --color-med-bg: var(--med-bg);
+  --color-med-ink: var(--med-ink);
+  --color-high: var(--high);
+  --color-high-bg: var(--high-bg);
+  --color-high-ink: var(--high-ink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* No-mow habitat: diagonal hatch, used in the rail, legend and (via SVG pattern) on the map. */
+.hatch {
+  background-color: var(--surface);
+  background-image: repeating-linear-gradient(45deg, var(--ink-2) 0 1.5px, transparent 1.5px 5px);
+}
+.habitat-poly {
+  fill: url(#habitat-hatch) !important;
+  fill-opacity: 1 !important;
+}
+.leaflet-container {
+  font-family: inherit;
+  background: var(--paper);
+}
+.leaflet-tooltip.block-label {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: none;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.leaflet-tooltip.block-label::before {
+  display: none;
+}
+
+/* Numbers line up in columns. */
+.num {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
