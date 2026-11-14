@@ -63,6 +63,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P19 | Prepare real risk results for website display | READY (Codex; static result page, verified snapshot API and visible grid; live Vercel deployment awaits account connection) |
 | P20 | Move generated map grids out of HTML into separate GeoJSON | DONE (Codex; HTML reduced 99.35%, unchanged grid, offline file-picker fallback; generator and public snapshots updated) |
 | P22 | Preload nearby parcels with bounded session and score caches | DONE (Codex; 48 targeted checks and changed-file type checks pass; cancellation, private-field stripping and no persistent cache writes; docs/parcel-preloading.md) |
+| P23 | Simplify dense city parcels into zoom-dependent area summaries | DONE (Codex; approximate blocks below zoom 17, original property ratings on zoom-in, selected properties retained; docs/parcel-detail-levels.md) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

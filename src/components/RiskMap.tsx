@@ -26,6 +26,7 @@ import { tileSource } from "@/lib/tiles";
 import { useWide } from "@/lib/useWide";
 import type { Place } from "@/lib/geocode";
 import { ParcelOverlay } from "@/lib/ParcelOverlay";
+import { ParcelAreas, useParcelDisplay } from "@/lib/ParcelAreas";
 
 // Literal colors for Leaflet: the risk colors from DESIGN.md.
 const RISK_COLOR: Record<Level, string> = { low: "#5db67f", medium: "#e0a83a", high: "#e5675a" };
@@ -158,12 +159,14 @@ export function ParcelPolygons({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const { individuals, areas } = useParcelDisplay(parcels, selectedId);
   const selected = parcels.find((p) => p.id === selectedId) ?? null;
   // A scored parcel's outline, fill and glow use Nick's 0 to 100 scale, like its pill and chip.
   const colorOf = (p: ParcelUnit) => (p.score ? scaleColor(p.score.score) : PARCEL_NEUTRAL);
   return (
     <>
-      {parcels.map((parcel) => {
+      <ParcelAreas areas={areas} />
+      {individuals.map((parcel) => {
         const isSelected = parcel.id === selected?.id;
         const dim = selected !== null && !isSelected;
         const color = colorOf(parcel);
@@ -199,7 +202,7 @@ export function ParcelPolygons({
         />
       )}
 
-      {parcels.map((parcel) => {
+      {individuals.map((parcel) => {
         if (!parcel.score) return null;
         const isSelected = parcel.id === selected?.id;
         const dim = selected !== null && !isSelected;

@@ -136,7 +136,7 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
         const a=document.createElement("a");a.href=url;a.download="parcels.geojson";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
       }}>Save GeoJSON</button></p>}
     </section>,host)}
-    {visible && data && <Pane name="parcel-boundaries" style={{zIndex:450}}>
+    {visible && data && !parcelMask?.length && <Pane name="parcel-boundaries" style={{zIndex:450}}>
       <GeoJSON key={`${data.metadata.fetchedAt}-${gridRevision}`} data={projection.data??data} style={feature=>{
         const p=feature?.properties;const score=p?.risk_score;
         return {color:"#38e6ff",weight:2,fill:!!projection.data,fillColor:typeof score==="number"?`hsl(${45-score*.45} 75% ${75-score*.38}%)`:"#777777",fillOpacity:.6};
