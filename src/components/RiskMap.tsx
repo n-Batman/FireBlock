@@ -12,11 +12,14 @@ import {
   Tooltip,
   ZoomControl,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import { animate } from "motion/react";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { Block, Level, ParcelUnit, Property } from "@/data/types";
 import { boundsOfPolygon, labelPoint } from "@/lib/geo";
+import type { View } from "@/lib/parcelApi";
+import { toGeoJSON } from "@/lib/parcelUnits";
 import { scaleColor } from "@/lib/riskScale";
 import { levelOf, scoreOf } from "@/lib/score";
 import { tileSource } from "@/lib/tiles";
@@ -108,6 +111,22 @@ function Reveal() {
     });
     return () => controls.forEach((c) => c?.stop());
   }, [map]);
+  return null;
+}
+
+/** Reports the visible area 400 ms after the map stops moving, so panning does not fire a request per frame. */
+export function ViewWatcher({ onView }: { onView: (view: View) => void }) {
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const map = useMapEvents({
+    moveend() {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => {
+        const b = map.getBounds();
+        onView({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() });
+      }, 400);
+    },
+  });
+  useEffect(() => () => clearTimeout(timer.current), []);
   return null;
 }
 
@@ -211,9 +230,11 @@ interface RiskMapProps {
   parcels?: ParcelUnit[] | null;
   /** A point looked up through his latitude/longitude fields or "Pick on map". */
   onPoint?: (point: { lat: number; lon: number }) => void;
+  /** Called with the visible area 400 ms after the map stops moving. */
+  onView?: (view: View) => void;
 }
 
-export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null, parcels = null, onPoint }: RiskMapProps) {
+export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null, parcels = null, onPoint, onView }: RiskMapProps) {
   const wide = useWide();
   const tiles = tileSource(process.env.NEXT_PUBLIC_ARCGIS_KEY);
   // Three failed tiles in a row means the imagery is not loading. Say so instead of staying grey.
@@ -223,6 +244,8 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
 
   // With county parcels on the map, or a loaded grid, the sample blocks are not drawn.
   const blocks = parcels ? [] : property.blocks.filter((b) => !gridActive || b.kind === "habitat");
+  // The parcels on screen, as shapes, so the underlying grid is not drawn under them.
+  const parcelMask = useMemo(() => parcels?.map(toGeoJSON), [parcels]);
   const selected = blocks.find((b) => b.id === selectedId && b.kind === "vine") ?? null;
   const labels = useMemo(
     () => new Map(property.blocks.map((b) => [b.id, labelPoint(b.polygon)] as const)),
@@ -279,7 +302,8 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
         {!(wide && panelOpen) && (
           <ZoomControl key={wide ? "wide" : "narrow"} position={wide ? "bottomright" : "topright"} />
         )}
-        <ParcelOverlay center={property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} onGridActive={setGridActive} />
+        <ParcelOverlay center={property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} onGridActive={setGridActive} showGridByDefault={false} parcelMask={parcelMask} />
+        {onView && <ViewWatcher onView={onView} />}
         <PlaceFocus place={place} />
 
         {parcels && <ParcelPolygons parcels={parcels} selectedId={selectedId} onSelect={onSelect} />}

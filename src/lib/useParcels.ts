@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
+import { point } from "@turf/helpers";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ParcelUnit } from "@/data/types";
-import { lookupParcels, type ParcelLookup } from "./parcelApi";
+import { lookupParcels, lookupParcelsInView, type ParcelLookup, type View, type ViewLookup } from "./parcelApi";
 import { loadRiskCells, scoreParcel, type RiskCell } from "./parcelScore";
+import { toGeoJSON } from "./parcelUnits";
 import { useParcelScans } from "./useParcelScans";
 
 export interface ParcelState {
-  phase: "idle" | "loading" | "ready" | "outside" | "error";
+  /** "zoom" means the map view is too wide to search, so the parcels are not shown. */
+  phase: "idle" | "loading" | "ready" | "outside" | "error" | "zoom";
   units: ParcelUnit[];
   truncated: boolean;
   /** Plain words for an error, otherwise null. */
@@ -20,14 +24,18 @@ interface Place {
   id: number;
 }
 
+const viewKeyOf = (v: View | null) => (v ? [v.west, v.south, v.east, v.north].join(",") : null);
+
 /**
- * The county parcels within 300 m of a chosen place, each with a score only if a saved scan's GPS
+ * The county parcels for a chosen place: the ones within 300 m of it at first, then the ones in the
+ * map's view as it moves (a view over 25 km2 shows none). Each has a score only if a saved scan's GPS
  * falls inside it or public/data/risk_map.geojson covers it. Everything else stays unscored.
  */
-export function useParcels(place: Place | null): ParcelState {
+export function useParcels(place: Place | null, view: View | null = null): ParcelState {
   const scans = useParcelScans();
   const [cells, setCells] = useState<RiskCell[]>([]);
   const [lookup, setLookup] = useState<{ id: number; result: ParcelLookup } | null>(null);
+  const [viewLookup, setViewLookup] = useState<{ placeId: number; result: ViewLookup } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -60,15 +68,48 @@ export function useParcels(place: Place | null): ParcelState {
     return () => controller.abort();
   }, [id, lat, lon]);
 
-  const current = place && lookup?.id === place.id ? lookup.result : null;
-  const units = useMemo(
-    () => (current?.kind === "ok" ? current.units.map((u) => ({ ...u, score: scoreParcel(u, scans, cells) })) : []),
-    [current, scans, cells],
-  );
+  // The map view. Each new view aborts the request for the one before it. The place it belongs to is
+  // read from a ref, so choosing a place does not refetch the old view.
+  const placeId = useRef(id);
+  useEffect(() => {
+    placeId.current = id;
+  }, [id]);
+  const viewKey = viewKeyOf(view);
+  useEffect(() => {
+    if (!viewKey || placeId.current === undefined) return;
+    const [west, south, east, north] = viewKey.split(",").map(Number);
+    const forPlace = placeId.current;
+    const controller = new AbortController();
+    lookupParcelsInView({ west, south, east, north }, { signal: controller.signal }).then(
+      (result) => {
+        if (!controller.signal.aborted) setViewLookup({ placeId: forPlace, result });
+      },
+      () => {
+        if (!controller.signal.aborted) {
+          setViewLookup({ placeId: forPlace, result: { kind: "error", message: "The parcel lookup failed. Try again." } });
+        }
+      },
+    );
+    return () => controller.abort();
+  }, [viewKey]);
+
+  // The latest view's answer replaces the 300 m one, and stays on screen until the next arrives.
+  const viewCurrent = place && viewLookup?.placeId === place.id ? viewLookup.result : null;
+  const current: ParcelLookup | ViewLookup | null = viewCurrent ?? (place && lookup?.id === place.id ? lookup.result : null);
+  const units = useMemo(() => {
+    if (current?.kind !== "ok") return [];
+    const here = place ? point([place.lon, place.lat]) : null;
+    return current.units.map((u) => ({
+      ...u,
+      atPoint: u.atPoint ?? (here ? booleanPointInPolygon(here, toGeoJSON(u)) : false),
+      score: scoreParcel(u, scans, cells),
+    }));
+  }, [current, place, scans, cells]);
 
   if (!place) return { phase: "idle", units: [], truncated: false, message: null };
   if (!current) return { phase: "loading", units: [], truncated: false, message: null };
   if (current.kind === "outside") return { phase: "outside", units: [], truncated: false, message: null };
+  if (current.kind === "too-wide") return { phase: "zoom", units: [], truncated: false, message: null };
   if (current.kind === "error") return { phase: "error", units: [], truncated: false, message: current.message };
   return { phase: "ready", units, truncated: current.truncated, message: null };
 }

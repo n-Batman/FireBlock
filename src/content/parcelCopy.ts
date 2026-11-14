@@ -4,6 +4,7 @@ import type { ScoreSource } from "@/data/types";
 export const NOT_SCORED = "Not scored yet. Scan the rows to score it.";
 export const NO_PARCELS = "No parcels found within 300 m of that point.";
 export const FINDING_PARCELS = "Finding parcels...";
+export const ZOOM_IN = "Zoom in to see property lines";
 export const TRUNCATED = "The county returned its limit of 200 parcels. Zoom in or search a smaller area.";
 export const PLANNING_ONLY = "County GIS outlines for planning, not a boundary survey.";
 

@@ -97,6 +97,19 @@ describe("ParcelOverlay lookup", () => {
     expect(onPoint).not.toHaveBeenCalled();
   });
 
+  it("starts with 'Show underlying grid' unchecked when asked, and keeps his checked default otherwise", () => {
+    const grid = () => screen.getByRole("checkbox", { name: /Show underlying grid/ });
+    const { unmount } = render(
+      <MapContainer center={CENTER} zoom={12} style={{ height: 400, width: 400 }}>
+        <ParcelOverlay center={CENTER} showGridByDefault={false} />
+      </MapContainer>,
+    );
+    expect(grid()).not.toBeChecked();
+    unmount();
+    render(mount(null));
+    expect(grid()).toBeChecked();
+  });
+
   it("keeps his controls: latitude, longitude, Find at point, Pick on map, Find in visible area", () => {
     render(mount(null));
     expect(screen.getByLabelText("Parcel latitude")).toBeInTheDocument();
