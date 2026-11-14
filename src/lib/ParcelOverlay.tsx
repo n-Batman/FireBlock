@@ -5,9 +5,11 @@ import { GeoJSON, Pane, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import type { Parcels } from "./parcels";
 import { parseRiskGrid,projectGridToParcels,type RiskGrid } from "./parcelRisk";
+import { insideSlo } from "./geocode";
+import { OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
 
-/** Independent parcel geometry; never changes or invents risk block scores. */
-export function ParcelOverlay({center,onGridActive}:{center:[number,number];onGridActive?:(active:boolean)=>void}) {
+/** Independent parcel geometry; never changes or invents risk block scores. `lookup` is a place picked in the address search; a new `id` runs a new lookup. `onPoint` reports the point of a latitude/longitude or "Pick on map" lookup. */
+export function ParcelOverlay({center,onGridActive,lookup,onPoint}:{center:[number,number];onGridActive?:(active:boolean)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void}) {
   const map=useMap();
   const [host,setHost]=useState<HTMLElement|null>(null);
   const [lat,setLat]=useState(String(center[0]));
@@ -54,10 +56,14 @@ export function ParcelOverlay({center,onGridActive}:{center:[number,number];onGr
     const node=L.DomUtil.create("div");
     node.style.cssText="background:white;color:#18241d;padding:12px;width:270px;max-height:45vh;overflow:auto;border:1px solid #aaa;border-radius:6px;font:13px system-ui";
     L.DomEvent.disableClickPropagation(node); L.DomEvent.disableScrollPropagation(node);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the Leaflet control's host node exists only after mount
     control.onAdd=()=>node; control.addTo(map); setHost(node);
     return ()=>{serial.current++;pending.current?.abort();control.remove();};
   },[map]);
   async function search(query:URLSearchParams){
+    const lat0=Number(query.get("lat")),lon0=Number(query.get("lon"));
+    if(query.has("lat")&&Number.isFinite(lat0)&&Number.isFinite(lon0))onPoint?.({lat:lat0,lon:lon0});
+    if(query.has("lat")&&Number.isFinite(lat0)&&Number.isFinite(lon0)&&!insideSlo(lat0,lon0)){pending.current?.abort();setData(null);setMessage(OUTSIDE_COUNTY_MESSAGE);return;}
     pending.current?.abort(); const controller=new AbortController(); pending.current=controller;
     const current=++serial.current;
     setBusy(true); setMessage("Finding parcel boundaries…"); setData(null);setLastQuery(null);setArchiveMessage("");
@@ -72,6 +78,11 @@ export function ParcelOverlay({center,onGridActive}:{center:[number,number];onGr
     }catch(error){if(current===serial.current && !controller.signal.aborted)setMessage(error instanceof Error?error.message:"Lookup failed");}
     finally{if(current===serial.current)setBusy(false);}
   }
+  useEffect(()=>{
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a fetch for a new address-search pick
+    if(lookup) void search(new URLSearchParams({lat:String(lookup.lat),lon:String(lookup.lon)}));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per address-search pick (its id), not on every render
+  },[lookup?.id]);
   useMapEvents({click(event){if(pick){setLat(String(event.latlng.lat));setLon(String(event.latlng.lng));setPick(false);void search(new URLSearchParams({lat:String(event.latlng.lat),lon:String(event.latlng.lng)}));}}});
   const buttonStyle={border:"1px solid #888",padding:"5px 8px",borderRadius:3,margin:"4px 3px 4px 0",cursor:"pointer"};
   return <>

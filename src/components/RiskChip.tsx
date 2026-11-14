@@ -7,13 +7,13 @@ const STYLES: Record<Level, string> = {
 };
 const LABEL: Record<Level, string> = { low: "Low", medium: "Medium", high: "High" };
 
-export function RiskChip({ level, score }: { level: Level; score: number }) {
+export function RiskChip({ level, score }: { level: Level; score?: number }) {
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-[var(--r)] px-2 py-1 text-xs font-semibold ${STYLES[level]}`}
     >
       {LABEL[level]}
-      <span className="num text-sm">{score}</span>
+      {score !== undefined && <span className="num text-sm">{score}</span>}
     </span>
   );
 }

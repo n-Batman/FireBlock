@@ -6,6 +6,12 @@ const byId = (id: string) => properties.find((p) => p.id === id)!;
 const topLevel = (id: string) => levelOf(scoreOf(rankBlocks(byId(id).blocks)[0]));
 
 describe("demo properties", () => {
+  it("keeps the sample-data note in Data & limits, not on every factor source", () => {
+    const sources = properties.flatMap((p) => p.blocks.flatMap((b) => b.factors.map((f) => f.source)));
+    expect(sources.length).toBeGreaterThan(0);
+    expect(sources.filter((s) => s.includes("(sample)"))).toEqual([]);
+  });
+
   it("has exactly the three demo properties", () => {
     expect(properties.map((p) => p.id)).toEqual([
       "adelaida-hills",
@@ -54,6 +60,29 @@ describe("demo properties", () => {
     const hist = adel.blocks.flatMap((b) => b.factors).find((f) => f.key === "fireHistory")!;
     expect(hist.reason).toMatch(/4 miles/);
     expect(adel.activeFires25mi).toBe(0);
+  });
+
+  it("gives every property weather that matches its weather factor text", () => {
+    for (const p of properties) {
+      const w = p.weather;
+      expect(w.windMph).toBeGreaterThan(0);
+      expect(w.humidityPct).toBeGreaterThan(0);
+      expect(w.humidityPct).toBeLessThanOrEqual(100);
+      expect(w.windDir).toMatch(/^[NSEW]{1,3}$/);
+      expect(w.updatedAt.startsWith("2026-11-13")).toBe(true);
+      const reason = p.blocks.flatMap((b) => b.factors).find((f) => f.key === "fireWeather")!.reason;
+      expect(reason).toContain(`${w.windMph} mph`);
+      expect(reason).toContain(`${w.humidityPct}%`);
+    }
+  });
+
+  it("flags a Red Flag Warning only for Adelaida Hills", () => {
+    expect(properties.map((p) => p.weather.redFlag)).toEqual([true, false, false]);
+  });
+
+  it("gives every block a real name, not 'Block N'", () => {
+    for (const p of properties)
+      for (const b of p.blocks) expect(b.name).not.toMatch(/^Block \d+$/);
   });
 
   it("is cached on Nov 13, 2026", () => {

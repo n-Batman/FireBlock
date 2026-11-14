@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { formatAsOf } from "./format";
+import { formatAsOf, formatMoney } from "./format";
+
+describe("formatMoney", () => {
+  it("writes whole dollars with a thousands separator", () => {
+    expect(formatMoney(1728)).toBe("$1,728");
+    expect(formatMoney(648)).toBe("$648");
+    expect(formatMoney(0)).toBe("$0");
+  });
+});
 
 describe("formatAsOf", () => {
   it("formats an ISO timestamp in Pacific time with a plain space before AM", () => {

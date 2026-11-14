@@ -5,6 +5,8 @@ When you finish or start a task, update its status here in the same commit. Don'
 
 Status keys: `TODO` · `DOING (who)` · `DONE` · `BLOCKED: why`
 
+> **Repo layout:** the Next.js app lives at the repo root (`src/`, `package.json`), next to the C++ and Python pipeline, so every `src/...` path on this board means `src/...`. `web/` is an old copy of the app, kept only until it is removed.
+
 ## The story (don't drift from this)
 - **Hero user:** SLO vineyard and ranch owners getting ready for the county's June 1 dry-growth clearing deadline. Mowing costs $34–150/hr, and habitat areas can't be mowed.
 - **Who pays:** owners use the planner. Insurers (and later agencies) pay for the parcel-level, ground-truthed risk data it produces. The pitch covers both.
@@ -65,8 +67,8 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 |---|---|---|
 | M1 | Commit current frontend and push to GitHub (nothing is committed yet) | DONE |
 | M2 | Screen 1, property map: rail, map, badge, legend, Data & limits (plan Tasks 1–3) | DONE |
-| M3 | Screen 2, score breakdown panel (plan Task 4) | TODO |
-| M4 | Screen 3, plan page and PDF layout (plan Task 5) | TODO |
+| M3 | Screen 2, score breakdown panel (plan Task 4) | DONE |
+| M4 | Screen 3, plan page and PDF layout (plan Task 5) | DONE |
 | M5 | Vision prompt: write and test in ChatGPT with real dry-row, brush-line and barn photos; hand final prompt to Partner (`src/content/visionPrompt.md`) | TODO |
 | M6 | Demo photos and video: dry rows, brush line, barn (real local or clear stock) | TODO |
 | M7 | Email Vidya: thanks, permission to name her, one quote ("I'd use this before June 1") | TODO |
@@ -77,6 +79,14 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | M12 | Slides + 60-second script; judge-style dry run against the 100-point rubric | TODO |
 | M13 | Record backup demo video once the app works | TODO |
 | M14 | Submit project link by Sat 2 PM | TODO |
+| M15 | `web/DESIGN.md`: palette, type, glass spec, motion, scanner visual language | DONE |
+| M16 | Premium map shell: full-bleed satellite map, glass panels, weather strip, motion | DONE |
+| M17 | Live scanner UI at `/scan`: camera, reticle, boxes, stub `/api/scan`, demo mode, score feed | DONE (needs real demo clip: M6) |
+| M18 | Polish pass on every screen: focus, tap targets, contrast, keyboard, states | DONE |
+| M19 | Map styling for any polygon: 2px outline, 15% fill, glow on selected, score pills, fly-to, zoom on phones | DONE |
+| M20 | Hide the demo button when `/demo/vineyard.mp4` is missing | DONE |
+| M22 | Real county parcels as the clickable units (radius 300 m around a chosen place), scored only from a saved scan's GPS or a risk_map.geojson, otherwise "Not scored yet"; sample properties kept as "Demo" | DONE |
+| M21 | Address search on the map ("Search an address or vineyard", ArcGIS, SLO County only) that flies there and runs the parcel lookup; honest notices when nothing is scored or the place is outside the county | DONE |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
@@ -87,3 +97,10 @@ Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to custo
 ## Decisions log
 - Fri Nov 13: Stack is Next.js + Leaflet + Tailwind with JSON fixtures, deployed on Vercel. Hero user is the vineyard owner; insurers are the buyer of the data.
 - Fri Nov 13: Detailed frontend plan in `docs/superpowers/plans/2026-11-13-fireblock-frontend.md`, design in `docs/superpowers/specs/`.
+- Fri Nov 13: Shared contract `web/src/data/types.ts` changed (partner, please read): `Weather` added to `Property` (wind, humidity, Red Flag, updatedAt), `"photoScan"` added to `FactorKey`, and the scan types `Finding`, `ScanResponse` and `SCAN_JSON_SCHEMA` added. Block names in the fixtures are now real names ("Ridge Top"), not "Block N".
+- Fri Nov 13: `/api/scan` is a STUB (canned findings, 400-800 ms delay). Partner swaps in the OpenAI call (gpt-4.1-mini, Responses API, strict `json_schema` from `SCAN_JSON_SCHEMA`) and keeps the response shape. Requests with `demoTime` must keep using `demoFindingsAt` so the judges' run is the same every time.
+- Fri Nov 13: Block outlines will come from the partner's backend (`properties.json`, P4/P5). The UI keeps the placeholder shapes until then and already handles any polygon shape (label points stay inside L and U shapes). Public field-level outlines exist if needed: California DWR statewide crop mapping, 2023, `MAIN_CROP = 'V'` for vineyards.
+- Sat Nov 14: Shared contract `src/data/types.ts` changed again (partner, please read): `Finding` gets an optional `confidence` (0 to 1), and `SCAN_JSON_SCHEMA` now requires `confidence` from the model and caps `findings` at 3 (`maxItems: 3`). `/api/scan` now calls the real model (`gpt-6.1-terra`, Responses API) from `src/lib/vision.ts`; a missing key, timeout (8 s) or API error returns 503, 504 or 502, never fake findings. The scan screen hides findings under 0.6 confidence and shows at most 3.
+- Sat Nov 14: The app moved from `web/` to the repo root, on top of the parcel lookup (P10). His parcel files are unchanged except for hook-ins in `src/lib/ParcelOverlay.tsx`: an optional `lookup` prop (an address-search pick runs a parcel lookup), a guard that skips the API outside SLO County and says "Parcel lines cover SLO County only for now.", and two eslint-disable comments. Address search lives in `src/components/AddressSearch.tsx` and `src/lib/geocode.ts` (Esri geocoder; `NEXT_PUBLIC_ARCGIS_KEY` if set, keyless otherwise). Vercel's Root Directory must change from `web` to the repo root.
+- Sat Nov 14: County parcels replace the sample rectangles as the map's units when a place is chosen (`src/data/types.ts` gets new types next to `Block` and `Property`: `ParcelUnit`, `ParcelScore`, `ScoreSource`, `ParcelScan`, `Ring`, `PolygonRings`; no existing field changed). A parcel is scored only if (a) a scan saved with the device's GPS is inside it (score = share of scanned areas flagged), or (b) `public/data/risk_map.geojson` exists, as the area-weighted mean of the overlapping scored cells when they cover at least half the parcel (the file is read as the generator writes it: `layer: "relative_risk"`, `risk_score` or null). Otherwise "Not scored yet. Scan the rows to score it." A scan wins over the risk map. Partner: `ParcelOverlay` gets one more optional prop, `onPoint`, called with the point of a latitude/longitude or "Pick on map" lookup so every way of choosing a place runs the same 300 m search; the sample properties are still reachable as "Demo: ...".
+- Fri Nov 13: Look is dark only (see `DESIGN.md`). The demo clip `public/demo/vineyard.mp4` is not in the repo yet: needs real footage (M6), then retime `web/src/content/demoFindings.ts`.

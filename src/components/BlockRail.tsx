@@ -1,10 +1,12 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import type { Property } from "@/data/types";
-import { daysUntilJune1 } from "@/lib/countdown";
+import { useEffect, useRef } from "react";
+import type { ParcelUnit, Property } from "@/data/types";
 import { levelOf, rankBlocks, scoreOf } from "@/lib/score";
+import { useDaysUntilJune1 } from "@/lib/useDeadline";
+import { ParcelRows } from "./ParcelRows";
 import { RiskChip } from "./RiskChip";
+import { SavingsLine } from "./SavingsLine";
 
 interface BlockRailProps {
   property: Property;
@@ -12,17 +14,14 @@ interface BlockRailProps {
   onSelect: (id: string) => void;
   /** Injectable for tests; defaults to the current date in the browser. */
   today?: Date;
+  /** County parcels for a searched place. When given, they replace the sample blocks. */
+  parcels?: ParcelUnit[];
+  /** Loading, outside the county or an error, shown in place of the parcel list. */
+  parcelNotice?: string | null;
 }
 
-const noopSubscribe = () => () => {};
-
 function Deadline({ today }: { today?: Date }) {
-  // Server snapshot is null so the date never differs between server and browser.
-  const days = useSyncExternalStore(
-    noopSubscribe,
-    () => daysUntilJune1(today ?? new Date()),
-    () => null,
-  );
+  const days = useDaysUntilJune1(today);
   return (
     <div data-testid="deadline" className="border-b border-line px-6 py-5">
       <p className="text-xs font-medium text-ink-2">County clearance deadline, June 1</p>
@@ -41,16 +40,35 @@ function Deadline({ today }: { today?: Date }) {
   );
 }
 
-export function BlockRail({ property, selectedId, onSelect, today }: BlockRailProps) {
+export function BlockRail({ property, selectedId, onSelect, today, parcels, parcelNotice = null }: BlockRailProps) {
   const ranked = rankBlocks(property.blocks);
   const habitat = property.blocks.filter((b) => b.kind === "habitat");
+  const listRef = useRef<HTMLUListElement>(null);
+
+  // A block picked on the map scrolls into view here.
+  useEffect(() => {
+    if (!selectedId) return;
+    const row = listRef.current?.querySelector<HTMLElement>('button[aria-pressed="true"]');
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    row?.scrollIntoView?.({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+  }, [selectedId]);
+
+  if (parcels) {
+    return (
+      <div>
+        <Deadline today={today} />
+        <ParcelRows parcels={parcels} selectedId={selectedId} onSelect={onSelect} notice={parcelNotice} />
+      </div>
+    );
+  }
 
   return (
     <div>
       <Deadline today={today} />
+      <SavingsLine property={property} />
 
       <h2 className="px-6 pt-5 text-xs font-medium text-ink-2">Blocks, highest risk first</h2>
-      <ul className="mt-2 divide-y divide-line">
+      <ul ref={listRef} className="mt-2 divide-y divide-line">
         {ranked.map((block) => {
           const score = scoreOf(block);
           const selected = block.id === selectedId;
@@ -60,8 +78,8 @@ export function BlockRail({ property, selectedId, onSelect, today }: BlockRailPr
                 type="button"
                 aria-pressed={selected}
                 onClick={() => onSelect(block.id)}
-                className={`block w-full px-6 py-4 text-left transition-colors hover:bg-paper ${
-                  selected ? "bg-paper shadow-[inset_3px_0_0_var(--ink)]" : ""
+                className={`block w-full px-6 py-4 text-left transition-colors hover:bg-white/5 ${
+                  selected ? "bg-white/[0.07] shadow-[inset_3px_0_0_var(--ink)]" : ""
                 }`}
               >
                 <span className="flex items-center justify-between gap-3">

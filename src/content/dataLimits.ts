@@ -17,7 +17,7 @@ export const DATA_LIMITS = {
       items: [
         "This is an estimate to help you decide where to work first. It is not a fire prediction.",
         "Map data can be months old. Dry grass on the ground today may not match the map. Walking the rows and the photo scan correct the score.",
-        "Demo version: 3 properties, sample data cached Nov 13, 2026.",
+        "Demo version: 3 properties. Scores use sample values that stand in for the live data feed, cached Nov 13, 2026.",
       ],
     },
   ],

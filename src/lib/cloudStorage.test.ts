@@ -25,7 +25,7 @@ function backend(failAt=0){
       const id=JSON.parse(String(init!.body)).fileId;const bytes=stored.get(id)!;
       return Response.json({fileId:id,contentLength:bytes.length,contentSha1:createHash("sha1").update(bytes).digest("hex")});
     }
-    const bytes=stored.get(new URL(url).searchParams.get("fileId")!);return new Response(bytes);
+    const bytes=stored.get(new URL(url).searchParams.get("fileId")!);return new Response(bytes&&new Uint8Array(bytes));
   });
   return {storage:new CloudStorage(fetcher),stored,keys,fetcher};
 }

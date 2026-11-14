@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { BreakdownPanel } from "./BreakdownPanel";
 import { properties } from "@/data/properties";
 import { formatAsOf } from "@/lib/format";
+import { withScan } from "@/lib/scan";
 
 const block = properties[0].blocks.find((b) => b.id === "adelaida-3")!;
 const renderPanel = (onClose = () => {}) =>
@@ -41,7 +42,23 @@ describe("BreakdownPanel", () => {
     renderPanel();
     expect(screen.getByText("Adjust weights").closest("details")).not.toHaveAttribute("open");
     expect(screen.getByTestId("photo-slot")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Add photos from the rows/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Scan the rows/ })).toHaveAttribute(
+      "href",
+      "/scan?property=adelaida-hills&block=adelaida-3",
+    );
+  });
+
+  it("shows what the last scan changed, with six rows that still add up", () => {
+    const scanned = withScan(block, 12, "2026-11-14T10:00:00-08:00", "The scan found 2 risks.");
+    render(<BreakdownPanel block={scanned} propertyId="adelaida-hills" onClose={() => {}} />);
+    expect(screen.getByTestId("photo-slot")).toHaveTextContent("Scan changed score from 78 to 90");
+    expect(screen.getByRole("link", { name: /Scan again/ })).toBeInTheDocument();
+    const rows = screen.getAllByTestId("factor-row");
+    expect(rows).toHaveLength(6);
+    const total = rows
+      .map((r) => Number(within(r).getByTestId("factor-points").textContent!.replace("+", "")))
+      .reduce((a, b) => a + b, 0);
+    expect(total).toBe(90);
   });
 
   it("links to the plan for this property", () => {
@@ -50,6 +67,14 @@ describe("BreakdownPanel", () => {
       "href",
       "/plan?property=adelaida-hills",
     );
+  });
+
+  it("lists what to do, from the block's biggest factors", () => {
+    renderPanel();
+    const items = within(screen.getByTestId("actions")).getAllByRole("listitem");
+    expect(items).toHaveLength(3);
+    expect(items[0]).toHaveTextContent(/^Mow the dry growth between the rows before June 1/);
+    expect(items[2]).toHaveTextContent(/firebreak/);
   });
 
   it("calls onClose from the close button", async () => {

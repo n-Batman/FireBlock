@@ -11,3 +11,10 @@ const asOf = new Intl.DateTimeFormat("en-US", {
 export function formatAsOf(iso: string): string {
   return asOf.format(new Date(iso)).replace(/[  ]/g, " ");
 }
+
+const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+/** Whole dollars: "$1,728". */
+export function formatMoney(n: number): string {
+  return money.format(n);
+}
