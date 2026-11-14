@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { ListBullets, MapPinLine } from "@phosphor-icons/react";
 import { properties } from "@/data/properties";
-import { FINDING_PARCELS, TRUNCATED } from "@/content/parcelCopy";
+import { FINDING_PARCELS, TRUNCATED, ZOOM_IN } from "@/content/parcelCopy";
 import { NO_BLOCKS_MESSAGE, OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
 import { AddressSearch } from "@/components/AddressSearch";
 import { BlockRail } from "@/components/BlockRail";
@@ -18,6 +18,7 @@ import { ParcelPanel } from "@/components/ParcelPanel";
 import { PARCELS_OPTION, TopBar } from "@/components/TopBar";
 import { WeatherStrip } from "@/components/WeatherStrip";
 import type { Place } from "@/lib/geocode";
+import type { View } from "@/lib/parcelApi";
 import { applyScans } from "@/lib/scanStore";
 import { useParcels } from "@/lib/useParcels";
 import { useScans } from "@/lib/useScans";
@@ -55,6 +56,8 @@ function MapShell() {
   // Phones only: his parcel panel needs the space the block rail uses, so they take turns.
   // Reopening at a scan's location starts with the map clear, as after a search.
   const [toolsOpen, setToolsOpen] = useState(() => place !== null);
+  // The map's visible area, reported 400 ms after it stops moving. The parcels follow it.
+  const [view, setView] = useState<View | null>(null);
   const picks = useRef(place ? 1 : 0);
   const wide = useWide();
   const openLimits = useCallback(() => setLimitsOpen(true), []);
@@ -66,7 +69,7 @@ function MapShell() {
 
   // Real county parcels around the searched place, unless a Demo property is showing.
   const parcelView = place !== null && !demo;
-  const parcelState = useParcels(place);
+  const parcelState = useParcels(place, parcelView ? view : null);
   const units = parcelView ? parcelState.units : [];
   const selectedParcel = parcelView ? (units.find((u) => u.id === selectedId) ?? null) : null;
   const selectedBlock = parcelView ? null : (property.blocks.find((b) => b.id === selectedId && b.kind === "vine") ?? null);
@@ -86,7 +89,9 @@ function MapShell() {
     ? null
     : parcelState.phase === "loading"
       ? FINDING_PARCELS
-      : parcelState.phase === "outside"
+      : parcelState.phase === "zoom"
+        ? ZOOM_IN
+        : parcelState.phase === "outside"
         ? OUTSIDE_COUNTY_MESSAGE
         : parcelState.phase === "error"
           ? parcelState.message
@@ -144,6 +149,7 @@ function MapShell() {
           place={place}
           parcels={parcelView ? units : null}
           onPoint={onPoint}
+          onView={setView}
         />
       </div>
 

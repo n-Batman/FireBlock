@@ -31,7 +31,26 @@ export async function lookupParcels(
 ): Promise<ParcelLookup> {
   if (!insideSlo(lat, lon)) return { kind: "outside" };
 
-  const query = new URLSearchParams({ lat: String(lat), lon: String(lon), radius: "300" });
+  const base = await request(new URLSearchParams({ lat: String(lat), lon: String(lon), radius: "300" }), fetcher, signal);
+  if (base.kind !== "ok") return base;
+  let units = base.units;
+  const truncated = base.truncated;
+  if (truncated) {
+    // The county orders by record, not distance, so a cut-off list may leave out the parcel at the point.
+    const exact = await parcelsAtPoint(lat, lon, fetcher, signal);
+    const ids = new Set(exact.map((u) => u.id));
+    units = [...exact, ...units.filter((u) => !ids.has(u.id))];
+  }
+  const here = point([lon, lat]);
+  return { kind: "ok", units: units.map((u) => ({ ...u, atPoint: booleanPointInPolygon(here, toGeoJSON(u)) })), truncated };
+}
+
+/** One /api/parcels request, as map units. Errors come back in plain words. An abort is thrown. */
+async function request(
+  query: URLSearchParams,
+  fetcher: Fetcher,
+  signal?: AbortSignal,
+): Promise<Exclude<ParcelLookup, { kind: "outside" }>> {
   let res;
   try {
     res = await fetcher(`/api/parcels?${query}`, { signal });
@@ -54,16 +73,32 @@ export async function lookupParcels(
   }
   const parcels = body as Parcels | null;
   if (!parcels || !Array.isArray(parcels.features)) return { kind: "error", message: UNEXPECTED };
-  let units = toParcelUnits(parcels);
-  const truncated = parcels.metadata?.truncated === true;
-  if (truncated) {
-    // The county orders by record, not distance, so a cut-off list may leave out the parcel at the point.
-    const exact = await parcelsAtPoint(lat, lon, fetcher, signal);
-    const ids = new Set(exact.map((u) => u.id));
-    units = [...exact, ...units.filter((u) => !ids.has(u.id))];
-  }
-  const here = point([lon, lat]);
-  return { kind: "ok", units: units.map((u) => ({ ...u, atPoint: booleanPointInPolygon(here, toGeoJSON(u)) })), truncated };
+  return { kind: "ok", units: toParcelUnits(parcels), truncated: parcels.metadata?.truncated === true };
+}
+
+/** The map's visible area, west/south/east/north in degrees. */
+export interface View {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
+
+/** The most the county API will search at once (see parcels.ts), in square kilometres. */
+const MAX_VIEW_KM2 = 25;
+const viewAreaKm2 = (v: View) =>
+  (v.east - v.west) * 111.195 * Math.cos((((v.south + v.north) / 2) * Math.PI) / 180) * (v.north - v.south) * 111.195;
+
+export type ViewLookup = Exclude<ParcelLookup, { kind: "outside" }> | { kind: "too-wide" };
+
+/**
+ * The parcels in the map's visible area. A view over 25 km2 is not sent at all: it comes back as
+ * "too-wide" so the screen can say to zoom in. An abort is thrown so a stale lookup can be dropped.
+ */
+export async function lookupParcelsInView(view: View, { fetcher = fetch, signal }: Options = {}): Promise<ViewLookup> {
+  if (viewAreaKm2(view) > MAX_VIEW_KM2) return { kind: "too-wide" };
+  const bbox = [view.west, view.south, view.east, view.north].join(",");
+  return request(new URLSearchParams({ bbox }), fetcher, signal);
 }
 
 /** The parcel(s) at the exact point. Any failure but an abort gives none, and the 300 m list stands. */

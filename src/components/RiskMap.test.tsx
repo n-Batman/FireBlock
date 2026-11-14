@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import L from "leaflet";
 import { useEffect } from "react";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { MapContainer, useMap } from "react-leaflet";
 import type { ParcelUnit } from "@/data/types";
 import { scaleColor } from "@/lib/riskScale";
-import { ParcelPolygons } from "./RiskMap";
+import { ParcelPolygons, ViewWatcher } from "./RiskMap";
 
 const SQUARE = (lat: number, lng: number, d: number): [number, number][] => [
   [lat, lng],
@@ -48,6 +48,40 @@ function mount(parcels: ParcelUnit[], selectedId: string | null = null, onSelect
 }
 const interactive = (polys: L.Polygon[]) => polys.filter((p) => p.options.interactive !== false);
 const color = (p: L.Polygon) => p.options.color;
+
+describe("ViewWatcher", () => {
+  it("reports the map view once, 400 ms after it stops moving", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const onView = vi.fn();
+    let map: L.Map | null = null;
+    function Grab() {
+      map = useMap();
+      return null;
+    }
+    render(
+      <MapContainer center={[35.63, -120.86]} zoom={15} style={{ height: 400, width: 400 }}>
+        <ViewWatcher onView={onView} />
+        <Grab />
+      </MapContainer>,
+    );
+    act(() => {
+      map!.fire("moveend");
+      vi.advanceTimersByTime(300);
+      map!.fire("moveend"); // moved again: the wait starts over
+      vi.advanceTimersByTime(399);
+    });
+    expect(onView).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(1));
+    expect(onView).toHaveBeenCalledTimes(1);
+    expect(onView.mock.calls[0][0]).toEqual({
+      west: expect.any(Number),
+      south: expect.any(Number),
+      east: expect.any(Number),
+      north: expect.any(Number),
+    });
+    vi.useRealTimers();
+  });
+});
 
 describe("ParcelPolygons", () => {
   it("draws one clickable polygon per parcel", () => {

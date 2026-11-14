@@ -5,11 +5,13 @@ import { GeoJSON, Pane, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import type { Parcels } from "./parcels";
 import { parseRiskGrid,projectGridToParcels,type RiskGrid } from "./parcelRisk";
+import type { MultiPolygon, Polygon } from "geojson";
+import { gridOutsideParcels, gridSignature } from "./gridCoverage";
 import { insideSlo } from "./geocode";
 import { OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
 
 /** Independent parcel geometry; never changes or invents risk block scores. `lookup` is a place picked in the address search; a new `id` runs a new lookup. `onPoint` reports the point of a latitude/longitude or "Pick on map" lookup. */
-export function ParcelOverlay({center,onGridActive,lookup,onPoint}:{center:[number,number];onGridActive?:(active:boolean)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void}) {
+export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefault=true,parcelMask}:{center:[number,number];onGridActive?:(active:boolean)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void;showGridByDefault?:boolean;parcelMask?:(Polygon|MultiPolygon)[]}) {
   const map=useMap();
   const [host,setHost]=useState<HTMLElement|null>(null);
   const [lat,setLat]=useState(String(center[0]));
@@ -25,7 +27,7 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint}:{center:[numb
   const [grid,setGrid]=useState<RiskGrid|null>(null);
   const [gridRevision,setGridRevision]=useState(0);
   const gridGeneration=useRef(0);
-  const [showGrid,setShowGrid]=useState(true);
+  const [showGrid,setShowGrid]=useState(showGridByDefault);
   const [gridMessage,setGridMessage]=useState("Load backend risk_map.geojson to color whole properties.");
   useEffect(()=>{onGridActive?.(!!grid);},[grid,onGridActive]);
   const projection=useMemo(()=>{
@@ -33,11 +35,13 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint}:{center:[numb
     try{return {data:projectGridToParcels(data,grid),error:null};}
     catch(error){return {data:null,error:error instanceof Error?error.message:"Projection failed"};}
   },[data,grid]);
+  // The grid is drawn only where no parcel covers it. Scoring above still uses the whole grid.
+  const visibleGrid=useMemo(()=>grid&&gridOutsideParcels(grid,[...(parcelMask??[]),...(data?.features.map(f=>f.geometry)??[])]),[grid,parcelMask,data]);
   function loadGrid(value:unknown){
     const parsed=parseRiskGrid(value);gridGeneration.current++;setGrid(parsed);setGridRevision(v=>v+1);
     const publication=(value as {publication?:{source?:string}}).publication;
     setGridMessage(`${publication?.source==="published-snapshot"?"Published real-data snapshot · ":""}${parsed.features.length} cells · ${parsed.features[0].properties.model_id} · ${parsed.features[0].properties.as_of}`);
-    setShowGrid(true);
+    setShowGrid(showGridByDefault);
     const bounds=L.geoJSON(parsed).getBounds();
     if(bounds.isValid())map.fitBounds(bounds,{padding:[40,40],maxZoom:14});
   }
@@ -140,7 +144,7 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint}:{center:[numb
         label.textContent=`Parcel ${p.parcelId}`+("coverage" in p?` · ${p.risk_score===null?"Unknown / insufficient coverage":`Score ${p.risk_score.toFixed(1)}/100`} · Known area ${(p.coverage*100).toFixed(0)}% · Peak cell ${p.peak_score??"unknown"}`:"");layer.bindTooltip(label);
       }}/>
     </Pane>}
-    {showGrid&&grid&&<Pane name="backend-risk-grid" style={{zIndex:410}}><GeoJSON key={gridRevision} data={grid} style={feature=>{
+    {showGrid&&visibleGrid&&<Pane name="backend-risk-grid" style={{zIndex:410}}><GeoJSON key={`${gridRevision}-${gridSignature(visibleGrid)}`} data={visibleGrid} style={feature=>{
       const score=feature?.properties?.risk_score;return {color:"#eeeeee",weight:1,fillColor:typeof score==="number"?`hsl(${45-score*.45} 75% ${75-score*.38}%)`:"#777777",fillOpacity:.3};
     }}/></Pane>}
   </>;

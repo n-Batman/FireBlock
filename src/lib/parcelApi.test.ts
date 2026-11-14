@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { lookupParcels } from "./parcelApi";
+import { lookupParcels, lookupParcelsInView } from "./parcelApi";
 
 const square = (lon: number, lat: number, w: number) => [
   [lon, lat], [lon + w, lat], [lon + w, lat + w], [lon, lat + w], [lon, lat],
@@ -93,6 +93,18 @@ describe("lookupParcels", () => {
       await lookupParcels(35.6363, -120.8597, { fetcher });
       expect(fetcher).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("asks for the map view's bbox, and skips a view over 25 km2", async () => {
+    const fetcher = vi.fn().mockResolvedValue(reply(body()));
+    await lookupParcelsInView({ west: -120.86, south: 35.63, east: -120.85, north: 35.64 }, { fetcher });
+    const url = new URL(fetcher.mock.calls[0][0] as string, "http://localhost");
+    expect(url.searchParams.get("bbox")).toBe("-120.86,35.63,-120.85,35.64");
+    expect(url.searchParams.has("lat")).toBe(false);
+
+    const wide = { west: -121, south: 35, east: -120, north: 36 }; // thousands of km2
+    expect(await lookupParcelsInView(wide, { fetcher })).toEqual({ kind: "too-wide" });
+    expect(fetcher).toHaveBeenCalledTimes(1); // the wide view never reached the API
   });
 
   it("does not call the API outside SLO County", async () => {
