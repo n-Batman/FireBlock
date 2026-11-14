@@ -25,35 +25,10 @@ describe("POST /api/scan", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns the model's grid with an empty findings list", async () => {
-    const rows = Array(8).fill("ggggggddddgg");
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ rows, findings: [] }) }] }],
-      }),
-    });
+  it("sends live frames elsewhere: only demo requests are served here", async () => {
     const res = await post({ image: IMAGE });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.findings).toEqual([]);
-    expect(body.grid.cells).toHaveLength(96);
-    expect(body.grid.cells[6]).toBe("d");
-  });
-
-  it("returns an error status, not fake findings, when the key is missing", async () => {
-    vi.stubEnv("OPENAI_API_KEY", "");
-    const res = await post({ image: IMAGE });
-    expect(res.status).toBe(503);
-    expect(await res.json()).toEqual({ error: expect.any(String) });
-  });
-
-  it("returns an error status, not fake findings, when OpenAI fails", async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
-    const res = await post({ image: IMAGE });
-    expect(res.status).toBe(502);
-    expect(await res.json()).not.toHaveProperty("findings");
+    expect(res.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("still rejects a bad request with 400", async () => {

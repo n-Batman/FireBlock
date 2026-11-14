@@ -1,8 +1,6 @@
-import type { GridScan } from "@/data/types";
-
-const KEY = "fireblock.scancache.v1";
+const KEY = "fireblock.scancache.v2";
 const MAX_ENTRIES = 12;
-const memory = new Map<string, GridScan>();
+const memory = new Map<string, unknown>();
 
 /**
  * A key for the image text: two 32-bit FNV-1a hashes with different seeds plus the length, so the same
@@ -20,28 +18,28 @@ export function hashImage(image: string): string {
   return `${image.length}-${(a >>> 0).toString(16)}-${(b >>> 0).toString(16)}`;
 }
 
-function readStore(storage: Pick<Storage, "getItem"> | undefined): [string, GridScan][] {
+function readStore(storage: Pick<Storage, "getItem"> | undefined): [string, unknown][] {
   try {
     const parsed: unknown = JSON.parse(storage?.getItem(KEY) ?? "[]");
-    return Array.isArray(parsed) ? (parsed as [string, GridScan][]).filter((e) => Array.isArray(e) && Array.isArray(e[1]?.cells)) : [];
+    return Array.isArray(parsed) ? (parsed as [string, unknown][]).filter((e) => Array.isArray(e) && typeof e[0] === "string") : [];
   } catch {
     return [];
   }
 }
 
-/** A cached grid for this image hash: memory first, then localStorage. Bad or missing storage reads as a miss. */
-export function getCached(hash: string, storage?: Pick<Storage, "getItem">): GridScan | null {
+/** A cached result for this key (kind + image hash): memory first, then localStorage. Bad or missing storage reads as a miss. */
+export function getCached<T>(hash: string, storage?: Pick<Storage, "getItem">): T | null {
   const hit = memory.get(hash) ?? readStore(storage).find(([k]) => k === hash)?.[1] ?? null;
   if (hit) memory.set(hash, hit);
-  return hit;
+  return (hit as T) ?? null;
 }
 
-/** Remembers a grid in memory and in localStorage (the newest 12). A full or blocked storage is ignored. */
-export function putCached(hash: string, grid: GridScan, storage?: Pick<Storage, "getItem" | "setItem">): void {
-  memory.set(hash, grid);
+/** Remembers a result in memory and in localStorage (the newest 12). A full or blocked storage is ignored. */
+export function putCached(hash: string, value: unknown, storage?: Pick<Storage, "getItem" | "setItem">): void {
+  memory.set(hash, value);
   try {
     const rest = readStore(storage).filter(([k]) => k !== hash);
-    storage?.setItem(KEY, JSON.stringify([...rest, [hash, grid]].slice(-MAX_ENTRIES)));
+    storage?.setItem(KEY, JSON.stringify([...rest, [hash, value]].slice(-MAX_ENTRIES)));
   } catch {
     // The scan still works without the saved copy.
   }

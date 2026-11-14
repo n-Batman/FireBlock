@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import type { GridScan, ScanResponse } from "@/data/types";
+import type { AreaNote, ScanResponse } from "@/data/types";
 import { DEMO_CLIP_URL } from "./demoClip";
 import { encodeFrame, MIN_SHARPNESS } from "./frame";
+import { analyse, loadImage, type FuelMap, type Polygon } from "./fuelMask";
 import { getCached, hashImage, putCached } from "./scanCache";
 import { createTracker, updateTracker, type TrackerState } from "./scan";
 import { selectFindings } from "./scanView";
@@ -43,34 +44,68 @@ const storage = () => {
   }
 };
 
-/** Sends the frame to /api/scan. A grid for an image seen before comes back from the cache without a request. */
-async function scanImage(image: string, demoTime: number | undefined, signal: AbortSignal): Promise<ScanResponse> {
-  const hash = demoTime === undefined ? hashImage(image) : null;
-  const hit = hash ? getCached(hash, storage()) : null;
-  if (hit) return { findings: [], grid: hit };
-  const data = await post(image, demoTime, signal);
-  if (hash && data.grid) putCached(hash, data.grid, storage());
-  return data;
-}
-
-async function post(image: string, demoTime: number | undefined, signal: AbortSignal): Promise<ScanResponse> {
-  const res = await fetch("/api/scan", {
+async function postJson<T>(url: string, body: unknown, signal: AbortSignal): Promise<T> {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ image, demoTime }),
+    body: JSON.stringify(body),
     signal,
   });
   if (!res.ok) throw new Error(String(res.status));
-  return (await res.json()) as ScanResponse;
+  return (await res.json()) as T;
+}
+
+/** The demo clip's canned boxes from /api/scan. */
+const demoScan = (image: string, demoTime: number, signal: AbortSignal) =>
+  postJson<ScanResponse>("/api/scan", { image, demoTime }, signal);
+
+/**
+ * Vegetation polygons for a frame from /api/segment (Roboflow SAM3), cached by image hash. Null when
+ * segmentation fails: the caller then rates by colour alone. An abort still throws.
+ */
+async function segment(image: string, hash: string, signal: AbortSignal): Promise<Polygon[] | null> {
+  const hit = getCached<Polygon[]>(`seg:${hash}`, storage());
+  if (hit) return hit;
+  try {
+    const { polygons } = await postJson<{ polygons: Polygon[] }>("/api/segment", { image }, signal);
+    putCached(`seg:${hash}`, polygons, storage());
+    return polygons;
+  } catch (error) {
+    if (signal.aborted) throw error;
+    return null;
+  }
+}
+
+/** The model's words for the measured risk areas, cached by image hash. */
+async function fetchNotes(image: string, hash: string, map: FuelMap, signal: AbortSignal): Promise<AreaNote[]> {
+  if (map.areas.length === 0 || map.verdict.share === null) return [];
+  const key = `notes:${map.colourOnly ? "c" : "s"}:${hash}`;
+  const hit = getCached<AreaNote[]>(key, storage());
+  if (hit) return hit;
+  const { notes } = await postJson<{ notes: AreaNote[] }>(
+    "/api/findings",
+    { image, areas: map.areas, share: map.verdict.share },
+    signal,
+  );
+  putCached(key, notes, storage());
+  return notes;
+}
+
+/** Masks (or colour only), then the per-pixel fuel map, all for one encoded frame. */
+async function mapFrame(image: string, hash: string, signal: AbortSignal): Promise<FuelMap | null> {
+  const polygons = await segment(image, hash, signal);
+  const img = await loadImage(image);
+  return analyse(img, img.naturalWidth, img.naturalHeight, polygons);
 }
 
 /**
- * Runs a scan: opens the camera (or the demo clip), sends a sharp frame (at most 1280 px, JPEG 0.85,
- * blurry ones skipped) to /api/scan, folds
- * the findings into the tracker, then waits 1.5 s before the next frame, so only one request is
- * ever in flight. Stopping or freezing aborts the request in flight. Freezing also pauses the
+ * Runs a scan: opens the camera (or the demo clip), sends a sharp frame (about 1024 px, JPEG 0.85,
+ * blurry ones skipped) for vegetation masks, colours them pixel by pixel into a fuel map, and only then
+ * waits 1.5 s and takes the next frame, so only one request is ever in flight. The demo clip still
+ * folds canned boxes into the tracker. Stopping or freezing aborts the request in flight. Freezing also pauses the
  * video and keeps the findings on screen. All camera tracks are stopped when the scan stops or
- * the screen closes. startPhoto scans one uploaded photo the same way, once.
+ * the screen closes. A photo or a frozen frame is mapped once and then gets the model's words
+ * (`notes`), which arrive after the overlay.
  */
 export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
   const [phase, setPhase] = useState<Phase>("idle");
@@ -85,8 +120,10 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
   const streamRef = useRef<MediaStream | null>(null);
   const trackerRef = useRef<TrackerState>(tracker);
   const [photo, setPhoto] = useState<{ src: string; image: string } | null>(null);
-  /** The latest grid from a live scan or a photo. Null for the demo clip, which uses `tracker`. */
-  const [grid, setGrid] = useState<GridScan | null>(null);
+  /** The latest fuel map from a live frame, a photo or a frozen frame. Null for the demo clip, which uses `tracker`. */
+  const [fuel, setFuel] = useState<FuelMap | null>(null);
+  /** The model's words for `fuel`'s risk areas. Null while they are on their way (or not asked for). */
+  const [notes, setNotes] = useState<AreaNote[] | null>(null);
   const photoUrlRef = useRef<string | null>(null);
 
   const release = useCallback(() => {
@@ -117,7 +154,8 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       const fresh = createTracker();
       trackerRef.current = fresh;
       setTracker(fresh);
-      setGrid(null);
+      setFuel(null);
+      setNotes(null);
       setMode(next);
       setError(null);
       setProblem(false);
@@ -167,7 +205,8 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       const fresh = createTracker();
       trackerRef.current = fresh;
       setTracker(fresh);
-      setGrid(null);
+      setFuel(null);
+      setNotes(null);
       setMode("photo");
       setError(null);
       setProblem(false);
@@ -175,7 +214,7 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       setPhase("starting");
       try {
         const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-        const { image } = encodeFrame(bitmap, bitmap.width, bitmap.height, undefined, true);
+        const { image } = encodeFrame(bitmap, bitmap.width, bitmap.height);
         const src = URL.createObjectURL(file);
         photoUrlRef.current = src;
         setPhoto({ src, image });
@@ -191,15 +230,34 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     [release],
   );
 
-  /** scanImage, counted while it is in flight. */
-  const tracked = useCallback(async (...args: Parameters<typeof scanImage>) => {
+  /** A frame mapped while the shimmer counter is up. */
+  const tracked = useCallback(async (image: string, hash: string, signal: AbortSignal) => {
     setScanning((n) => n + 1);
     try {
-      return await scanImage(...args);
+      return await mapFrame(image, hash, signal);
     } finally {
       setScanning((n) => Math.max(0, n - 1));
     }
   }, []);
+
+  /** Photo and freeze: map the frame once, show it, then ask for the words. */
+  const mapOnce = useCallback(
+    (image: string, signal: AbortSignal) => {
+      const hash = hashImage(image);
+      tracked(image, hash, signal)
+        .then(async (map) => {
+          if (signal.aborted) return;
+          setFuel(map);
+          if (!map) return setProblem(true);
+          setNotes(null);
+          setNotes(await fetchNotes(image, hash, map, signal));
+        })
+        .catch(() => {
+          if (!signal.aborted) setNotes((n) => n ?? []);
+        });
+    },
+    [tracked],
+  );
 
   /** Tap to freeze the frame and its findings, tap again to carry on. */
   const toggleFreeze = useCallback(() => {
@@ -228,22 +286,27 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       let delay = PAUSE_MS;
       if (v && v.readyState >= 2 && v.videoWidth) {
         try {
-          const { image, sharp } = encodeFrame(v, v.videoWidth, v.videoHeight, canvas, mode !== "demo");
+          const { image, sharp } = encodeFrame(v, v.videoWidth, v.videoHeight, canvas);
           if (mode === "camera" && sharp !== null && sharp < MIN_SHARPNESS && blurSkips < MAX_BLUR_SKIPS) {
             blurSkips += 1;
             delay = BLUR_RETRY_MS;
           } else {
             blurSkips = 0;
-            const data = await tracked(image, mode === "demo" ? v.currentTime : undefined, controller.signal);
-            if (cancelled) return;
-            failures = 0;
-            setProblem(false);
-            if (data.grid) {
-              setGrid(data.grid);
-              if (data.grid.cells.some((c) => c === "d" || c === "b" || c === "l") && typeof navigator.vibrate === "function") {
+            if (mode === "camera") {
+              const map = await tracked(image, hashImage(image), controller.signal);
+              if (cancelled) return;
+              if (!map) throw new Error("no canvas");
+              failures = 0;
+              setProblem(false);
+              setFuel(map);
+              if (map.verdict.level !== "clear" && map.verdict.level !== "none" && typeof navigator.vibrate === "function") {
                 navigator.vibrate(20);
               }
             } else {
+              const data = await demoScan(image, v.currentTime, controller.signal);
+              if (cancelled) return;
+              failures = 0;
+              setProblem(false);
               const result = updateTracker(trackerRef.current, selectFindings(data.findings));
               trackerRef.current = result.state;
               setTracker(result.state);
@@ -269,35 +332,26 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     };
   }, [phase, mode, frozen, videoRef, tracked]);
 
-  // Freezing scans the frozen frame once (the live loop was stopped). The demo clip keeps its canned boxes.
+  // Freezing maps the frozen frame once and asks for its words (the live loop was stopped). The demo clip keeps its canned boxes.
   useEffect(() => {
     const v = videoRef.current;
     if (phase !== "running" || !frozen || mode !== "camera" || !v?.videoWidth) return;
     const controller = new AbortController();
-    const { image } = encodeFrame(v, v.videoWidth, v.videoHeight, undefined, true);
-    tracked(image, undefined, controller.signal)
-      .then((data) => data.grid && setGrid(data.grid))
-      .catch(() => {
-        if (!controller.signal.aborted) setProblem(true);
-      });
+    mapOnce(encodeFrame(v, v.videoWidth, v.videoHeight).image, controller.signal);
     return () => controller.abort();
-  }, [phase, mode, frozen, videoRef, tracked]);
+  }, [phase, mode, frozen, videoRef, mapOnce]);
 
-  // An uploaded photo is scanned once.
+  // An uploaded photo is mapped once.
   useEffect(() => {
     if (phase !== "running" || mode !== "photo" || !photo) return;
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- the request counter is set when the scan starts; it is reset in `finally`
-    tracked(photo.image, undefined, controller.signal)
-      .then((data) => setGrid(data.grid ?? null))
-      .catch(() => {
-        if (!controller.signal.aborted) setProblem(true);
-      });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the shimmer counter goes up as the request starts and down in `finally`
+    mapOnce(photo.image, controller.signal);
     return () => controller.abort();
-  }, [phase, mode, photo, tracked]);
+  }, [phase, mode, photo, mapOnce]);
 
   // Leaving the screen always turns the camera off.
   useEffect(() => release, [release]);
 
-  return { phase, mode, error, tracker, videoSize, problem, frozen, photo, grid, scanning: scanning > 0, start, startPhoto, stop, toggleFreeze };
+  return { phase, mode, error, tracker, videoSize, problem, frozen, photo, fuel, notes, scanning: scanning > 0, start, startPhoto, stop, toggleFreeze };
 }
