@@ -1,8 +1,8 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { Fragment } from "react";
-import { MapContainer, Polygon, TileLayer, Tooltip, ZoomControl } from "react-leaflet";
+import { Fragment, useEffect, useMemo, useSyncExternalStore } from "react";
+import { MapContainer, Polygon, TileLayer, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { Property } from "@/data/types";
 import { levelOf, scoreOf } from "@/lib/score";
@@ -20,13 +20,43 @@ function boundsOf(property: Property): LatLngBoundsExpression {
   ];
 }
 
+const WIDE = "(min-width: 1024px)";
+function subscribeWide(cb: () => void) {
+  const mq = window.matchMedia(WIDE);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+const useWide = () =>
+  useSyncExternalStore(
+    subscribeWide,
+    () => window.matchMedia(WIDE).matches,
+    () => false,
+  );
+
+/** Re-fits the map, leaving room on the right while the breakdown panel covers it. */
+function Fit({ bounds, rightInset }: { bounds: LatLngBoundsExpression; rightInset: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.fitBounds(bounds, {
+      paddingTopLeft: [24, 24],
+      paddingBottomRight: [24 + rightInset, 24],
+    });
+  }, [map, bounds, rightInset]);
+  return null;
+}
+
 interface RiskMapProps {
   property: Property;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  panelOpen: boolean;
 }
 
-export default function RiskMap({ property, selectedId, onSelect }: RiskMapProps) {
+export default function RiskMap({ property, selectedId, onSelect, panelOpen }: RiskMapProps) {
+  const bounds = useMemo(() => boundsOf(property), [property]);
+  const wide = useWide();
+  const rightInset = panelOpen && wide ? 416 : 0;
+
   return (
     <>
       {/* Hatch pattern for no-mow habitat polygons (referenced from CSS). */}
@@ -46,7 +76,7 @@ export default function RiskMap({ property, selectedId, onSelect }: RiskMapProps
       </svg>
 
       <MapContainer
-        bounds={boundsOf(property)}
+        bounds={bounds}
         boundsOptions={{ padding: [56, 56] }}
         maxZoom={19}
         zoomControl={false}
@@ -58,7 +88,8 @@ export default function RiskMap({ property, selectedId, onSelect }: RiskMapProps
           maxZoom={19}
           attribution="Imagery &copy; Esri, Maxar, Earthstar Geographics"
         />
-        <ZoomControl position="topright" />
+        {!(panelOpen && wide) && <ZoomControl position="topright" />}
+        <Fit bounds={bounds} rightInset={rightInset} />
 
         {property.blocks.map((block) => {
           if (block.kind === "habitat") {

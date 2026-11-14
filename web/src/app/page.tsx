@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
 import { properties } from "@/data/properties";
 import { BlockRail } from "@/components/BlockRail";
+import { BreakdownPanel } from "@/components/BreakdownPanel";
 import { DataLimitsPanel } from "@/components/DataLimitsPanel";
 import { HotspotBadge } from "@/components/HotspotBadge";
 import { Legend } from "@/components/Legend";
@@ -23,6 +24,8 @@ export default function Home() {
   const closeLimits = useCallback(() => setLimitsOpen(false), []);
 
   const property = properties.find((p) => p.id === activeId) ?? properties[0];
+  const selectedBlock =
+    property.blocks.find((b) => b.id === selectedId && b.kind === "vine") ?? null;
 
   function changeProperty(id: string) {
     setActiveId(id);
@@ -39,7 +42,7 @@ export default function Home() {
         onOpenLimits={openLimits}
       />
 
-      <main className="grid flex-1 grid-rows-[minmax(60dvh,1fr)_auto] lg:min-h-0 lg:grid-cols-[380px_1fr] lg:grid-rows-1">
+      <main className="relative grid flex-1 grid-rows-[minmax(60dvh,1fr)_auto_auto] lg:min-h-0 lg:grid-cols-[380px_1fr] lg:grid-rows-1">
         <div className="relative order-1 lg:order-2">
           <div className="absolute inset-0 isolate">
             <RiskMap
@@ -47,6 +50,7 @@ export default function Home() {
               property={property}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              panelOpen={selectedBlock !== null}
             />
           </div>
           <div className="absolute left-4 top-4 z-10">
@@ -57,9 +61,18 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="order-2 border-t border-line bg-surface lg:order-1 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-t-0">
+        <div className="order-3 border-t border-line bg-surface lg:order-1 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-t-0">
           <BlockRail property={property} selectedId={selectedId} onSelect={setSelectedId} />
         </div>
+
+        {selectedBlock && (
+          <BreakdownPanel
+            key={selectedBlock.id}
+            block={selectedBlock}
+            propertyId={property.id}
+            onClose={() => setSelectedId(null)}
+          />
+        )}
       </main>
 
       <DataLimitsPanel open={limitsOpen} onClose={closeLimits} />

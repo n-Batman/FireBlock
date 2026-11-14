@@ -54,7 +54,7 @@ Workflow: pull before you start → work on your own branch (`milo/...` or `part
 |---|---|---|
 | M1 | Commit current frontend and push to GitHub (nothing is committed yet) | DONE |
 | M2 | Screen 1, property map: rail, map, badge, legend, Data & limits (plan Tasks 1–3) | DONE |
-| M3 | Screen 2, score breakdown panel (plan Task 4) | TODO |
+| M3 | Screen 2, score breakdown panel (plan Task 4) | DONE |
 | M4 | Screen 3, plan page and PDF layout (plan Task 5) | TODO |
 | M5 | Vision prompt: write and test in ChatGPT with real dry-row, brush-line and barn photos; hand final prompt to Partner (`src/content/visionPrompt.md`) | TODO |
 | M6 | Demo photos and video: dry rows, brush line, barn (real local or clear stock) | TODO |
