@@ -15,6 +15,7 @@ import { DataLimitsPanel } from "@/components/DataLimitsPanel";
 import { Legend } from "@/components/Legend";
 import { ParcelPanel } from "@/components/ParcelPanel";
 import { TopBar } from "@/components/TopBar";
+import { WeatherStrip } from "@/components/WeatherStrip";
 import type { Place } from "@/lib/geocode";
 import type { View } from "@/lib/parcelApi";
 import { useParcels } from "@/lib/useParcels";
@@ -123,7 +124,9 @@ function MapShell() {
       </div>
 
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col gap-2 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
-        <TopBar placeLabel={place.label} onOpenLimits={openLimits} scanHref={scanHref} />
+        <TopBar placeLabel={place.label} onOpenLimits={openLimits} scanHref={scanHref}>
+          <WeatherStrip lat={place.lat} lon={place.lon} />
+        </TopBar>
 
         <div className="pointer-events-auto w-full lg:w-[360px]">
           <div className="flex gap-2">

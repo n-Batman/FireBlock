@@ -9,6 +9,7 @@ vi.mock("@/lib/useParcels", () => ({ useParcels: (...args: unknown[]) => { state
 vi.mock("@/lib/useWide", () => ({ useWide: () => true }));
 vi.mock("@/components/AddressSearch", () => ({ AddressSearch: ({ onSelect }: { onSelect: (p: unknown) => void }) => <button onClick={() => onSelect({ lat: 35.6, lon: -120.7, label: "Searched address" })}>Search address</button> }));
 vi.mock("@/components/BlockRail", () => ({ BlockRail: () => null }));
+vi.mock("@/components/WeatherStrip", () => ({ WeatherStrip: () => null }));
 vi.mock("@/components/Legend", () => ({ Legend: () => null }));
 vi.mock("@/components/ParcelPanel", () => ({ ParcelPanel: () => null }));
 
