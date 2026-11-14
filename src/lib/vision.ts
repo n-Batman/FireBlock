@@ -1,10 +1,11 @@
 import { GRID_JSON_SCHEMA, type GridScan } from "@/data/types";
 import { parseGrid } from "./grid";
 
-// The newest model on our key. It does not accept `temperature` (the API rejects it), so the answer is
-// pinned by the strict JSON schema and low reasoning effort instead.
-const MODEL = "gpt-6.1-sol";
-const REASONING_EFFORT = "low";
+// gpt-6.1-terra with no reasoning: about 3 s a frame. gpt-6.1-sol is stronger but cannot go below
+// "low" (minimal and none are rejected) and takes 11 to 27 s. Neither accepts `temperature`.
+// Measured on SRV1 and SRV5: the red lands on the same dry areas.
+const MODEL = "gpt-6.1-terra";
+const REASONING_EFFORT = "none";
 const TIMEOUT_MS = 40000;
 const IMAGE_DETAIL = "high";
 

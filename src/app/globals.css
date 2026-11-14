@@ -102,6 +102,20 @@ body {
 .block-poly {
   opacity: 0;
 }
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.scan-shimmer {
+  background-image: linear-gradient(90deg, var(--ink-2) 25%, var(--ink) 50%, var(--ink-2) 75%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1.4s linear infinite;
+}
+
 @keyframes label-in {
   from {
     opacity: 0;
@@ -218,6 +232,11 @@ h2 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .scan-shimmer {
+    animation: none;
+    color: var(--ink);
+    background: none;
+  }
   *,
   *::before,
   *::after {

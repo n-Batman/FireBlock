@@ -150,6 +150,13 @@ export function ScanScreen() {
           ) : (
             <ScanOverlay videoSize={session.videoSize} tracks={shown} running frozen={session.frozen} />
           )}
+          {((session.scanning && (photoMode || session.frozen || !grid)) || (photoMode && !grid && !session.problem)) && (
+            <div role="status" className="pointer-events-none absolute inset-0 z-[5] grid place-items-center">
+              <p className="glass px-5 py-3 text-[15px] font-medium">
+                <span className="scan-shimmer">Scanning every part of the photo…</span>
+              </p>
+            </div>
+          )}
         </>
       )}
 
