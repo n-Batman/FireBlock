@@ -66,6 +66,10 @@ Workflow: pull before you start → work on your own branch (`milo/...` or `part
 | M12 | Slides + 60-second script; judge-style dry run against the 100-point rubric | TODO |
 | M13 | Record backup demo video once the app works | TODO |
 | M14 | Submit project link by Sat 2 PM | TODO |
+| M15 | `web/DESIGN.md`: palette, type, glass spec, motion, scanner visual language | DONE |
+| M16 | Premium map shell: full-bleed satellite map, glass panels, weather strip, motion | DOING (Milo/Claude) |
+| M17 | Live scanner UI at `/scan`: camera, reticle, boxes, stub `/api/scan`, demo mode, score feed | TODO |
+| M18 | Polish pass on every screen: focus, tap targets, contrast, keyboard, states | TODO |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
