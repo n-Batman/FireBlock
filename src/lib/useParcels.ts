@@ -8,7 +8,6 @@ import { lookupParcels, lookupParcelsInView, type ParcelLookup, type View, type 
 import { loadRiskCells, scoreParcel, type RiskCell } from "./parcelScore";
 import { toGeoJSON } from "./parcelUnits";
 import { useParcelScans } from "./useParcelScans";
-import { preloadNearbyParcels } from "./parcelCache";
 import { ParcelScoreCache } from "./parcelScoreCache";
 
 export interface ParcelState {
@@ -107,18 +106,8 @@ export function useParcels(place: Place | null, view: View | null = null): Parce
   // The latest view's answer replaces the 300 m one, and stays on screen until the next arrives.
   const viewCurrent = place && viewLookup?.placeId === place.id ? viewLookup.result : null;
   const current: ParcelLookup | ViewLookup | null = viewCurrent ?? (place && lookup?.id === place.id ? lookup.result : null);
-  useEffect(()=>{
-    if(!place||current?.kind!=="ok"||current.truncated)return;
-    // Do not let speculative work race ahead of a still-loading viewport.
-    if(viewKey&&(viewLookup?.viewKey!==viewKey||viewLookup.placeId!==place.id))return;
-    const dy=300/111195,dx=dy/Math.cos(place.lat*Math.PI/180);
-    const box:[number,number,number,number]=view
-      ?[view.west,view.south,view.east,view.north]
-      :[place.lon-dx,place.lat-dy,place.lon+dx,place.lat+dy];
-    const controller=new AbortController();
-    const timer=setTimeout(()=>{void preloadNearbyParcels(box,controller.signal);},500);
-    return ()=>{clearTimeout(timer);controller.abort();};
-  },[current,place,viewKey,view,viewLookup]);
+  // Fetch only the requested point/view. Speculative envelopes competed with
+  // visible lookups and repeatedly downloaded larger parcel geometries.
   const units = useMemo(() => {
     if (current?.kind !== "ok") return [];
     const here = place ? point([place.lon, place.lat]) : null;

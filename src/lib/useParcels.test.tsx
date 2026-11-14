@@ -73,7 +73,7 @@ describe("useParcels", () => {
     expect(fetchMock.mock.calls.filter(([url])=>String(url).includes('/api/parcels'))).toHaveLength(1);
     hook.unmount();
   });
-  it("preloads after visible parcels, cancels on unmount and clears timers on page exit", async () => {
+  it("does not start speculative requests after visible parcels and clears timers on page exit", async () => {
     vi.useFakeTimers();
     let preloadSignal:AbortSignal|undefined;
     fetchMock.mockImplementation(async (url:string,init?:{signal?:AbortSignal})=>{
@@ -87,8 +87,9 @@ describe("useParcels", () => {
       expect(hook.result.current.phase).toBe('ready');
       expect(preloadSignal).toBeUndefined();
       await act(async()=>{await vi.advanceTimersByTimeAsync(501);});
-      expect(preloadSignal).toBeDefined();
-      hook.unmount();expect(preloadSignal!.aborted).toBe(true);
+      expect(preloadSignal).toBeUndefined();
+      expect(fetchMock.mock.calls.filter(([url])=>String(url).includes('/api/parcels'))).toHaveLength(1);
+      hook.unmount();
       window.dispatchEvent(new Event('pagehide'));
       await vi.advanceTimersByTimeAsync(0);
       expect(vi.getTimerCount()).toBe(0);

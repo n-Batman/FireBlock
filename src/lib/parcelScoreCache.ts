@@ -15,7 +15,9 @@ export class ParcelScoreCache {
     const bytes=new TextEncoder().encode(geometry).byteLength;
     if(bytes<=128*1024){
       this.entries.set(unit.id,{geometry,score:structuredClone(score),bytes});this.bytes+=bytes;
-      while(this.entries.size>128||this.bytes>1024*1024){
+      // A provider response has up to 200 parcels. A smaller LRU evicts the
+      // start of a full response before its next pass, making every score miss.
+      while(this.entries.size>256||this.bytes>1024*1024){
         const first=this.entries.keys().next().value!;this.bytes-=this.entries.get(first)!.bytes;this.entries.delete(first);
       }
     }
