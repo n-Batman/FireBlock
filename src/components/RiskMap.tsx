@@ -283,7 +283,9 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
       )}
 
       <MapContainer
-        bounds={propertyBounds(property)}
+        center={place ? [place.lat, place.lon] : undefined}
+        zoom={place ? 17 : undefined}
+        bounds={place ? undefined : propertyBounds(property)}
         boundsOptions={{ padding: [56, 56] }}
         maxZoom={19}
         zoomControl={false}
@@ -305,7 +307,7 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
         {!(wide && panelOpen) && (
           <ZoomControl key={wide ? "wide" : "narrow"} position={wide ? "bottomright" : "topright"} />
         )}
-        <ParcelOverlay center={property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} onGridActive={setGridActive} showGridByDefault={false} parcelMask={parcelMask} />
+        <ParcelOverlay center={place ? [place.lat, place.lon] : property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} onGridActive={setGridActive} showGridByDefault={false} parcelMask={parcelMask} />
         {onView && <ViewWatcher onView={onView} />}
         <PlaceFocus place={place} />
 

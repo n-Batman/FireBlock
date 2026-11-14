@@ -2,15 +2,11 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TopBar } from "./TopBar";
-import { properties } from "@/data/properties";
 
 const renderBar = (scanHref = "/scan?property=adelaida-hills", onOpenLimits = () => {}) =>
   render(
     <TopBar
-      properties={properties}
-      activeId="adelaida-hills"
-      onChange={() => {}}
-      cachedAt="2026-11-13T07:00:00-08:00"
+      placeLabel="Downtown SLO"
       onOpenLimits={onOpenLimits}
       scanHref={scanHref}
     />,
@@ -40,37 +36,11 @@ describe("TopBar", () => {
     }
   });
 
-  it("labels the sample properties as Demo", () => {
+  it("shows the current place without offering demo properties", () => {
     renderBar();
-    const options = screen.getAllByRole("option").map((o) => o.textContent);
-    expect(options).toEqual(properties.map((p) => `Demo: ${p.name}`));
-  });
-
-  it("offers the parcels near the search as the first option, once there is a search", async () => {
-    const onChange = vi.fn();
-    render(
-      <TopBar
-        properties={properties}
-        activeId="__parcels"
-        parcelsAvailable
-        onChange={onChange}
-        cachedAt="2026-11-13T07:00:00-08:00"
-        onOpenLimits={() => {}}
-        scanHref="/scan"
-      />,
-    );
-    const select = screen.getByRole("combobox", { name: "Property" });
-    expect(select).toHaveValue("__parcels");
-    expect(screen.getAllByRole("option")[0]).toHaveTextContent("Parcels near your search");
-    await userEvent.selectOptions(select, "edna-valley");
-    expect(onChange).toHaveBeenCalledWith("edna-valley");
-    await userEvent.selectOptions(select, "__parcels");
-    expect(onChange).toHaveBeenCalledWith("__parcels");
-  });
-
-  it("has no parcels option before any search", () => {
-    renderBar();
-    expect(screen.queryByRole("option", { name: "Parcels near your search" })).toBeNull();
+    expect(screen.getByText("Downtown SLO")).toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.queryByText(/Demo:/)).toBeNull();
   });
 
   it("still opens Data & limits", async () => {
