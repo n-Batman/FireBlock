@@ -74,3 +74,17 @@ describe("riskAreas", () => {
     expect(areas[0].box).toEqual([0.6, 0.7, 1, 1]);
   });
 });
+
+describe("rasterise / scan", () => {
+  it("fills a polygon scaled to the working size", async () => {
+    const { rasterise, scan } = await import("./fuelMask");
+    const m = rasterise([[[0, 0], [20, 0], [20, 10], [0, 10]]], 20, 10, 10); // left-top half of a 20x20 frame at 10x10
+    expect([...m].reduce((a, b) => a + b, 0)).toBe(50);
+    const rgba = new Uint8ClampedArray(10 * 10 * 4).fill(255);
+    for (let i = 0; i < 100; i++) [rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]] = STRAW;
+    const r = scan(rgba, 10, 10, 20, [[[0, 0], [20, 0], [20, 10], [0, 10]]]);
+    expect(r.verdict.risk).toBeGreaterThan(30); // smoothing trims the edge, so not exactly 50
+    expect(r.verdict.risk).toBeLessThan(100); // straw outside the mask stays neutral
+    expect(r.colourOnly).toBe(false);
+  });
+});

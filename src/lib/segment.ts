@@ -1,6 +1,6 @@
 import { VisionError } from "./vision";
 
-const ENDPOINT = "https://serverless.roboflow.com/sam3/concept_segment";
+export const ENDPOINT = "https://serverless.roboflow.com/sam3/concept_segment";
 const TIMEOUT_MS = 20000;
 /**
  * Vegetation concepts. The label only says "this is vegetation"; the pixel colour decides risk. SAM3 found no
@@ -21,7 +21,7 @@ export const PROMPTS = [
 ];
 /** Roboflow's serverless SAM3 answers 500 now and then; a 5xx is tried again this many times. */
 const RETRIES = 2;
-const PROB_THRESH = 0.4;
+export const PROB_THRESH = 0.4;
 
 export type Polygon = [number, number][];
 
@@ -46,16 +46,21 @@ export function parseSegments(reply: unknown): Polygon[] {
   return out;
 }
 
-/** Sends one JPEG data URL to Roboflow SAM3 and returns the vegetation polygons. The key never leaves the server. */
-export async function segmentFrame(image: string, { timeoutMs = TIMEOUT_MS } = {}): Promise<Polygon[]> {
-  const key = process.env.ROBOFLOW_API_KEY?.trim();
-  if (!key) throw new VisionError("Segmentation is not set up on this server.", 503);
-  const body = JSON.stringify({
+/** The exact request body sent to SAM3. Shared with the eval harness so it tests what the app sends. */
+export function segmentBody(image: string): string {
+  return JSON.stringify({
     image: { type: "base64", value: image.slice(image.indexOf(",") + 1) },
     prompts: PROMPTS.map((text) => ({ type: "text", text })),
     format: "polygon",
     output_prob_thresh: PROB_THRESH,
   });
+}
+
+/** Sends one JPEG data URL to Roboflow SAM3 and returns the vegetation polygons. The key never leaves the server. */
+export async function segmentFrame(image: string, { timeoutMs = TIMEOUT_MS } = {}): Promise<Polygon[]> {
+  const key = process.env.ROBOFLOW_API_KEY?.trim();
+  if (!key) throw new VisionError("Segmentation is not set up on this server.", 503);
+  const body = segmentBody(image);
   const deadline = AbortSignal.timeout(timeoutMs);
   for (let attempt = 0; ; attempt++) {
     let res: Response;
