@@ -126,8 +126,9 @@ function PlaceFocus({ place }: { place: PickedPlace | null }) {
 }
 
 /**
- * County parcels as the clickable units, styled like the sample blocks: same colours, casing and
- * selected glow. A parcel with no score is a neutral outline with no pill. It is never given a colour.
+ * County parcels as the clickable units, with the sample blocks' casing and selected glow. A scored
+ * parcel is coloured on Nick's 0 to 100 scale. A parcel with no score is a neutral outline with no
+ * pill. It is never given a colour.
  */
 export function ParcelPolygons({
   parcels,
@@ -139,7 +140,8 @@ export function ParcelPolygons({
   onSelect: (id: string) => void;
 }) {
   const selected = parcels.find((p) => p.id === selectedId) ?? null;
-  const colorOf = (p: ParcelUnit) => (p.score ? RISK_COLOR[p.score.level] : PARCEL_NEUTRAL);
+  // A scored parcel's outline, fill and glow use Nick's 0 to 100 scale, like its pill and chip.
+  const colorOf = (p: ParcelUnit) => (p.score ? scaleColor(p.score.score) : PARCEL_NEUTRAL);
   return (
     <>
       {parcels.map((parcel) => {

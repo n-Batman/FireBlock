@@ -84,11 +84,23 @@ describe("ParcelPolygons", () => {
     expect(["#5db67f", "#e0a83a", "#e5675a"]).not.toContain(color(poly));
   });
 
-  it("colours a scored parcel with its risk colour, as the sample blocks are", () => {
-    const [poly] = interactive(mount([unit("a", { score: high })]).polygons);
-    expect(color(poly)).toBe("#e5675a");
+  it("draws a scored parcel's outline and fill on Nick's 0 to 100 scale, so they match his fill and the pill", () => {
+    const [poly] = interactive(mount([unit("a", { score: high })]).polygons); // 78
+    expect(color(poly)).toBe(scaleColor(78));
+    expect(poly.options.fillColor).toBe(scaleColor(78));
     expect(poly.options.weight).toBe(2);
     expect(poly.options.fillOpacity).toBe(0.15);
+  });
+
+  it("gives two scores two different colours, not one colour per level", () => {
+    const seen = mount([
+      unit("a", { score: { ...high, score: 40, level: "medium" } }),
+      unit("b", { score: { ...high, score: 50, level: "medium" }, parts: [[SQUARE(35.64, -120.86, 0.004)]] }),
+    ]);
+    const [a, b] = interactive(seen.polygons);
+    expect(color(a)).toBe(scaleColor(40));
+    expect(color(b)).toBe(scaleColor(50));
+    expect(color(a)).not.toBe(color(b));
   });
 
   it("gives the selected parcel the heavier casing and a glow, and fades the others", () => {
@@ -100,6 +112,7 @@ describe("ParcelPolygons", () => {
     const glow = seen.polygons.find((p) => p.options.weight === 14);
     expect(glow).toBeDefined();
     expect(glow!.options.interactive).toBe(false);
+    expect(glow!.options.color).toBe(scaleColor(78)); // the glow matches its parcel
   });
 
   it("calls onSelect with the parcel id when a parcel is clicked", () => {
