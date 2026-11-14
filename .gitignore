@@ -1,0 +1,16 @@
+/build/
+/.vs/
+/.env
+/.env.*
+!/.env.example
+*.part
+/data/
+/parsed/
+/analysis/
+/.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+/raw-work/
+/parser-input/
+/config/scraper-ui.local.json
