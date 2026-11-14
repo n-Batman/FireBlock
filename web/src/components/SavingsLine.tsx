@@ -7,15 +7,14 @@ import { DEFAULT_RATE, savingsFor } from "@/lib/plan";
 /** One line under the countdown: how much mowing only the High blocks saves. Links to /plan. */
 export function SavingsLine({ property }: { property: Property }) {
   const { all, high, saved } = savingsFor(property, DEFAULT_RATE);
-  const blocks = (n: number) => `${n} ${n === 1 ? "block" : "blocks"}`;
 
   let text: React.ReactNode;
   if (high.blocks === 0) text = "No High-risk blocks. No urgent mowing.";
   else
     text = (
       <>
-        Mow <span className="num">{blocks(high.blocks)}</span>, not <span className="num">{all.blocks}</span>.
-        Save <span className="num font-semibold">{formatMoney(saved.cost)}</span>.
+        Mow <span className="num">{high.blocks}</span> {high.blocks === 1 ? "block" : "blocks"}, not <span className="num">{all.blocks}</span>.
+        Save <span className="font-semibold tabular-nums">{formatMoney(saved.cost)}</span>.
       </>
     );
 
