@@ -23,7 +23,7 @@ export function ParcelOverlay({center,onGridActive}:{center:[number,number];onGr
   const [grid,setGrid]=useState<RiskGrid|null>(null);
   const [gridRevision,setGridRevision]=useState(0);
   const gridGeneration=useRef(0);
-  const [showGrid,setShowGrid]=useState(false);
+  const [showGrid,setShowGrid]=useState(true);
   const [gridMessage,setGridMessage]=useState("Load backend risk_map.geojson to color whole properties.");
   useEffect(()=>{onGridActive?.(!!grid);},[grid,onGridActive]);
   const projection=useMemo(()=>{
@@ -33,7 +33,11 @@ export function ParcelOverlay({center,onGridActive}:{center:[number,number];onGr
   },[data,grid]);
   function loadGrid(value:unknown){
     const parsed=parseRiskGrid(value);gridGeneration.current++;setGrid(parsed);setGridRevision(v=>v+1);
-    setGridMessage(`${parsed.features.length} cells · ${parsed.features[0].properties.model_id} · ${parsed.features[0].properties.as_of}`);
+    const publication=(value as {publication?:{source?:string}}).publication;
+    setGridMessage(`${publication?.source==="published-snapshot"?"Published real-data snapshot · ":""}${parsed.features.length} cells · ${parsed.features[0].properties.model_id} · ${parsed.features[0].properties.as_of}`);
+    setShowGrid(true);
+    const bounds=L.geoJSON(parsed).getBounds();
+    if(bounds.isValid())map.fitBounds(bounds,{padding:[40,40],maxZoom:14});
   }
   useEffect(()=>{
     const abort=new AbortController();const generation=gridGeneration.current;
