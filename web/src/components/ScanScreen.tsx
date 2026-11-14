@@ -9,6 +9,7 @@ import { scanDelta, summarize, withScan } from "@/lib/scan";
 import { scoreOf } from "@/lib/score";
 import { saveScan, scanKey } from "@/lib/scanStore";
 import { useScanSession } from "@/lib/useScanSession";
+import { useDemoAvailable } from "@/lib/useDemoAvailable";
 import { ScanOverlay } from "./ScanOverlay";
 import { StatusChip } from "./StatusChip";
 
@@ -41,6 +42,8 @@ export function ScanScreen() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const session = useScanSession(videoRef);
   const [demo, setDemo] = useState(false);
+  // The demo switch only shows when /demo/vineyard.mp4 is really there.
+  const demoAvailable = useDemoAvailable() === true;
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const { tracks, status } = session.tracker;
@@ -52,7 +55,7 @@ export function ScanScreen() {
   const from = block ? scoreOf(block) : null;
   const to = block ? scoreOf(withScan(block, scanDelta(risks, clears), "")) : null;
 
-  const begin = (useDemo: boolean) => session.start(useDemo ? "demo" : "camera");
+  const begin = (useDemo: boolean) => session.start(useDemo && demoAvailable ? "demo" : "camera");
 
   function save() {
     if (!property || !block) return;
@@ -118,11 +121,14 @@ export function ScanScreen() {
             {session.error && (
               <p role="alert" className="mt-4 rounded-[var(--r)] bg-high-bg px-3 py-2 text-[15px] text-high-ink">
                 {session.error}
+                {demoAvailable && session.mode === "camera" ? " Or try demo mode." : ""}
               </p>
             )}
-            <div className="mt-4">
-              <DemoSwitch checked={demo} onChange={setDemo} />
-            </div>
+            {demoAvailable && (
+              <div className="mt-4">
+                <DemoSwitch checked={demo} onChange={setDemo} />
+              </div>
+            )}
             <button
               type="button"
               onClick={() => begin(demo)}
@@ -168,13 +174,15 @@ export function ScanScreen() {
                 Stop
               </button>
             </div>
-            <DemoSwitch
-              checked={demo}
-              onChange={(on) => {
-                setDemo(on);
-                begin(on);
-              }}
-            />
+            {demoAvailable && (
+              <DemoSwitch
+                checked={demo}
+                onChange={(on) => {
+                  setDemo(on);
+                  begin(on);
+                }}
+              />
+            )}
             {saveError && (
               <p role="alert" className="text-[15px] text-high-ink">
                 {saveError}

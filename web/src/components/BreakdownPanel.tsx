@@ -6,6 +6,7 @@ import { ArrowRight, Camera, X } from "@phosphor-icons/react";
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import type { Block, Level } from "@/data/types";
 import { formatAsOf } from "@/lib/format";
+import { actionsFor } from "@/lib/plan";
 import { levelOf, scoreOf } from "@/lib/score";
 import { useWide } from "@/lib/useWide";
 import { RiskChip } from "./RiskChip";
@@ -23,6 +24,7 @@ export function BreakdownPanel({ block, propertyId, onClose }: BreakdownPanelPro
   const score = scoreOf(block);
   const level = levelOf(score);
   const scanFactor = block.factors.find((f) => f.key === "photoScan");
+  const actions = actionsFor(block);
   const wide = useWide();
   const reduce = useReducedMotion();
 
@@ -108,6 +110,20 @@ export function BreakdownPanel({ block, propertyId, onClose }: BreakdownPanelPro
           </li>
         ))}
       </ul>
+
+      <section aria-labelledby={`todo-${block.id}`} className="px-5 pt-5">
+        <h3 id={`todo-${block.id}`} className="text-[15px] font-semibold">
+          What to do
+        </h3>
+        <ol
+          data-testid="actions"
+          className="mt-2 list-decimal space-y-1.5 pl-5 text-[15px] leading-snug marker:text-ink-2"
+        >
+          {actions.map((action) => (
+            <li key={action}>{action}</li>
+          ))}
+        </ol>
+      </section>
 
       <div className="space-y-4 px-5 py-5">
         <div

@@ -69,6 +69,14 @@ describe("BreakdownPanel", () => {
     );
   });
 
+  it("lists what to do, from the block's biggest factors", () => {
+    renderPanel();
+    const items = within(screen.getByTestId("actions")).getAllByRole("listitem");
+    expect(items).toHaveLength(3);
+    expect(items[0]).toHaveTextContent(/^Mow the dry growth between the rows before June 1/);
+    expect(items[2]).toHaveTextContent(/firebreak/);
+  });
+
   it("calls onClose from the close button", async () => {
     const onClose = vi.fn();
     renderPanel(onClose);

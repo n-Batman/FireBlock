@@ -57,7 +57,7 @@ Workflow: pull before you start → work on your own branch (`milo/...` or `part
 | M1 | Commit current frontend and push to GitHub (nothing is committed yet) | DONE |
 | M2 | Screen 1, property map: rail, map, badge, legend, Data & limits (plan Tasks 1–3) | DONE |
 | M3 | Screen 2, score breakdown panel (plan Task 4) | DONE |
-| M4 | Screen 3, plan page and PDF layout (plan Task 5) | TODO |
+| M4 | Screen 3, plan page and PDF layout (plan Task 5) | DONE |
 | M5 | Vision prompt: write and test in ChatGPT with real dry-row, brush-line and barn photos; hand final prompt to Partner (`src/content/visionPrompt.md`) | TODO |
 | M6 | Demo photos and video: dry rows, brush line, barn (real local or clear stock) | TODO |
 | M7 | Email Vidya: thanks, permission to name her, one quote ("I'd use this before June 1") | TODO |
@@ -72,6 +72,8 @@ Workflow: pull before you start → work on your own branch (`milo/...` or `part
 | M16 | Premium map shell: full-bleed satellite map, glass panels, weather strip, motion | DONE |
 | M17 | Live scanner UI at `/scan`: camera, reticle, boxes, stub `/api/scan`, demo mode, score feed | DONE (needs real demo clip: M6) |
 | M18 | Polish pass on every screen: focus, tap targets, contrast, keyboard, states | DONE |
+| M19 | Map styling for any polygon: 2px outline, 15% fill, glow on selected, score pills, fly-to, zoom on phones | DONE |
+| M20 | Hide the demo button when `/demo/vineyard.mp4` is missing | DONE |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
@@ -84,4 +86,5 @@ Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to custo
 - Fri Nov 13: Detailed frontend plan in `docs/superpowers/plans/2026-11-13-fireblock-frontend.md`, design in `docs/superpowers/specs/`.
 - Fri Nov 13: Shared contract `web/src/data/types.ts` changed (partner, please read): `Weather` added to `Property` (wind, humidity, Red Flag, updatedAt), `"photoScan"` added to `FactorKey`, and the scan types `Finding`, `ScanResponse` and `SCAN_JSON_SCHEMA` added. Block names in the fixtures are now real names ("Ridge Top"), not "Block N".
 - Fri Nov 13: `/api/scan` is a STUB (canned findings, 400-800 ms delay). Partner swaps in the OpenAI call (gpt-4.1-mini, Responses API, strict `json_schema` from `SCAN_JSON_SCHEMA`) and keeps the response shape. Requests with `demoTime` must keep using `demoFindingsAt` so the judges' run is the same every time.
+- Fri Nov 13: Block outlines will come from the partner's backend (`properties.json`, P4/P5). The UI keeps the placeholder shapes until then and already handles any polygon shape (label points stay inside L and U shapes). Public field-level outlines exist if needed: California DWR statewide crop mapping, 2023, `MAIN_CROP = 'V'` for vineyards.
 - Fri Nov 13: Look is dark only (see `web/DESIGN.md`). The demo clip `web/public/demo/vineyard.mp4` is not in the repo yet: needs real footage (M6), then retime `web/src/content/demoFindings.ts`.

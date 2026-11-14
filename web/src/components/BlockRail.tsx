@@ -1,9 +1,9 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef } from "react";
 import type { Property } from "@/data/types";
-import { daysUntilJune1 } from "@/lib/countdown";
 import { levelOf, rankBlocks, scoreOf } from "@/lib/score";
+import { useDaysUntilJune1 } from "@/lib/useDeadline";
 import { RiskChip } from "./RiskChip";
 
 interface BlockRailProps {
@@ -14,15 +14,8 @@ interface BlockRailProps {
   today?: Date;
 }
 
-const noopSubscribe = () => () => {};
-
 function Deadline({ today }: { today?: Date }) {
-  // Server snapshot is null so the date never differs between server and browser.
-  const days = useSyncExternalStore(
-    noopSubscribe,
-    () => daysUntilJune1(today ?? new Date()),
-    () => null,
-  );
+  const days = useDaysUntilJune1(today);
   return (
     <div data-testid="deadline" className="border-b border-line px-6 py-5">
       <p className="text-xs font-medium text-ink-2">County clearance deadline, June 1</p>
@@ -44,13 +37,22 @@ function Deadline({ today }: { today?: Date }) {
 export function BlockRail({ property, selectedId, onSelect, today }: BlockRailProps) {
   const ranked = rankBlocks(property.blocks);
   const habitat = property.blocks.filter((b) => b.kind === "habitat");
+  const listRef = useRef<HTMLUListElement>(null);
+
+  // A block picked on the map scrolls into view here.
+  useEffect(() => {
+    if (!selectedId) return;
+    const row = listRef.current?.querySelector<HTMLElement>('button[aria-pressed="true"]');
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    row?.scrollIntoView?.({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+  }, [selectedId]);
 
   return (
     <div>
       <Deadline today={today} />
 
       <h2 className="px-6 pt-5 text-xs font-medium text-ink-2">Blocks, highest risk first</h2>
-      <ul className="mt-2 divide-y divide-line">
+      <ul ref={listRef} className="mt-2 divide-y divide-line">
         {ranked.map((block) => {
           const score = scoreOf(block);
           const selected = block.id === selectedId;

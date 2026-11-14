@@ -74,6 +74,7 @@ Body text maximum width 65ch. Sentence case everywhere. No em-dashes in any visi
 - **Button secondary.** Transparent, 1px `--glass-border`, ink text, 44px high. Disabled: ink-2 text, no hover.
 - **Risk chip.** Level word plus optional score, tinted background from the risk table, radius 8px, 12px semibold.
 - **Block row.** Name, chip, then one plain-words reason under it. Selected: 3px ink bar on the left plus a slightly lighter glass.
+- **Map blocks.** Any polygon shape. 2px risk-color outline with about 15% fill so the vine rows show through. The selected block gets a 4px outline and a soft glow; the others dim. No permanent labels: a small score pill sits at each block's label point (always inside the shape, even for L or U shapes), and the name shows on hover and in the list.
 - **Factor row.** Label, `+points of max`, thin bar (fills left to right), reason, then source and timestamp in caption size.
 - **Weather strip.** One glass pill: wind with direction, humidity, Red Flag status, active fires within 25 mi, and "Updated X ago". Every value comes from data. No placeholders.
 - **Status chip (scanner).** Glass pill, top center. "Scanning..." neutral, "Area looks clear" green, "N risks found" red. Announced with `aria-live="polite"`.
@@ -122,7 +123,7 @@ Don't:
 - Timings: press and hover 150ms, panels and bars 220ms, block fade and score count-up 300ms. Nothing is longer than 300ms. Stagger steps are 60ms.
 - Easing: `cubic-bezier(0.16, 1, 0.3, 1)`.
 - Blocks fade in ordered by risk (high first). Score counts up. Factor bars fill from the left. Panels slide in (24px) while fading.
-- Only `transform` and `opacity` animate. Map tiles never animate.
+- Only `transform` and `opacity` animate. We never animate tiles ourselves. The one exception is the camera: picking a block (on the map or in the list) flies the map to it in 0.6s, and that is off under reduced motion.
 - `prefers-reduced-motion: reduce` turns all of it into instant state changes (motion library `reducedMotion="user"` plus CSS).
 
 ## Scanner visual language

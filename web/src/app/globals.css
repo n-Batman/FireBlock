@@ -178,6 +178,12 @@ body {
   background: var(--surface);
   color: var(--ink);
 }
+/* Phones: the zoom control sits top right, below the header and weather strip. */
+@media (max-width: 1023px) {
+  .leaflet-top.leaflet-right {
+    top: 160px;
+  }
+}
 
 /* Numbers line up in columns. */
 .num {
@@ -213,12 +219,35 @@ h2 {
   }
 }
 
+/* Printing (Export PDF): flip the tokens to ink on paper so every component prints readably. */
 @media print {
+  :root {
+    --paper: #ffffff;
+    --surface: #ffffff;
+    --ink: #111111;
+    --ink-2: #444444;
+    --line: #cccccc;
+    --glass-bg: #ffffff;
+    --glass-border: #cccccc;
+    --glass-highlight: transparent;
+    --low-bg: #e5f2e9;
+    --low-ink: #1e5a37;
+    --med-bg: #f8ebc8;
+    --med-ink: #6e4600;
+    --high-bg: #f6dad4;
+    --high-ink: #8a2214;
+  }
   .no-print {
     display: none !important;
   }
   body {
     background: #fff;
-    color: #000;
+    color: #111;
+  }
+  .glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    break-inside: avoid;
   }
 }

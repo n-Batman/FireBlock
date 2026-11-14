@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { ScanResponse } from "@/data/types";
+import { DEMO_CLIP_URL } from "./demoClip";
 import { createTracker, updateTracker, type TrackerState } from "./scan";
 
 export type Phase = "idle" | "starting" | "running" | "error";
@@ -10,22 +11,21 @@ export type Mode = "camera" | "demo";
 const TICK_MS = 1500;
 const MAX_SIDE = 768;
 const MAX_FAILURES = 3;
-export const DEMO_SRC = "/demo/vineyard.mp4";
+export const DEMO_SRC = DEMO_CLIP_URL;
 
+// The screen adds "Or try demo mode." itself, and only when the demo clip exists.
 function explain(error: unknown, mode: Mode): string {
   if (mode === "demo") return "The demo video is not available right now.";
   const name = error instanceof Error ? error.name : "";
   const message = error instanceof Error ? error.message : "";
-  if (message === "insecure") {
-    return "The camera needs a secure page (HTTPS or localhost). Try demo mode instead.";
-  }
+  if (message === "insecure") return "The camera needs a secure page (HTTPS or localhost).";
   if (name === "NotAllowedError" || name === "SecurityError") {
-    return "Camera access was blocked. Allow the camera for this site, or try demo mode.";
+    return "Camera access was blocked. Allow the camera for this site.";
   }
   if (name === "NotFoundError" || name === "OverconstrainedError") {
-    return "No camera was found on this device. Try demo mode instead.";
+    return "No camera was found on this device.";
   }
-  return "The camera could not start. Try again, or use demo mode.";
+  return "The camera could not start. Try again.";
 }
 
 /**
