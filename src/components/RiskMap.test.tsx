@@ -39,7 +39,7 @@ function mount(parcels: ParcelUnit[], selectedId: string | null = null, onSelect
     return null;
   }
   render(
-    <MapContainer center={[35.63, -120.86]} zoom={15} style={{ height: 400, width: 400 }}>
+    <MapContainer center={[35.63, -120.86]} zoom={17} style={{ height: 400, width: 400 }}>
       <ParcelPolygons parcels={parcels} selectedId={selectedId} onSelect={onSelect} />
       <Probe />
     </MapContainer>,

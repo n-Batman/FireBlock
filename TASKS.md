@@ -70,6 +70,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P27 | Connect NWS hourly forecasts and active alerts to the real parcel map with GeoJSON and application User-Agent | DONE (Codex; 41 focused checks and production build pass; 421 total tests pass, 2 pre-existing scan failures; live request blocked by network; docs/weather.md) |
 | P28 | Load area overview before individual parcel detail | DONE (Codex; zero parcel requests below zoom 17, bounded area tiles from saved risk cells, viewport-only detail requests and zoom-out cancellation; docs/parcel-detail-levels.md) |
 | P29 | Remove parcel preloading regression and redundant hidden map work | DONE (Codex; automatic preload disabled, full-response score cache retained within existing byte bound, duplicate lookup/projection and hidden grid clipping skipped; targeted regression checks) |
+| P30 | Integrate cloud maps with both agents' local frontend and parcel changes | DONE (Codex; preserved Downtown SLO/weather and zoom-dependent parcel loading; aligned individual-parcel rendering tests with zoom 17) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |
