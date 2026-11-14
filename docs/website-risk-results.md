@@ -11,6 +11,12 @@ These are public derived results already committed in
 `src/data/real-runs/silver-river-20261114`. They contain no credentials or raw
 satellite archive. Source snapshot checksums are preserved in its provenance file.
 
+The HTML loads the matching GeoJSON as a separate request using a content-hash
+query string, so browser caching can reuse the grid independently of the page.
+Each page is about 8 KB rather than 1.2 MB. Direct-from-disk viewing has a file
+picker for browsers that block `file://` fetches. This changes the presentation
+packaging, not the model's data or scores; the original cloud HTML remains immutable.
+
 `/api/risk-grid` serves and verifies this dated snapshot when all B2 server
 settings are absent. It labels the response `publication.source=published-snapshot`
 and includes the source run ID and issue date. A fully configured deployment

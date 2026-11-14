@@ -68,6 +68,11 @@ class RiskTests(unittest.TestCase):
             page = (root / "risk/risk_map.html").read_text(encoding="utf-8")
             self.assertIn("Experimental index", page)
             self.assertNotIn("__DATA__", page)
+            self.assertLess(len(page.encode("utf-8")), 25000)
+            self.assertIn('fetch("risk_map.geojson?v=', page)
+            exported = json.loads((root / "risk/risk_map.geojson").read_text())
+            self.assertEqual(exported["features"][:4], features)
+            self.assertEqual(len(exported["features"]), 5)  # Four cells plus the retained thermal detection.
             self.assertFalse(summary["prediction_available"])
 
     def test_stale_unknown_and_newest_scene_selection(self):

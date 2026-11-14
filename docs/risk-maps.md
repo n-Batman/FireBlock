@@ -48,7 +48,7 @@ Results go to `analysis/<run-id>/risk/`:
 
 | File | Purpose |
 | --- | --- |
-| `risk_map.html` | Standalone interactive map: pan/zoom, hover values and layer toggles |
+| `risk_map.html` | Small interactive viewer; loads sibling GeoJSON separately, with pan/zoom, hover values and layer toggles |
 | `risk_map.geojson` | Grid polygons and a separate recent-thermal-detection layer |
 | `risk_score.tif` | WGS84 GeoTIFF, 0–100 with -9999 for unknown cells |
 | `features.ndjson` | Versioned per-cell observations and provenance for later models |
@@ -114,7 +114,9 @@ Do not compare scores across materially different parameter sets as if calibrate
 .\.venv\Scripts\python.exe scripts/demo_risk.py
 ```
 
-Open `analysis/risk-demo/risk/risk_map.html`. This generates synthetic index
+Open `analysis/risk-demo/risk/risk_map.html`. When opening directly from disk,
+select its sibling `risk_map.geojson` with the offline file picker. Serving the
+folder over HTTP loads the GeoJSON automatically. This generates synthetic index
 rasters and a synthetic detection, clearly labeled in the map header. It makes no
 API requests. Use `--output NEW_DIRECTORY` for another run; existing directories
 are never overwritten.
