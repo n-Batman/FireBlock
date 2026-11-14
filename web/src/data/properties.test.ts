@@ -6,6 +6,12 @@ const byId = (id: string) => properties.find((p) => p.id === id)!;
 const topLevel = (id: string) => levelOf(scoreOf(rankBlocks(byId(id).blocks)[0]));
 
 describe("demo properties", () => {
+  it("keeps the sample-data note in Data & limits, not on every factor source", () => {
+    const sources = properties.flatMap((p) => p.blocks.flatMap((b) => b.factors.map((f) => f.source)));
+    expect(sources.length).toBeGreaterThan(0);
+    expect(sources.filter((s) => s.includes("(sample)"))).toEqual([]);
+  });
+
   it("has exactly the three demo properties", () => {
     expect(properties.map((p) => p.id)).toEqual([
       "adelaida-hills",

@@ -21,11 +21,11 @@ function factors(i: FactorInput): Factor[] {
     source: string,
   ): Factor => ({ key, label, points, max, reason, source, asOf: CACHED_AT });
   return [
-    f("fireWeather", "Fire weather", 35, i.weather, "Fire weather forecast (sample)"),
-    f("fuelDryness", "Fuel dryness", 25, i.fuel, "Pacific Veg Map and dryness index (sample)"),
-    f("slope", "Slope", 15, i.slope, "Terrain data (sample)"),
-    f("hazardZone", "Fire hazard zone", 15, i.hazard, "CAL FIRE hazard zones (sample)"),
-    f("fireHistory", "Fire history", 10, i.history, "Recorded fire perimeters (sample)"),
+    f("fireWeather", "Fire weather", 35, i.weather, "Fire weather forecast"),
+    f("fuelDryness", "Fuel dryness", 25, i.fuel, "Pacific Veg Map and dryness index"),
+    f("slope", "Slope", 15, i.slope, "Terrain data"),
+    f("hazardZone", "Fire hazard zone", 15, i.hazard, "CAL FIRE hazard zones"),
+    f("fireHistory", "Fire history", 10, i.history, "Recorded fire perimeters"),
   ];
 }
 

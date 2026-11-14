@@ -14,6 +14,15 @@ describe("DataLimitsPanel", () => {
     ).toBeInTheDocument();
   });
 
+  it("says demo scores use sample values standing in for the live data feed, with the date", () => {
+    render(<DataLimitsPanel open onClose={() => {}} />);
+    expect(
+      screen.getByText(
+        "Demo scores use sample values that stand in for the live data feed. Sample values dated Nov 13, 2026.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("renders nothing when closed", () => {
     render(<DataLimitsPanel open={false} onClose={() => {}} />);
     expect(screen.queryByRole("dialog")).toBeNull();
