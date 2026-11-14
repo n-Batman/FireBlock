@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MapContainer } from "react-leaflet";
 import { ParcelOverlay } from "./ParcelOverlay";
 import { clearParcelCache } from "./parcelCache";
+import * as riskProjection from "./parcelRisk";
+import * as coverage from "./gridCoverage";
 
 const CENTER: [number, number] = [35.63, -120.85];
 const EMPTY = { type: "FeatureCollection", features: [], metadata: { truncated: false, source: "https://example.test", fetchedAt: "t1" } };
@@ -22,6 +24,7 @@ afterEach(() => {
   clearParcelCache();
   fetchMock.mockReset();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 type Lookup = { lat: number; lon: number; id: number } | null;
@@ -35,6 +38,24 @@ const parcelUrls = () => fetchMock.mock.calls.map(([u]) => String(u)).filter((u)
 const parcelCalls = () => parcelUrls().length;
 
 describe("ParcelOverlay lookup", () => {
+  it("skips duplicate automatic lookups, projection and hidden clipping when the main map owns parcels", async () => {
+    const project=vi.spyOn(riskProjection,'projectGridToParcels');
+    const clip=vi.spyOn(coverage,'gridOutsideParcels');
+    const grid={type:'FeatureCollection',features:[{type:'Feature',geometry:{type:'Polygon',coordinates:[[[-120.86,35.62],[-120.84,35.62],[-120.84,35.64],[-120.86,35.64],[-120.86,35.62]]]},properties:{layer:'relative_risk',cell_id:'a',risk_score:40,model_id:'test-model',as_of:'2026-11-14T00:00:00Z'}}]};
+    fetchMock.mockImplementation(async(url:string)=>({ok:true,json:async()=>url.includes('/api/risk-grid')?grid:EMPTY}));
+    render(<MapContainer center={CENTER} zoom={12} style={{height:400,width:400}}>
+      <ParcelOverlay center={CENTER} lookup={{lat:CENTER[0],lon:CENTER[1],id:1}} parcelMask={[]} showGridByDefault={false}/>
+    </MapContainer>);
+    await screen.findByText(/1 cells.*test-model/);
+    expect(parcelCalls()).toBe(0);
+    expect(project).not.toHaveBeenCalled();expect(clip).not.toHaveBeenCalled();
+    // An explicit control request is still supported, but must not score a hidden duplicate layer.
+    fireEvent.click(screen.getByRole('button',{name:'Find at point'}));
+    await screen.findByText('0 parcels.');
+    expect(project).not.toHaveBeenCalled();expect(clip).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('checkbox',{name:/Show underlying grid/}));
+    expect(clip).toHaveBeenCalledTimes(1);
+  });
   it("looks up the parcel at the point it is given, through his /api/parcels", async () => {
     render(mount({ lat: 35.6363, lon: -120.8597, id: 1 }));
     await waitFor(() => expect(parcelCalls()).toBe(1));

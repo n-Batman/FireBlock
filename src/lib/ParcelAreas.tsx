@@ -3,14 +3,15 @@
 import { useMemo, useState } from "react";
 import { Polygon, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import type { ParcelUnit } from "@/data/types";
-import { INDIVIDUAL_PARCEL_ZOOM, parcelDisplay, type ParcelAreaSummary } from "./parcelDisplay";
+import { INDIVIDUAL_PARCEL_ZOOM, type ParcelAreaSummary } from "./parcelDisplay";
 import { scaleColor } from "./riskScale";
 
-export function useParcelDisplay(parcels: ParcelUnit[], selectedId: string | null) {
+export function useParcelDisplay(parcels: ParcelUnit[], _selectedId: string | null) {
   const map = useMap();
   const [zoom, setZoom] = useState(() => Math.floor(map.getZoom()));
   useMapEvents({ zoomend: () => setZoom(Math.floor(map.getZoom())) });
-  return useMemo(() => parcelDisplay(parcels, zoom, selectedId), [parcels, zoom, selectedId]);
+  // Discard old detail immediately on zoom-out; overview uses saved model cells.
+  return useMemo(() => ({individuals:zoom>=INDIVIDUAL_PARCEL_ZOOM?parcels:[],areas:[]}), [parcels, zoom]);
 }
 
 /** Summaries are approximate area tiles. Clicking zooms to properties, never selects a fake parcel. */

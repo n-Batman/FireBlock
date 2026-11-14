@@ -115,61 +115,50 @@ export interface Finding {
   confidence?: number;
 }
 
-/** One letter per grid cell: d dry grass, b dead brush/wood, l leaf litter/mulch, w dormant woody plant, g green cover crop, v green vine canopy, s bare soil, o structure/sky/other. */
-export type CellCode = "d" | "b" | "l" | "w" | "g" | "v" | "s" | "o";
-
-/** A group of cells the model describes: where it is, why it is a risk, what to do. */
-export interface GridFinding {
-  label: string;
-  /** Location words, for example "right edge between rows". */
-  where: string;
-  severity: Severity;
-  reason: string;
-  /** Empty for clear findings. */
-  action: string;
-  /** Cell indexes, row by row: row * 12 + column. */
-  cells: number[];
-}
-
-/** The frame split into 12 columns by 8 rows, one class per cell (96, row by row). */
-export interface GridScan {
-  cells: CellCode[];
-  findings: GridFinding[];
-}
-
-/** Body of a successful POST /api/scan response. Live scans and photos fill `grid`; the demo clip fills `findings`. */
+/** Body of a successful POST /api/scan response (the demo clip's canned boxes). */
 export interface ScanResponse {
   findings: Finding[];
-  grid?: GridScan;
 }
 
-/**
- * JSON Schema for the grid scan (Responses API, strict). `rows` is 8 strings of 12 class letters.
- * A finding names its class `code` and one `anchor` cell like "C5" (column A to L, row 1 to 8) of that class.
- */
-export const GRID_JSON_SCHEMA = {
-  name: "grid_scan",
+/** One risk area the browser measured: where it is, how much of the dry fuel it holds. */
+export interface RiskAreaInput {
+  id: number;
+  /** [xmin, ymin, xmax, ymax], 0 to 1 of the frame. */
+  box: [number, number, number, number];
+  pctOfRisk: number;
+  pctOfFrame: number;
+  where: string;
+}
+
+/** The model's words for one measured risk area. It can only describe areas it was given. */
+export interface AreaNote {
+  area: number;
+  label: string;
+  reason: string;
+  action: string;
+}
+
+/** JSON Schema for POST /api/findings (Responses API, strict). */
+export const FINDINGS_JSON_SCHEMA = {
+  name: "area_notes",
   strict: true,
   schema: {
     type: "object",
     additionalProperties: false,
-    required: ["rows", "findings"],
+    required: ["notes"],
     properties: {
-      rows: { type: "array", minItems: 8, maxItems: 8, items: { type: "string" } },
-      findings: {
+      notes: {
         type: "array",
         maxItems: 6,
         items: {
           type: "object",
           additionalProperties: false,
-          required: ["label", "where", "reason", "action", "code", "anchor"],
+          required: ["area", "label", "reason", "action"],
           properties: {
+            area: { type: "integer", description: "The id of the area you were given" },
             label: { type: "string" },
-            where: { type: "string" },
             reason: { type: "string" },
             action: { type: "string" },
-            code: { type: "string", enum: ["d", "b", "l", "g", "v", "s"] },
-            anchor: { type: "string" },
           },
         },
       },

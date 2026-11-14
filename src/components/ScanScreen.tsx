@@ -13,9 +13,8 @@ import { saveScan, scanKey } from "@/lib/scanStore";
 import { shownTracks } from "@/lib/scanView";
 import { useScanSession } from "@/lib/useScanSession";
 import { useDemoAvailable } from "@/lib/useDemoAvailable";
-import { listFindings, verdict } from "@/lib/grid";
-import { FindingsList, GridFindingsList } from "./FindingsList";
-import { GridOverlay } from "./GridOverlay";
+import { AreaFindingsList, FindingsList } from "./FindingsList";
+import { FuelOverlay } from "./FuelOverlay";
 import { ScanOverlay } from "./ScanOverlay";
 import { StatusChip } from "./StatusChip";
 
@@ -70,13 +69,19 @@ export function ScanScreen() {
   const [saving, setSaving] = useState(false);
 
   const { tracks } = session.tracker;
-  // The overlay, the card and the score all read the same result: the grid (live and photo) or the tracked boxes (demo clip).
-  const grid = session.grid;
-  const call = grid ? verdict(grid.cells) : null;
+  // The overlay, the card and the score all read the same result: the fuel map (live, photo, frozen) or the tracked boxes (demo clip).
+  const fuel = session.fuel;
+  const call = fuel?.verdict ?? null;
   const shown = shownTracks(tracks);
-  const counts = call ? { risks: call.risk, clears: call.clear } : summarize(shown);
+  // A fuel map is saved as dry and green parts per thousand of the rated vegetation: the score only uses the share.
+  const counts =
+    call && call.share !== null
+      ? { risks: Math.round(call.share * 1000), clears: 1000 - Math.round(call.share * 1000) }
+      : call
+        ? { risks: 0, clears: 0 }
+        : summarize(shown);
   const { risks, clears } = counts;
-  const status = call ? (call.risk > 0 ? "risks" : call.clear > 0 ? "clear" : "scanning") : session.tracker.status;
+  const status = call ? (call.level === "none" ? "scanning" : call.level === "clear" ? "clear" : "risks") : session.tracker.status;
   const running = session.phase === "running";
   const decided = status !== "scanning";
   const mapHref = property && block ? `/?property=${property.id}&block=${block.id}` : "/";
@@ -145,12 +150,12 @@ export function ScanScreen() {
               className="absolute inset-0 cursor-pointer"
             />
           )}
-          {grid ? (
-            <GridOverlay videoSize={session.videoSize} cells={grid.cells} />
+          {fuel ? (
+            <FuelOverlay videoSize={session.videoSize} map={fuel} />
           ) : (
             <ScanOverlay videoSize={session.videoSize} tracks={shown} running frozen={session.frozen} />
           )}
-          {((session.scanning && (photoMode || session.frozen || !grid)) || (photoMode && !grid && !session.problem)) && (
+          {((session.scanning && (photoMode || session.frozen || !fuel)) || (photoMode && !fuel && !session.problem)) && (
             <div role="status" className="pointer-events-none absolute inset-0 z-[5] grid place-items-center">
               <p className="glass px-5 py-3 text-[15px] font-medium">
                 <span className="scan-shimmer">Scanning every part of the photo…</span>
@@ -242,13 +247,16 @@ export function ScanScreen() {
       {running && (
         <div className="absolute inset-x-0 bottom-0 z-10 px-4 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <section className="glass mx-auto w-full max-w-md space-y-3 p-4" aria-label="Scan result">
-            {call && grid && (
+            {call && (
               <p aria-live="polite" className="text-[15px] font-semibold">
                 {call.text}
               </p>
             )}
-            {grid ? (
-              <GridFindingsList findings={listFindings(grid)} />
+            {fuel?.colourOnly && (
+              <p className="text-xs text-ink-2">Colour-only estimate: the vegetation outlines did not load, so bare dirt may show as dry.</p>
+            )}
+            {fuel ? (
+              <AreaFindingsList areas={fuel.areas} notes={photoMode || session.frozen ? session.notes : []} />
             ) : (
               <FindingsList tracks={shown} empty="Looking for dry fuel in view..." />
             )}
@@ -257,7 +265,11 @@ export function ScanScreen() {
             )}
             {parcelMode && (
               <p aria-live="polite" className="text-[15px]">
-                {decided ? `This scan flagged ${risks} of ${risks + clears} areas.` : "Looking for risks..."}
+                {decided
+                  ? call
+                    ? `This scan rates ${Math.round((call.share ?? 0) * 100)}% of the vegetation as dry.`
+                    : `This scan flagged ${risks} of ${risks + clears} areas.`
+                  : "Looking for risks..."}
               </p>
             )}
             {block && from !== null && to !== null && (

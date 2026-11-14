@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseScanRequest } from "./scanApi";
+import { parseAreas, parseScanRequest } from "./scanApi";
 
 const jpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
 
@@ -34,5 +34,16 @@ describe("parseScanRequest", () => {
     const r = parseScanRequest({});
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.length).toBeGreaterThan(5);
+  });
+});
+
+describe("parseAreas", () => {
+  const area = { id: 1, box: [0.1, 0.2, 0.5, 0.9], pctOfRisk: 60, pctOfFrame: 12.5, where: "bottom left" };
+  it("accepts measured areas and rejects out-of-range boxes, too many areas or long text", () => {
+    expect(parseAreas([area])).toEqual([area]);
+    expect(parseAreas([{ ...area, box: [0, 0, 2, 1] }])).toBeNull();
+    expect(parseAreas(Array(7).fill(area))).toBeNull();
+    expect(parseAreas([{ ...area, where: "x".repeat(41) }])).toBeNull();
+    expect(parseAreas("nope")).toBeNull();
   });
 });

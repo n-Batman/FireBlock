@@ -10,6 +10,7 @@ import { gridOutsideParcels, gridSignature } from "./gridCoverage";
 import { insideSlo } from "./geocode";
 import { OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
 import { fetchParcelResponse } from "./parcelCache";
+import { RiskAreaOverlay } from "./RiskAreaOverlay";
 
 /** Independent parcel geometry; never changes or invents risk block scores. `lookup` is a place picked in the address search; a new `id` runs a new lookup. `onPoint` reports the point of a latitude/longitude or "Pick on map" lookup. */
 export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefault=true,parcelMask}:{center:[number,number];onGridActive?:(active:boolean)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void;showGridByDefault?:boolean;parcelMask?:(Polygon|MultiPolygon)[]}) {
@@ -31,21 +32,25 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
   const automaticGrid=useRef(true);
   const [showGrid,setShowGrid]=useState(showGridByDefault);
   const [gridMessage,setGridMessage]=useState("Load backend risk_map.geojson to color whole properties.");
+  const managedParcels=parcelMask!==undefined;
   useEffect(()=>{onGridActive?.(!!grid?.features.length);},[grid,onGridActive]);
   const projection=useMemo(()=>{
-    if(!data||!grid)return {data:null,error:null};
+    if(!visible||managedParcels||!data||!grid)return {data:null,error:null};
     try{return {data:projectGridToParcels(data,grid),error:null};}
     catch(error){return {data:null,error:error instanceof Error?error.message:"Projection failed"};}
-  },[data,grid]);
+  },[data,grid,visible,managedParcels]);
   // The grid is drawn only where no parcel covers it. Scoring above still uses the whole grid.
-  const visibleGrid=useMemo(()=>grid&&gridOutsideParcels(grid,[...(parcelMask??[]),...(data?.features.map(f=>f.geometry)??[])]),[grid,parcelMask,data]);
+  const visibleGrid=useMemo(()=>{
+    if(!visible||!showGrid||!grid)return null;
+    return gridOutsideParcels(grid,managedParcels?parcelMask!:(data?.features.map(f=>f.geometry)??[]));
+  },[grid,parcelMask,data,visible,showGrid,managedParcels]);
   const loadGrid=useCallback((value:unknown,focus=true)=>{
     const parsed=parseRiskGrid(value);
     if(focus)automaticGrid.current=false;
     gridGeneration.current++;setGrid(parsed);setGridRevision(v=>v+1);
     const publication=(value as {publication?:{source?:string}}).publication;
     const times=[...new Set(parsed.features.map(f=>f.properties.as_of))].sort();
-    setGridMessage(parsed.features.length?`${publication?.source==="published-snapshot"?"Published real-data snapshot · ":""}${parsed.features.length} cells · ${times.length===1?times[0]:"multiple observation times"}`:"No published risk coverage in this area.");
+    setGridMessage(parsed.features.length?`${publication?.source==="published-snapshot"?"Published real-data snapshot · ":""}${parsed.features.length} cells · ${[...new Set(parsed.features.map(f=>f.properties.model_id))].join(", ")} · ${times.length===1?times[0]:"multiple observation times"}`:"No published risk coverage in this area.");
     if(focus)setShowGrid(showGridByDefault);
     const bounds=L.geoJSON(parsed).getBounds();
     if(focus&&bounds.isValid())map.fitBounds(bounds,{padding:[40,40],maxZoom:14});
@@ -97,9 +102,9 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
   }
   useEffect(()=>{
     // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a fetch for a new address-search pick
-    if(lookup) void search(new URLSearchParams({lat:String(lookup.lat),lon:String(lookup.lon)}));
+    if(lookup&&!managedParcels) void search(new URLSearchParams({lat:String(lookup.lat),lon:String(lookup.lon)}));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per address-search pick (its id), not on every render
-  },[lookup?.id]);
+  },[lookup?.id,managedParcels]);
   useMapEvents({click(event){if(pick){setLat(String(event.latlng.lat));setLon(String(event.latlng.lng));setPick(false);void search(new URLSearchParams({lat:String(event.latlng.lat),lon:String(event.latlng.lng)}));}}});
   const buttonStyle={border:"1px solid #888",padding:"5px 8px",borderRadius:3,margin:"4px 3px 4px 0",cursor:"pointer"};
   return <>
@@ -147,7 +152,8 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
         const a=document.createElement("a");a.href=url;a.download="parcels.geojson";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
       }}>Save GeoJSON</button></p>}
     </section>,host)}
-    {visible && data && !parcelMask?.length && <Pane name="parcel-boundaries" style={{zIndex:450}}>
+    {visible&&managedParcels&&grid&&<RiskAreaOverlay grid={grid}/>}
+    {visible && data && !managedParcels && <Pane name="parcel-boundaries" style={{zIndex:450}}>
       <GeoJSON key={`${data.metadata.fetchedAt}-${gridRevision}`} data={projection.data??data} style={feature=>{
         const p=feature?.properties;const score=p?.risk_score;
         return {color:"#38e6ff",weight:2,fill:!!projection.data,fillColor:typeof score==="number"?`hsl(${45-score*.45} 75% ${75-score*.38}%)`:"#777777",fillOpacity:.6};

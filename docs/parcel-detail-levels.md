@@ -1,5 +1,33 @@
 # Parcel detail by zoom
 
+## Current loading behavior
+
+Below zoom 17, individual county parcels are not requested, converted, scored or
+drawn. The camera reports its initial zoom before the first request. Zoom changes
+are part of the lookup key even if the geographic bounds are unchanged, and
+zooming out aborts pending detail requests and immediately removes old details.
+At zoom 17 or higher, one request loads the current viewport's parcel boundaries.
+The original 25 km2 request limit, score cache and evidence rules still apply.
+
+The overview is a set of larger approximate area tiles derived directly from the
+already loaded satellite risk grid, with no extra parcel-service requests. Tiles
+are 512 Web Mercator meters wide at zoom 16 (about 418 ground meters near SLO),
+doubling per zoom level out. At most 256 shapes are drawn; wider views coarsen
+further instead of dropping shapes or loading thousands of lots. Clicking an
+area moves to zoom 17, where individual property ratings load.
+
+Risk cells crossing tile edges are split with rectangle arithmetic. Scores use
+the spherical area-weighted mean of known coverage and remain unknown unless
+at least 60% of a tile has scored evidence. These are regional satellite estimates,
+not parcel aggregates or invented house ratings. Unmapped areas stay empty.
+There is no new fetch, persistent cache, raw scan storage or telemetry.
+
+The previous display-only grouping below did not reduce network or scoring work
+and could leave most lots individually drawn. It is superseded by this loading
+gate and risk-grid overview. Its geometry helper remains for compatibility.
+
+## Previous display-only grouping
+
 Dense small parcels are summarized below zoom 17. Three or more eligible parcels
 in one stable map cell produce an approximate area tile instead of individual
 outlines and rating pills. Cells are 192 Web Mercator meters at zoom 16 and double

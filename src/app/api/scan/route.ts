@@ -1,11 +1,9 @@
 import { demoFindingsAt } from "@/content/demoFindings";
 import type { ScanResponse } from "@/data/types";
 import { parseScanRequest } from "@/lib/scanApi";
-import { scanGridWithRetry, VisionError } from "@/lib/vision";
 
-// Live requests go to the OpenAI vision model (gpt-6.1-sol, Responses API, strict
-// text.format = GRID_JSON_SCHEMA), see src/lib/vision.ts. The key is read there, on the server only.
-// Demo requests (with `demoTime`) stay on the canned timeline so the judges' run is the same
+// Only the demo clip uses this route now. Live frames and photos go to /api/segment (Roboflow SAM3
+// masks, coloured in the browser) and /api/findings (the model's words). Demo requests (with `demoTime`) stay on the canned timeline so the judges' run is the same
 // every time. A failure is an error status, never made-up findings: the scan screen shows it.
 
 export async function POST(request: Request) {
@@ -24,11 +22,6 @@ export async function POST(request: Request) {
     return Response.json(response);
   }
 
-  try {
-    const response: ScanResponse = { findings: [], grid: await scanGridWithRetry(parsed.image) };
-    return Response.json(response);
-  } catch (error) {
-    if (error instanceof VisionError) return Response.json({ error: error.message }, { status: error.status });
-    return Response.json({ error: "The scan failed." }, { status: 500 });
-  }
+  // Live scans and photos go to /api/segment (masks) and /api/findings (words) instead.
+  return Response.json({ error: "Only demo requests are served here. Use /api/segment." }, { status: 400 });
 }
