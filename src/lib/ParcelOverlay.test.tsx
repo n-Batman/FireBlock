@@ -8,7 +8,12 @@ const EMPTY = { type: "FeatureCollection", features: [], metadata: { truncated: 
 
 const fetchMock = vi.fn();
 beforeEach(() => {
-  fetchMock.mockResolvedValue({ ok: true, json: async () => EMPTY });
+  // His overlay also asks /api/risk-grid when it mounts. Here that grid is simply not available.
+  fetchMock.mockImplementation(async (url: string) =>
+    String(url).includes("/api/risk-grid")
+      ? { ok: false, json: async () => ({ error: "No grid in this test" }) }
+      : { ok: true, json: async () => EMPTY },
+  );
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => {
@@ -22,12 +27,14 @@ const mount = (lookup?: Lookup, onPoint?: (p: { lat: number; lon: number }) => v
     <ParcelOverlay center={CENTER} lookup={lookup} onPoint={onPoint} />
   </MapContainer>
 );
-const parcelUrls = () => fetchMock.mock.calls.map(([u]) => String(u));
+const parcelUrls = () => fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u.includes("/api/parcels"));
+/** Parcel lookups only: his grid request is not one of them. */
+const parcelCalls = () => parcelUrls().length;
 
 describe("ParcelOverlay lookup", () => {
   it("looks up the parcel at the point it is given, through his /api/parcels", async () => {
     render(mount({ lat: 35.6363, lon: -120.8597, id: 1 }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(parcelCalls()).toBe(1));
     const url = new URL(parcelUrls()[0], "http://localhost");
     expect(url.pathname).toBe("/api/parcels");
     expect(url.searchParams.get("lat")).toBe("35.6363");
@@ -37,22 +44,22 @@ describe("ParcelOverlay lookup", () => {
 
   it("does not look anything up until it is given a point", () => {
     render(mount(null));
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(parcelCalls()).toBe(0);
   });
 
   it("looks up again for a new search at the same point, but not on an unrelated re-render", async () => {
     const { rerender } = render(mount({ lat: 35.6363, lon: -120.8597, id: 1 }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(parcelCalls()).toBe(1));
     rerender(mount({ lat: 35.6363, lon: -120.8597, id: 1 }));
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(parcelCalls()).toBe(1);
     rerender(mount({ lat: 35.6363, lon: -120.8597, id: 2 }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(parcelCalls()).toBe(2));
   });
 
   it("does not call the API outside SLO County, and says why", async () => {
     render(mount({ lat: 36.6777, lon: -121.6555, id: 1 }));
     expect(await screen.findByText("Parcel lines cover SLO County only for now.")).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(parcelCalls()).toBe(0);
   });
 
   it("applies the same rule to his own latitude and longitude fields", async () => {
@@ -61,7 +68,7 @@ describe("ParcelOverlay lookup", () => {
     fireEvent.change(screen.getByLabelText("Parcel longitude"), { target: { value: "-121.6555" } });
     fireEvent.click(screen.getByRole("button", { name: "Find at point" }));
     expect(await screen.findByText("Parcel lines cover SLO County only for now.")).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(parcelCalls()).toBe(0);
   });
 
   it("tells the page which point his latitude and longitude fields looked up", async () => {
@@ -86,7 +93,7 @@ describe("ParcelOverlay lookup", () => {
     const onPoint = vi.fn();
     render(mount(null, onPoint));
     fireEvent.click(screen.getByRole("button", { name: "Find in visible area" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await waitFor(() => expect(parcelCalls()).toBeGreaterThan(0));
     expect(onPoint).not.toHaveBeenCalled();
   });
 
