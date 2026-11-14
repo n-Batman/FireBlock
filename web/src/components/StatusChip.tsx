@@ -8,12 +8,12 @@ interface StatusChipProps {
 
 /** The pill at the top of the camera. Announced politely to screen readers. */
 export function StatusChip({ status, risks, problem }: StatusChipProps) {
-  let text = "Scanning...";
+  let text = "Scanning";
   let tone = "";
   if (problem) {
     text = "Connection problem";
   } else if (status === "clear") {
-    text = "Area looks clear";
+    text = "All clear";
     tone = "border-low! text-low-ink";
   } else if (status === "risks") {
     text = `${risks} ${risks === 1 ? "risk" : "risks"} found`;

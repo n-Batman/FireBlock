@@ -8,8 +8,10 @@ import { properties } from "@/data/properties";
 import { scanDelta, summarize, withScan } from "@/lib/scan";
 import { scoreOf } from "@/lib/score";
 import { saveScan, scanKey } from "@/lib/scanStore";
+import { shownTracks } from "@/lib/scanView";
 import { useScanSession } from "@/lib/useScanSession";
 import { useDemoAvailable } from "@/lib/useDemoAvailable";
+import { FindingsList } from "./FindingsList";
 import { ScanOverlay } from "./ScanOverlay";
 import { StatusChip } from "./StatusChip";
 
@@ -47,7 +49,9 @@ export function ScanScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const { tracks, status } = session.tracker;
-  const { risks, clears } = summarize(tracks);
+  // The overlay, the card and the score all read the same three findings.
+  const shown = shownTracks(tracks);
+  const { risks, clears } = summarize(shown);
   const running = session.phase === "running";
   const decided = status !== "scanning";
   const mapHref = property && block ? `/?property=${property.id}&block=${block.id}` : "/";
@@ -86,7 +90,15 @@ export function ScanScreen() {
       {running && (
         <>
           <h1 className="sr-only">Scanning {block ? block.name : "the rows"}</h1>
-          <ScanOverlay videoSize={session.videoSize} tracks={tracks} running />
+          {/* Tap anywhere on the camera to freeze the frame with its findings, tap again to resume. */}
+          <button
+            type="button"
+            onClick={session.toggleFreeze}
+            aria-pressed={session.frozen}
+            aria-label={session.frozen ? "Resume scanning" : "Freeze the frame"}
+            className="absolute inset-0 cursor-pointer"
+          />
+          <ScanOverlay videoSize={session.videoSize} tracks={shown} running frozen={session.frozen} />
         </>
       )}
 
@@ -145,6 +157,10 @@ export function ScanScreen() {
       {running && (
         <div className="absolute inset-x-0 bottom-0 z-10 px-4 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <section className="glass mx-auto w-full max-w-md space-y-3 p-4" aria-label="Scan result">
+            <FindingsList tracks={shown} empty="Looking for dry fuel in view..." />
+            {session.frozen && (
+              <p className="text-xs font-medium text-ink-2">Frozen. Tap the screen to resume.</p>
+            )}
             {block && from !== null && to !== null && (
               <p aria-live="polite" className="text-[15px]">
                 {decided ? (

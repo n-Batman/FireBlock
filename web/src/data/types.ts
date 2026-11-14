@@ -68,6 +68,8 @@ export interface Finding {
   action: string;
   /** [xmin, ymin, xmax, ymax], each 0 to 999, relative to the frame that was sent. */
   bbox: [number, number, number, number];
+  /** How sure the model is, 0 to 1. The canned demo clip has none. */
+  confidence?: number;
 }
 
 /** Body of a successful POST /api/scan response. */
@@ -89,10 +91,11 @@ export const SCAN_JSON_SCHEMA = {
     properties: {
       findings: {
         type: "array",
+        maxItems: 3,
         items: {
           type: "object",
           additionalProperties: false,
-          required: ["label", "severity", "action", "bbox"],
+          required: ["label", "severity", "action", "bbox", "confidence"],
           properties: {
             label: { type: "string" },
             severity: { type: "string", enum: ["risk", "clear"] },
@@ -102,6 +105,7 @@ export const SCAN_JSON_SCHEMA = {
               description: "[xmin, ymin, xmax, ymax], integers 0 to 999",
               items: { type: "integer" },
             },
+            confidence: { type: "number", description: "How sure you are, 0 to 1" },
           },
         },
       },

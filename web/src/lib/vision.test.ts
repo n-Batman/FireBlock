@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseFindings, scanFrame, VisionError } from "./vision";
 
 const IMAGE = "data:image/jpeg;base64,AAAA";
-const finding = { label: "Dry growth", severity: "risk", action: "Mow by June 1", bbox: [100, 200, 400, 600] };
+const finding = { label: "Dry growth", severity: "risk", action: "Mow by June 1", bbox: [100, 200, 400, 600], confidence: 0.9 };
 
 /** What the Responses API returns: the model's JSON sits in output[].content[].text. */
 const apiReply = (text: string) => ({
@@ -21,8 +21,20 @@ describe("parseFindings", () => {
     expect(parseFindings(JSON.stringify({ findings: [wild] }))[0].bbox).toEqual([0, 13, 999, 999]);
   });
 
+  it("clamps confidence to 0..1", () => {
+    const out = parseFindings(JSON.stringify({ findings: [{ ...finding, confidence: 1.4 }, { ...finding, bbox: [600, 600, 900, 900], confidence: -2 }] }));
+    expect(out.map((x) => x.confidence)).toEqual([1, 0]);
+  });
+
+  it("keeps at most 3 findings", () => {
+    const five = Array.from({ length: 5 }, (_, i) => ({ ...finding, label: `F${i}` }));
+    expect(parseFindings(JSON.stringify({ findings: five }))).toHaveLength(3);
+  });
+
   it("drops malformed findings and keeps the good ones", () => {
     const bad = [
+      { ...finding, confidence: undefined },
+      { ...finding, confidence: "high" },
       { ...finding, severity: "maybe" },
       { ...finding, label: "" },
       { ...finding, action: 7 },
@@ -66,7 +78,10 @@ describe("scanFrame", () => {
     expect(body.model).toBe("gpt-6.1-terra");
     expect(body.text.format).toMatchObject({ type: "json_schema", name: "scan_response", strict: true });
     const content = body.input.flatMap((m: { content: unknown }) => m.content);
-    expect(content).toContainEqual({ type: "input_image", image_url: IMAGE });
+    expect(content).toContainEqual({ type: "input_image", image_url: IMAGE, detail: "low" });
+    expect(body.instructions).toMatch(/at most 3/i);
+    expect(body.instructions).toMatch(/confidence/i);
+    expect(body.reasoning).toEqual({ effort: "none" });
     expect(content.some((c: { type: string }) => c.type === "input_text")).toBe(true);
   });
 

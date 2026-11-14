@@ -1,0 +1,130 @@
+import type { Finding } from "@/data/types";
+import { iou, isVisible, type Rect, type Track } from "./scan";
+
+const MIN_CONFIDENCE = 0.6;
+/** Smallest box kept, as a share of the frame. */
+const MIN_AREA = 0.04;
+/** Boxes overlapping by more than this (IoU) become one. */
+const MERGE_IOU = 0.4;
+const MAX_SHOWN = 3;
+/** A risk below this confidence is drawn amber ("watch") instead of red. */
+const WATCH_BELOW = 0.8;
+
+type BBox = Finding["bbox"];
+const areaOf = (b: BBox) => ((b[2] - b[0]) * (b[3] - b[1])) / 1_000_000;
+const conf = (f: Finding) => f.confidence ?? 1;
+/** Risk before clear, then the more confident first. */
+const byPriority = (a: Finding, b: Finding) =>
+  Number(b.severity === "risk") - Number(a.severity === "risk") || conf(b) - conf(a);
+
+function merge(a: Finding, b: Finding): Finding {
+  const [winner, other] = byPriority(a, b) <= 0 ? [a, b] : [b, a];
+  const bbox: BBox = [
+    Math.min(a.bbox[0], b.bbox[0]),
+    Math.min(a.bbox[1], b.bbox[1]),
+    Math.max(a.bbox[2], b.bbox[2]),
+    Math.max(a.bbox[3], b.bbox[3]),
+  ];
+  const confidence = winner.confidence === undefined ? undefined : Math.max(winner.confidence, other.confidence ?? 0);
+  return { ...winner, bbox, confidence };
+}
+
+/**
+ * What the screen shows for one frame: hide shaky and tiny findings, merge ones that cover the
+ * same spot, put risks first, and keep three at most.
+ */
+export function selectFindings(findings: Finding[]): Finding[] {
+  const list = findings.filter((f) => conf(f) >= MIN_CONFIDENCE && areaOf(f.bbox) >= MIN_AREA);
+  for (let merged = true; merged; ) {
+    merged = false;
+    for (let i = 0; i < list.length && !merged; i++) {
+      for (let j = i + 1; j < list.length && !merged; j++) {
+        if (iou(list[i].bbox, list[j].bbox) > MERGE_IOU) {
+          const [other] = list.splice(j, 1);
+          list[i] = merge(list[i], other);
+          merged = true;
+        }
+      }
+    }
+  }
+  return list.sort(byPriority).slice(0, MAX_SHOWN);
+}
+
+/** The tracks on screen right now: seen recently, risk first, three at most. Overlay, card and score all use this. */
+export function shownTracks(tracks: Track[]): Track[] {
+  return tracks.filter(isVisible).sort(byPriority).slice(0, MAX_SHOWN);
+}
+
+export type Tone = "risk" | "watch" | "clear";
+
+export function toneOf(f: Finding): Tone {
+  if (f.severity === "clear") return "clear";
+  return conf(f) < WATCH_BELOW ? "watch" : "risk";
+}
+
+/** One line for the result card: "Dry grass, mow by June 1". */
+export function findingLine(f: Finding): string {
+  const action = f.action.trim().replace(/\.$/, "");
+  return `${f.label}, ${action.charAt(0).toLowerCase()}${action.slice(1)}`;
+}
+
+export const PILL_H = 24;
+const GAP = 4;
+const pillWidth = (label: string) => Math.ceil(label.length * 7 + 20);
+
+export interface LabelItem {
+  key: number;
+  rect: Rect;
+  label: string;
+}
+export interface Safe {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+export interface PillBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const overlaps = (a: PillBox, b: PillBox) =>
+  a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/**
+ * Places each label pill above its box, or below it when there is no room above, or inside it
+ * as a last resort. Pills stay inside the safe area and never overlap each other.
+ */
+export function layoutLabels(items: LabelItem[], area: { w: number; h: number }, safe: Safe): Map<number, PillBox> {
+  const placed = new Map<number, PillBox>();
+  const minY = safe.top;
+  const maxY = area.h - safe.bottom - PILL_H;
+  const free = (p: PillBox) => [...placed.values()].every((q) => !overlaps(p, q));
+
+  for (const { key, rect, label } of items) {
+    const w = Math.min(pillWidth(label), area.w - safe.left - safe.right);
+    const x = Math.min(Math.max(rect.x, safe.left), area.w - safe.right - w);
+    const ys = [
+      rect.y - PILL_H - GAP, // above
+      rect.y + rect.height + GAP, // below
+      rect.y + GAP, // inside, top
+      rect.y + rect.height - PILL_H - GAP, // inside, bottom
+    ].filter((y) => y >= minY && y <= maxY);
+    const boxes = ys.map((y): PillBox => ({ x, y, w, h: PILL_H }));
+    const fallback: PillBox = { x, y: Math.min(Math.max(rect.y + GAP, minY), maxY), w, h: PILL_H };
+    let pill = boxes.find(free);
+    if (!pill) {
+      // Slide down the column to the first gap.
+      const first = boxes[0] ?? fallback;
+      for (let y = first.y; y <= maxY && !pill; y += PILL_H + GAP) {
+        const slot = { ...first, y };
+        if (free(slot)) pill = slot;
+      }
+      pill ??= first;
+    }
+    placed.set(key, pill);
+  }
+  return placed;
+}

@@ -26,7 +26,7 @@ describe("POST /api/scan", () => {
   });
 
   it("returns the model's findings in the { findings } shape", async () => {
-    const finding = { label: "Dry growth", severity: "risk", action: "Mow by June 1", bbox: [10, 20, 300, 400] };
+    const finding = { label: "Dry growth", severity: "risk", action: "Mow by June 1", bbox: [10, 20, 300, 400], confidence: 0.9 };
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,

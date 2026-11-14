@@ -3,22 +3,26 @@ import { SCAN_JSON_SCHEMA, type Finding } from "@/data/types";
 // OpenAI model ID from https://developers.openai.com/api/docs/models/gpt-6.1-terra
 // (text and image input, Responses API, structured outputs).
 const MODEL = "gpt-6.1-terra";
-// Low effort keeps a frame well inside the 8 second budget. Raise it only if accuracy needs it.
-const REASONING_EFFORT = "low";
+// "none" answers in about 3 s per frame, "low" took 5.6 s on the same frame. The budget is 8 s.
+// Raise it only if the dry/green photo checks need it.
+const REASONING_EFFORT = "none";
 const TIMEOUT_MS = 8000;
+const MAX_FINDINGS = 3;
+// Frames are sent at 640 px, so "low" detail keeps the call fast. Use "auto" if small fuels get missed.
+const IMAGE_DETAIL = "low";
 
-const SYSTEM_PROMPT = `You are a fuels inspector walking a vineyard before fire season. You look at one camera frame and report what burns and what does not.
+const SYSTEM_PROMPT = `You are a fuels inspector walking a vineyard before fire season. You look at one camera frame and report only vegetation and fuel: grass, brush, leaf litter, dead wood, vines, cover crop. Ignore buildings, pavement, sky, vehicles and people.
 
-Judge every region by how dry it looks:
-- risk: brown, tan, cured or standing-dead grass and weeds; dead brush; debris, stacked wood or dry brush touching or close to a building, fence or vine row.
+Judge each region by how dry it looks:
+- risk: brown, tan, cured or standing-dead grass and weeds; dead brush; leaf litter or dead wood piled against a structure, fence or vine row.
 - clear: green, live plants; green cover crop; irrigated vines; bare dirt or gravel; mowed or cleared ground.
 Green leaves and green cuttings are clear, even when the frame is a close-up of one plant. Dry, tan or brown vegetation is risk, even when it fills the frame or is held in a hand.
 
 Rules:
-- Give each distinct region one finding with a short label (2 to 4 words), severity, and a bbox [xmin, ymin, xmax, ymax] as integers 0 to 999 relative to the frame, with 0,0 at the top left.
+- Report at most 3 findings, the ones that matter most. Merge neighbouring regions of the same kind into one.
+- Each finding: a short label (2 to 4 words), severity, a bbox [xmin, ymin, xmax, ymax] as integers 0 to 999 relative to the frame with 0,0 at the top left, and a confidence from 0 to 1.
 - For risk, action is a short, concrete instruction like "Mow by June 1" or "Cut back 5 ft from the wall". For clear, action is "Keep it trimmed" or similar.
-- Report at most 6 findings. Merge neighbouring regions of the same kind.
-- When you are unsure, say clear. Never invent risk. If the frame shows no plants or ground, return no findings.`;
+- When you are unsure, say clear with a low confidence. Never invent risk. If the frame shows no vegetation, return no findings.`;
 
 export class VisionError extends Error {
   constructor(
@@ -34,16 +38,17 @@ const clamp = (n: number) => Math.min(999, Math.max(0, Math.round(n)));
 
 function toFinding(raw: unknown): Finding | null {
   if (typeof raw !== "object" || raw === null) return null;
-  const { label, severity, action, bbox } = raw as Record<string, unknown>;
+  const { label, severity, action, bbox, confidence } = raw as Record<string, unknown>;
   if (typeof label !== "string" || label.trim() === "") return null;
   if (typeof action !== "string" || action.trim() === "") return null;
   if (severity !== "risk" && severity !== "clear") return null;
+  if (typeof confidence !== "number" || !Number.isFinite(confidence)) return null;
   if (!Array.isArray(bbox) || bbox.length !== 4 || !bbox.every((v) => typeof v === "number" && Number.isFinite(v))) {
     return null;
   }
   const box = bbox.map(clamp) as Finding["bbox"];
   if (box[2] <= box[0] || box[3] <= box[1]) return null;
-  return { label, severity, action, bbox: box };
+  return { label, severity, action, bbox: box, confidence: Math.min(1, Math.max(0, confidence)) };
 }
 
 /** Reads the model's JSON text, clamps each bbox to 0..999 and drops findings that are malformed. */
@@ -56,7 +61,10 @@ export function parseFindings(text: string): Finding[] {
   }
   const list = (data as { findings?: unknown } | null)?.findings;
   if (!Array.isArray(list)) return [];
-  return list.map(toFinding).filter((f): f is Finding => f !== null);
+  return list
+    .map(toFinding)
+    .filter((f): f is Finding => f !== null)
+    .slice(0, MAX_FINDINGS);
 }
 
 /** The model's text out of a Responses API reply. A refusal or empty reply is an error. */
@@ -89,7 +97,7 @@ export async function scanFrame(image: string, { timeoutMs = TIMEOUT_MS } = {}):
             role: "user",
             content: [
               { type: "input_text", text: "Inspect this frame." },
-              { type: "input_image", image_url: image },
+              { type: "input_image", image_url: image, detail: IMAGE_DETAIL },
             ],
           },
         ],
