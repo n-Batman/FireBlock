@@ -9,6 +9,7 @@ import type { MultiPolygon, Polygon } from "geojson";
 import { gridOutsideParcels, gridSignature } from "./gridCoverage";
 import { insideSlo } from "./geocode";
 import { OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
+import { fetchParcelResponse } from "./parcelCache";
 
 /** Independent parcel geometry; never changes or invents risk block scores. `lookup` is a place picked in the address search; a new `id` runs a new lookup. `onPoint` reports the point of a latitude/longitude or "Pick on map" lookup. */
 export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefault=true,parcelMask}:{center:[number,number];onGridActive?:(active:boolean)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void;showGridByDefault?:boolean;parcelMask?:(Polygon|MultiPolygon)[]}) {
@@ -72,8 +73,8 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
     const current=++serial.current;
     setBusy(true); setMessage("Finding parcel boundaries…"); setData(null);setLastQuery(null);setArchiveMessage("");
     try{
-      const response=await fetch(`/api/parcels?${query}`,{signal:controller.signal});
-      const result=await response.json();
+      const response=await fetchParcelResponse(query,{signal:controller.signal});
+      const result=await response.json() as Parcels & {error?:string};
       if(!response.ok) throw new Error(result.error || "Lookup failed");
       if(current!==serial.current) return;
       setData(result);setVisible(true);setLastQuery(query.toString());

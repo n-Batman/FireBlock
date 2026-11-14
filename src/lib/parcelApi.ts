@@ -4,6 +4,7 @@ import type { ParcelUnit } from "@/data/types";
 import { insideSlo, type Fetcher } from "./geocode";
 import type { Parcels } from "./parcels";
 import { toGeoJSON, toParcelUnits } from "./parcelUnits";
+import { fetchParcelResponse } from "./parcelCache";
 
 export type ParcelLookup =
   | { kind: "ok"; units: ParcelUnit[]; truncated: boolean }
@@ -53,7 +54,7 @@ async function request(
 ): Promise<Exclude<ParcelLookup, { kind: "outside" }>> {
   let res;
   try {
-    res = await fetcher(`/api/parcels?${query}`, { signal });
+    res = await fetchParcelResponse(query, { fetcher, signal });
   } catch (error) {
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) throw error;
     return { kind: "error", message: UNREACHABLE };
@@ -104,7 +105,7 @@ export async function lookupParcelsInView(view: View, { fetcher = fetch, signal 
 /** The parcel(s) at the exact point. Any failure but an abort gives none, and the 300 m list stands. */
 async function parcelsAtPoint(lat: number, lon: number, fetcher: Fetcher, signal?: AbortSignal): Promise<ParcelUnit[]> {
   try {
-    const res = await fetcher(`/api/parcels?${new URLSearchParams({ lat: String(lat), lon: String(lon) })}`, { signal });
+    const res = await fetchParcelResponse(new URLSearchParams({ lat: String(lat), lon: String(lon) }), { fetcher, signal });
     if (!res.ok) return [];
     const parcels = (await res.json()) as Parcels | null;
     return parcels && Array.isArray(parcels.features) ? toParcelUnits(parcels) : [];
