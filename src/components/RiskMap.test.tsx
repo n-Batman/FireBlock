@@ -64,6 +64,8 @@ describe("ViewWatcher", () => {
         <Grab />
       </MapContainer>,
     );
+    expect(onView).toHaveBeenCalledTimes(1);
+    onView.mockClear();
     act(() => {
       map!.fire("moveend");
       vi.advanceTimersByTime(300);
@@ -78,7 +80,10 @@ describe("ViewWatcher", () => {
       south: expect.any(Number),
       east: expect.any(Number),
       north: expect.any(Number),
+      zoom: 15,
     });
+    act(()=>{map!.fire('zoomend');});
+    expect(onView).toHaveBeenCalledTimes(2); // zoom changes bypass the pan debounce
     vi.useRealTimers();
   });
 });

@@ -118,16 +118,21 @@ function Reveal() {
 /** Reports the visible area 400 ms after the map stops moving, so panning does not fire a request per frame. */
 export function ViewWatcher({ onView }: { onView: (view: View) => void }) {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const report=()=>{
+    const b=map.getBounds();
+    onView({west:b.getWest(),south:b.getSouth(),east:b.getEast(),north:b.getNorth(),zoom:map.getZoom()});
+  };
   const map = useMapEvents({
     moveend() {
       clearTimeout(timer.current);
-      timer.current = setTimeout(() => {
-        const b = map.getBounds();
-        onView({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() });
-      }, 400);
+      timer.current = setTimeout(report, 400);
     },
+    zoomend(){clearTimeout(timer.current);report();},
   });
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => {
+    report();
+    return ()=>clearTimeout(timer.current);
+  }, [map,onView]);
   return null;
 }
 

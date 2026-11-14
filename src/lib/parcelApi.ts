@@ -5,6 +5,7 @@ import { insideSlo, type Fetcher } from "./geocode";
 import type { Parcels } from "./parcels";
 import { toGeoJSON, toParcelUnits } from "./parcelUnits";
 import { fetchParcelResponse } from "./parcelCache";
+import { INDIVIDUAL_PARCEL_ZOOM } from "./parcelDisplay";
 
 export type ParcelLookup =
   | { kind: "ok"; units: ParcelUnit[]; truncated: boolean }
@@ -83,6 +84,8 @@ export interface View {
   south: number;
   east: number;
   north: number;
+  /** Leaflet zoom; below the detail threshold no individual boundaries are requested. */
+  zoom?: number;
 }
 
 /** The most the county API will search at once (see parcels.ts), in square kilometres. */
@@ -97,6 +100,7 @@ export type ViewLookup = Exclude<ParcelLookup, { kind: "outside" }> | { kind: "t
  * "too-wide" so the screen can say to zoom in. An abort is thrown so a stale lookup can be dropped.
  */
 export async function lookupParcelsInView(view: View, { fetcher = fetch, signal }: Options = {}): Promise<ViewLookup> {
+  if(view.zoom!==undefined&&view.zoom<INDIVIDUAL_PARCEL_ZOOM)return {kind:"too-wide"};
   if (viewAreaKm2(view) > MAX_VIEW_KM2) return { kind: "too-wide" };
   const bbox = [view.west, view.south, view.east, view.north].join(",");
   return request(new URLSearchParams({ bbox }), fetcher, signal);

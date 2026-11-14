@@ -107,6 +107,12 @@ describe("lookupParcels", () => {
     expect(fetcher).toHaveBeenCalledTimes(1); // the wide view never reached the API
   });
 
+  it('does not request parcel boundaries for an overview zoom even in a small city viewport',async()=>{
+    const fetcher=vi.fn();
+    expect(await lookupParcelsInView({west:-120.86,south:35.63,east:-120.85,north:35.64,zoom:16},{fetcher})).toEqual({kind:'too-wide'});
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("does not call the API outside SLO County", async () => {
     const fetcher = vi.fn();
     expect(await lookupParcels(36.6777, -121.6555, { fetcher })).toEqual({ kind: "outside" });
