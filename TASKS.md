@@ -48,6 +48,7 @@ Workflow: pull before you start → work on your own branch (`milo/...` or `part
 | P7 | Photo/video scan: ~6 frames pulled in the browser go to the OpenAI vision model and return issues, action, priority, confidence; block score updates and shows "photo changed score from X to Y" | TODO |
 | P8 | Plan engine: mowing order, hours, cost, habitat buffers; PDF export | TODO |
 | P9 | (Stretch) Backtest slide: would the score have flagged the Gifford Fire area beforehand? | TODO |
+| P10 | Point/area parcel lookup API and transparent boundary overlay on the risk map | DONE (Codex; source attribution and coverage documented in docs/parcel-boundaries.md) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |
