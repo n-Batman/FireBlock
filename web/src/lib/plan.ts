@@ -4,6 +4,9 @@ import { levelOf, rankBlocks, scoreOf } from "./score";
 /** Assumption shown in the UI: mowing hours per acre. */
 export const HOURS_PER_ACRE = 1.2;
 
+/** Default crew rate in dollars per hour, shared by /plan and the rail's savings line. */
+export const DEFAULT_RATE = 90;
+
 export interface PlanItem {
   order: number;
   block: Block;
@@ -68,5 +71,37 @@ export function buildPlan(property: Property, rate: number): Plan {
     totalHours: Math.round(items.reduce((s, i) => s + i.hours, 0) * 10) / 10,
     totalCost: items.reduce((s, i) => s + i.cost, 0),
     urgent: items.some((i) => levelOf(scoreOf(i.block)) !== "low"),
+  };
+}
+
+export interface MowTotal {
+  blocks: number;
+  hours: number;
+  cost: number;
+}
+
+export interface Savings {
+  /** Every vine block. Same numbers as /plan. */
+  all: MowTotal;
+  /** Only the blocks scored High. */
+  high: MowTotal;
+  saved: { hours: number; cost: number };
+  /** Habitat is never mowable, so it is in neither total. */
+  habitatAcres: number;
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** What mowing only the High blocks saves over mowing every vine block, at `rate` dollars an hour. */
+export function savingsFor(property: Property, rate: number): Savings {
+  const { items, totalHours, totalCost } = buildPlan(property, rate);
+  const high = items.filter((i) => levelOf(scoreOf(i.block)) === "high");
+  const highHours = round1(high.reduce((s, i) => s + i.hours, 0));
+  const highCost = high.reduce((s, i) => s + i.cost, 0);
+  return {
+    all: { blocks: items.length, hours: totalHours, cost: totalCost },
+    high: { blocks: high.length, hours: highHours, cost: highCost },
+    saved: { hours: round1(totalHours - highHours), cost: totalCost - highCost },
+    habitatAcres: property.blocks.filter((b) => b.kind === "habitat").reduce((s, b) => s + b.acres, 0),
   };
 }

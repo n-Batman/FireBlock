@@ -5,16 +5,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, MapTrifold, Printer } from "@phosphor-icons/react";
 import { properties } from "@/data/properties";
-import { formatAsOf } from "@/lib/format";
-import { buildPlan, HOURS_PER_ACRE, parseRate } from "@/lib/plan";
+import { formatAsOf, formatMoney } from "@/lib/format";
+import { buildPlan, DEFAULT_RATE, HOURS_PER_ACRE, parseRate } from "@/lib/plan";
 import { levelOf, scoreOf } from "@/lib/score";
 import { applyScans } from "@/lib/scanStore";
 import { useDaysUntilJune1 } from "@/lib/useDeadline";
 import { useScans } from "@/lib/useScans";
 import { RiskChip } from "./RiskChip";
 
-const DEFAULT_RATE = 90;
-const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -88,7 +86,7 @@ export function PlanScreen() {
           <div className="mt-5 grid gap-5 sm:grid-cols-3">
             <Stat label="Until the June 1 county deadline" value={daysText} />
             <Stat label="Mowing time" value={`${plan.totalHours} hr`} />
-            <Stat label="Estimated cost" value={money.format(plan.totalCost)} />
+            <Stat label="Estimated cost" value={formatMoney(plan.totalCost)} />
           </div>
 
           <div className="mt-5 border-t border-[var(--glass-border)] pt-4">
@@ -134,7 +132,7 @@ export function PlanScreen() {
                     <span className="num ml-auto flex gap-3 text-[13px] text-ink-2">
                       <span>{item.block.acres} ac</span>
                       <span>{item.hours} hr</span>
-                      <span>{money.format(item.cost)}</span>
+                      <span>{formatMoney(item.cost)}</span>
                     </span>
                   </div>
                   <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[15px] leading-snug marker:text-ink-2">

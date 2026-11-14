@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BlockRail } from "./BlockRail";
 import { properties } from "@/data/properties";
+import { applyScans } from "@/lib/scanStore";
 
 const adelaida = properties[0];
 const today = new Date(2026, 10, 13);
@@ -67,5 +68,38 @@ describe("BlockRail", () => {
     expect(screen.getByText("Oak woodland habitat")).toBeInTheDocument();
     expect(screen.getByText("Protected habitat: do not mow.")).toBeInTheDocument();
     expect(screen.getAllByRole("button")).toHaveLength(5);
+  });
+
+  it("shows the savings line under the countdown, linked to the plan", () => {
+    renderRail();
+    expect(screen.getByRole("link", { name: /Mow 2 blocks, not 5\. Save \$1,728\./ })).toHaveAttribute(
+      "href",
+      "/plan?property=adelaida-hills",
+    );
+  });
+
+  it("recounts the savings when a scan pushes another block to High", () => {
+    // Old Vine Row is 58. Three risks add 18, so it becomes High at 76.
+    const scanned = applyScans(adelaida, {
+      "adelaida-hills:adelaida-4": { risks: 3, clears: 0, at: "2026-11-14T10:00:00-08:00" },
+    });
+    renderRail({ property: scanned });
+    expect(screen.getByRole("link", { name: /Mow 3 blocks, not 5\./ })).toBeInTheDocument();
+  });
+
+  it("uses the singular for one block", () => {
+    // Highway Edge is 55. Three risks add 18, so it becomes the only High block of 3.
+    const scanned = applyScans(properties[1], {
+      "paso-hwy-46-east:paso-1": { risks: 3, clears: 0, at: "2026-11-14T10:00:00-08:00" },
+    });
+    renderRail({ property: scanned });
+    expect(screen.getByRole("link", { name: /Mow 1 block, not 3\./ })).toBeInTheDocument();
+  });
+
+  it("says there is no urgent mowing at a property with no High blocks", () => {
+    renderRail({ property: properties[2] });
+    const line = screen.getByRole("link", { name: /No High-risk blocks\. No urgent mowing\./ });
+    expect(line).toHaveAttribute("href", "/plan?property=edna-valley");
+    expect(screen.queryByText(/Save/)).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { actionsFor, buildPlan, parseRate, HOURS_PER_ACRE } from "./plan";
+import { DEFAULT_RATE, actionsFor, buildPlan, parseRate, savingsFor, HOURS_PER_ACRE } from "./plan";
 import { withScan } from "./scan";
+import { applyScans } from "./scanStore";
 import { scoreOf } from "./score";
 import { properties } from "@/data/properties";
 
@@ -99,5 +100,71 @@ describe("actionsFor", () => {
 
   it("gives habitat nothing to mow", () => {
     expect(actionsFor(block("adelaida-habitat"))).toEqual([]);
+  });
+});
+
+describe("savingsFor", () => {
+  const adelaida = byId("adelaida-hills");
+
+  it("totals every vine block with the same numbers /plan shows", () => {
+    const all = savingsFor(adelaida, DEFAULT_RATE).all;
+    const plan = buildPlan(adelaida, DEFAULT_RATE);
+    expect(all.blocks).toBe(5);
+    expect(all.cost).toBe(plan.totalCost);
+    expect(all.hours).toBe(plan.totalHours);
+    expect(all.cost).toBe(plan.items.reduce((sum, i) => sum + i.cost, 0));
+  });
+
+  it("targets only the High blocks: 2 of 5 at Adelaida Hills", () => {
+    const { high } = savingsFor(adelaida, DEFAULT_RATE);
+    expect(high.blocks).toBe(2);
+    // Ridge Top (6 ac) and South Slope (5 ac) at 1.2 hr per acre and $90 an hour.
+    expect(high.hours).toBeCloseTo(7.2 + 6, 5);
+    expect(high.cost).toBe(648 + 540);
+  });
+
+  it("saves the difference between mowing everything and mowing only High", () => {
+    const s = savingsFor(adelaida, DEFAULT_RATE);
+    expect(s.saved.cost).toBe(s.all.cost - s.high.cost);
+    expect(s.saved.cost).toBe(2916 - 1188);
+    expect(s.saved.hours).toBeCloseTo(32.4 - 13.2, 5);
+  });
+
+  it("never counts habitat as mowable, and reports the acres it skips", () => {
+    expect(savingsFor(adelaida, DEFAULT_RATE).habitatAcres).toBe(5.5);
+    expect(savingsFor(byId("edna-valley"), DEFAULT_RATE).habitatAcres).toBe(0);
+    const vineBlocks = adelaida.blocks.filter((b) => b.kind === "vine").length;
+    expect(savingsFor(adelaida, DEFAULT_RATE).all.blocks).toBe(vineBlocks);
+  });
+
+  it("never saves a negative amount, at any rate or for any property", () => {
+    for (const property of properties)
+      for (const rate of [1, 37.5, 90, 250]) {
+        const s = savingsFor(property, rate);
+        expect(s.saved.cost).toBeGreaterThanOrEqual(0);
+        expect(s.saved.hours).toBeGreaterThanOrEqual(0);
+        expect(s.high.cost).toBeLessThanOrEqual(s.all.cost);
+        expect(s.high.hours).toBeLessThanOrEqual(s.all.hours);
+        expect(s.high.blocks).toBeLessThanOrEqual(s.all.blocks);
+      }
+  });
+
+  it("has nothing to target when no block is High (Paso and Edna)", () => {
+    for (const id of ["paso-hwy-46-east", "edna-valley"]) {
+      const s = savingsFor(byId(id), DEFAULT_RATE);
+      expect(s.high).toEqual({ blocks: 0, hours: 0, cost: 0 });
+      expect(s.saved.cost).toBe(s.all.cost);
+    }
+  });
+
+  it("follows the crew rate", () => {
+    expect(savingsFor(adelaida, 120).all.cost).toBeGreaterThan(savingsFor(adelaida, 60).all.cost);
+  });
+
+  it("moves a block into the targeted set when a scan pushes it to High", () => {
+    const at = "2026-11-14T10:00:00-08:00";
+    // Old Vine Row is 58 (medium). Three risks add 18 points: 76 is High.
+    const scanned = applyScans(adelaida, { "adelaida-hills:adelaida-4": { risks: 3, clears: 0, at } });
+    expect(savingsFor(scanned, DEFAULT_RATE).high.blocks).toBe(3);
   });
 });

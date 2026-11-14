@@ -5,6 +5,7 @@ import type { Property } from "@/data/types";
 import { levelOf, rankBlocks, scoreOf } from "@/lib/score";
 import { useDaysUntilJune1 } from "@/lib/useDeadline";
 import { RiskChip } from "./RiskChip";
+import { SavingsLine } from "./SavingsLine";
 
 interface BlockRailProps {
   property: Property;
@@ -50,6 +51,7 @@ export function BlockRail({ property, selectedId, onSelect, today }: BlockRailPr
   return (
     <div>
       <Deadline today={today} />
+      <SavingsLine property={property} />
 
       <h2 className="px-6 pt-5 text-xs font-medium text-ink-2">Blocks, highest risk first</h2>
       <ul ref={listRef} className="mt-2 divide-y divide-line">
