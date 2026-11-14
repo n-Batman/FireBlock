@@ -16,17 +16,18 @@ interface ScanOverlayProps {
 /** Label pills stay inside this: clear of the top buttons and the result card at the bottom. */
 const SAFE: Safe = { top: 72, right: 12, bottom: 248, left: 12 };
 
+// Risk and clear get the same weight: saturated line, same 22% fill, solid pill. Watch (shaky risk) stays amber.
 const TONE: Record<Tone, { line: string; fill: string; pill: string }> = {
-  risk: { line: "border-high", fill: "bg-high/15", pill: "bg-high-bg text-high-ink" },
-  watch: { line: "border-med", fill: "bg-med/15", pill: "bg-med-bg text-med-ink" },
-  clear: { line: "border-low", fill: "", pill: "bg-low-bg text-low-ink" },
+  risk: { line: "border-[#ff1f1f]", fill: "bg-[#ff1f1f]/20", pill: "bg-[#e11414] text-white" },
+  watch: { line: "border-med", fill: "bg-med/20", pill: "bg-med-bg text-med-ink" },
+  clear: { line: "border-[#00e05a]", fill: "bg-[#00e05a]/20", pill: "bg-[#0a8f3c] text-white" },
 };
 
 const CORNERS = [
-  "left-0 top-0 border-l-2 border-t-2 rounded-tl-[3px]",
-  "right-0 top-0 border-r-2 border-t-2 rounded-tr-[3px]",
-  "bottom-0 left-0 border-b-2 border-l-2 rounded-bl-[3px]",
-  "bottom-0 right-0 border-b-2 border-r-2 rounded-br-[3px]",
+  "left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-[3px]",
+  "right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-[3px]",
+  "bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-[3px]",
+  "bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-[3px]",
 ];
 
 const glide = "transition-[transform,width,height] duration-200 ease-out motion-reduce:transition-none";
@@ -73,7 +74,7 @@ export function ScanOverlay({ videoSize, tracks, running, frozen = false }: Scan
             className={`absolute left-0 top-0 ${glide}`}
             style={{ width: rect.width, height: rect.height, transform: `translate(${rect.x}px, ${rect.y}px)` }}
           >
-            {tone.fill && <div data-testid="fill" className={`absolute inset-0 rounded-[3px] ${tone.fill}`} />}
+            <div data-testid="fill" className={`absolute inset-0 rounded-[3px] ${tone.fill}`} />
             {CORNERS.map((corner) => (
               <span
                 key={corner}

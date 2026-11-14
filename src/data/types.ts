@@ -134,7 +134,7 @@ export const SCAN_JSON_SCHEMA = {
     properties: {
       findings: {
         type: "array",
-        maxItems: 3,
+        maxItems: 5,
         items: {
           type: "object",
           additionalProperties: false,
@@ -145,7 +145,7 @@ export const SCAN_JSON_SCHEMA = {
             action: { type: "string" },
             bbox: {
               type: "array",
-              description: "[xmin, ymin, xmax, ymax], integers 0 to 999",
+              description: "Tight box around this one item: [xmin, ymin, xmax, ymax], integers 0 to 999",
               items: { type: "integer" },
             },
             confidence: { type: "number", description: "How sure you are, 0 to 1" },
