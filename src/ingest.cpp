@@ -146,7 +146,8 @@ void Ingestor::authenticate() {
     token_ = data.at("access_token").get<std::string>();
 }
 void Ingestor::download(const std::string& url, const std::filesystem::path& path, bool auth, uintmax_t expected) {
-    if (cached(path, expected)) return;
+    if (cached(path, expected)) { std::cout << "Reusing completed file: " << path.filename().u8string() << '\n'; return; }
+    std::cout << "Downloading: " << path.filename().u8string() << '\n';
     std::filesystem::create_directories(path.parent_path());
     auto part = path; part += ".part";
     try {
@@ -174,6 +175,7 @@ void Ingestor::download(const std::string& url, const std::filesystem::path& pat
             if (path.extension() == ".csv") checkCsv(part);
             commit(part,path);
             save(path.u8string() + ".complete.json", {{"bytes",size}});
+            std::cout << "Downloaded: " << path.filename().u8string() << " (" << size << " bytes)\n";
             return;
         }
         throw std::runtime_error("Too many redirects");
@@ -191,7 +193,7 @@ void Ingestor::copernicus(const Json& c) {
     if (opts.contains("product_type")) filter += " and Attributes/OData.CSC.StringAttribute/any(a:a/Name eq 'productType' and a/OData.CSC.StringAttribute/Value eq " + quote(opts.at("product_type").get<std::string>()) + ")";
     if (opts.contains("cloud_cover_max")) filter += " and Attributes/OData.CSC.DoubleAttribute/any(a:a/Name eq 'cloudCover' and a/OData.CSC.DoubleAttribute/Value le " + opts.at("cloud_cover_max").dump() + ")";
     int limit = opts.value("max_products",20);
-    std::string url = std::string(catalogue) + "Products?$filter=" + encode(filter) + "&$expand=Assets,Attributes&$orderby=ContentDate/Start%20asc&$top=" + std::to_string((std::min)(100,limit));
+    std::string url = std::string(catalogue) + "Products?$filter=" + encode(filter) + "&$expand=Assets&$expand=Attributes&$orderby=ContentDate/Start%20asc&$top=" + std::to_string((std::min)(100,limit));
     auto root = std::filesystem::u8path(c.at("output").get<std::string>()) / "copernicus";
     Json products = Json::array(); std::set<std::string> seen, pages;
     while (!url.empty() && products.size() < static_cast<size_t>(limit)) {
@@ -249,10 +251,11 @@ void Ingestor::firms(const Json& c) {
     }
 }
 void Ingestor::run(const Json& c) {
+    std::cout << std::unitbuf;
     validate(c); bool failed = false;
     for (const auto& provider : {std::string("copernicus"),std::string("firms")}) {
         if (!c.at(provider).at("enabled").get<bool>()) continue;
-        try { if (provider == "copernicus") copernicus(c); else firms(c); }
+        try { std::cout << "Starting provider: " << provider << '\n'; if (provider == "copernicus") copernicus(c); else firms(c); }
         catch (const std::exception& e) { failed = true; std::cerr << provider << ": " << e.what() << '\n'; }
     }
     if (failed) throw std::runtime_error("One or more providers failed; successful downloads are retained");

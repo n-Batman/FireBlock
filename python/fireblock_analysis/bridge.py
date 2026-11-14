@@ -25,12 +25,18 @@ class Backend:
 
     def call(self, *arguments):
         command = [self.executable, *map(str, arguments), "--env", self.env_file]
-        if self.bucket:
+        if self.bucket and arguments[0] != "download-version":
             command += ["--bucket", self.bucket]
         return json.loads(self.execute(command))
 
     def download(self, key, destination):
         self.call("download", key, destination)
+
+    def list_objects(self, prefix):
+        return self.call("list", prefix)
+
+    def download_version(self, file_id, destination):
+        self.call("download-version", file_id, destination)
 
     def upload(self, source, key):
         response = self.call("upload", source, key)

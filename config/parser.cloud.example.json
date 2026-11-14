@@ -1,0 +1,15 @@
+{
+  "source": {"prefix": "raw/"},
+  "max_inputs": 100,
+  "output_root": "analysis",
+  "bbox": null,
+  "min_valid_fraction": 0.6,
+  "valid_scl_classes": [4, 5],
+  "storage": {
+    "executable": "build/native/fireblock.exe",
+    "env_file": ".env",
+    "bucket": "",
+    "output_prefix": "analysis",
+    "upload_results": true
+  }
+}

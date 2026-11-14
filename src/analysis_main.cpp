@@ -8,6 +8,8 @@ int wmain(int argc, wchar_t** argv) {
     if (argc == 1 || std::wstring(argv[1]) == L"--help") {
         std::cout << "FireBlock Python analysis connector\n"
             "Usage: fireblock_analyze --python PATH [--worker ENTRY.py] run JOB.json [--validate]\n"
+            "       fireblock_analyze --python PATH [--worker ENTRY.py] cloud JOB.json [--validate | --discover-only] [--job-out FILE]\n"
+            "       fireblock_analyze --python PATH [--worker ENTRY.py] risk JOB.json [--validate]\n"
             "       fireblock_analyze --python PATH [--worker ENTRY.py] ingest INGEST.json --storage-config JOB.json --job-out NEW_JOB.json\n"
             "Uses inherited credentials and returns the Python worker's exit code.\n";
         return 0;
@@ -17,12 +19,12 @@ int wmain(int argc, wchar_t** argv) {
         int i = 1;
         for (; i < argc; ++i) {
             std::wstring arg = argv[i];
-            if (arg == L"run" || arg == L"ingest") break;
+            if (arg == L"run" || arg == L"ingest" || arg == L"cloud" || arg == L"risk") break;
             if ((arg == L"--python" || arg == L"--worker") && i + 1 < argc) {
                 if (arg == L"--python") python = argv[++i]; else entry = argv[++i];
             } else throw std::runtime_error("Unknown connector option or missing value");
         }
-        if (python.empty() || i == argc) throw std::runtime_error("Provide --python and run/ingest; see --help");
+        if (python.empty() || i == argc) throw std::runtime_error("Provide --python and run/cloud/risk/ingest; see --help");
         std::vector<std::wstring> arguments;
         for (; i < argc; ++i) arguments.emplace_back(argv[i]);
         auto status = fireblock::runAnalysisWorker(python, entry, arguments);

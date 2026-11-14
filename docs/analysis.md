@@ -5,6 +5,11 @@ the existing C++ executables retain collection, Backblaze authentication, and fi
 transfers. A JSON job describes inputs and a versioned JSON manifest describes
 outputs. The original C++ metadata parser remains available.
 
+For automatic discovery and the direct raw-controller handoff, use
+[the connected parser controller](parser-controller.md). It accepts a B2 prefix
+or a completed raw manifest file ID, downloads immutable versions through C++,
+and feeds the same scientific workers described here.
+
 ## Setup and run
 
 Use Python 3.11+ with NumPy and a Rasterio/GDAL installation that supports your
@@ -186,11 +191,11 @@ with manifest ordering and failure handling. A Rasterio integration test uses
 synthetic 10 m/20 m GeoTIFFs to check calibration, cloud masks, resolutions, valid
 coverage, and an entirely cloudy scene; it skips explicitly if Rasterio is absent.
 
-In the implementation environment, eight tests passed and the Rasterio test
-skipped because that dependency could not be installed. The C++ launcher compiled
-independently and successfully launched both example job validations. Real
-Sentinel imagery and live B2/provider calls have not been exercised. The complete
-C++ build still needs its external nlohmann/json dependency.
+With the connected parser controller, all 16 Python tests now pass, including the
+synthetic Rasterio integration test, and all 12 C++ CTest checks pass. The complete
+C++ build succeeds. Live B2 listing through the C++ controller was verified;
+the bucket currently contains only the storage smoke-test PNG. Processing a real
+Sentinel dataset from B2 still requires uploading an analytical dataset.
 
 ## Primary references
 

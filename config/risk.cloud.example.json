@@ -1,0 +1,29 @@
+{
+  "source": {"manifest_file_id": "REPLACE_WITH_RAW_MANIFEST_FILE_ID"},
+  "max_inputs": 100,
+  "output_root": "analysis",
+  "bbox": [-122.6, 37.0, -121.5, 38.1],
+  "min_valid_fraction": 0.6,
+  "valid_scl_classes": [4, 5],
+  "risk": {
+    "enabled": true,
+    "as_of": "2026-11-13T23:59:59Z",
+    "cell_km": 2,
+    "max_cells": 10000,
+    "samples_per_cell": 8,
+    "min_valid_fraction": 0.6,
+    "scene_max_age_days": 30,
+    "hotspot_max_age_hours": 72,
+    "hotspot_half_life_hours": 24,
+    "hotspot_radius_km": 10,
+    "dryness_weight": 0.7,
+    "hotspot_weight": 0.3
+  },
+  "storage": {
+    "executable": "build/native/fireblock.exe",
+    "env_file": ".env",
+    "bucket": "",
+    "output_prefix": "risk",
+    "upload_results": true
+  }
+}

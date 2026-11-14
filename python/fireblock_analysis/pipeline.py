@@ -62,10 +62,13 @@ def validate(config):
                         raise ValueError("Explicit bands require per-band scale and offset; do not guess DN calibration")
                 assets = bands.values()
             for asset in assets:
-                if not isinstance(asset, dict) or len(asset) != 1 or not (set(asset) <= {"key", "local"}) or not isinstance(next(iter(asset.values())), str) or not next(iter(asset.values())):
-                    raise ValueError("Each asset must be {key: B2-object-name} or {local: file-path}")
+                if not isinstance(asset, dict) or len(asset) != 1 or not (set(asset) <= {"key", "local", "file_id"}) or not isinstance(next(iter(asset.values())), str) or not next(iter(asset.values())):
+                    raise ValueError("Each asset must contain one nonempty key, file_id, or local path")
     if not all_ids:
         raise ValueError("Job contains no scenes or FIRMS inputs")
+    if "risk" in config:
+        from .risk import validate_risk
+        validate_risk(config["risk"], bbox)
     prefix = config["storage"].get("output_prefix", "analysis")
     if not isinstance(prefix, str) or not prefix.strip("/") or "\r" in prefix or "\n" in prefix:
         raise ValueError("storage.output_prefix must be a nonempty object prefix")
@@ -81,20 +84,31 @@ def run(config, backend=None):
     cache.mkdir()
     manifest = {"schema_version": 1, "parser_version": "0.1.0", "run_id": run_id, "status": "running",
                 "inputs": [], "scenes": [], "firms": [], "artifacts": []}
+    if "discovery" in config:
+        manifest["discovery"] = config["discovery"]
     prefix = config["storage"].get("output_prefix", "analysis").strip("/") + "/" + run_id
 
-    def materialize(asset):
+    def materialize(asset, suffix_hint=None):
         if "local" in asset:
             path = Path(asset["local"])
             if not path.is_file():
                 raise ValueError("Local asset does not exist")
         else:
             # Remote names never become filesystem paths (no traversal or collisions).
-            suffix = Path(asset["key"]).suffix.lower()
+            suffix = suffix_hint or Path(asset.get("key", "input.bin")).suffix.lower()
             if not re.fullmatch(r"\.[a-z0-9]{1,8}", suffix):
                 suffix = ".bin"
             path = cache / (uuid.uuid4().hex + suffix)
-            backend.download(asset["key"], path)
+            if "file_id" in asset:
+                backend.download_version(asset["file_id"], path)
+            else:
+                backend.download(asset["key"], path)
+        expected = config.get("source_inventory", {}).get(asset.get("file_id"))
+        if expected:
+            with open(path, "rb") as stream:
+                checksum = hashlib.file_digest(stream, "sha1").hexdigest()
+            if path.stat().st_size != expected["bytes"] or checksum != expected["sha1"]:
+                raise ValueError("Downloaded file does not match the raw dataset manifest")
         manifest["inputs"].append({**asset, "sha256": digest(path), "bytes": path.stat().st_size})
         return path
 
@@ -102,7 +116,7 @@ def run(config, backend=None):
         for scene in config.get("scenes", []):
             from .sentinel import analyze_scene, safe_inputs
             if "archive" in scene:
-                bands, calibration = safe_inputs(materialize(scene["archive"]))
+                bands, calibration = safe_inputs(materialize(scene["archive"], ".zip"))
             else:
                 bands = {b: materialize(asset) for b, asset in scene["bands"].items()}
                 calibration = scene["calibration"]
@@ -121,7 +135,10 @@ def run(config, backend=None):
             summary["id"] = source["id"]
             write_json(destination / "summary.json", summary)
             manifest["firms"].append(summary)
-        # Publish only after ALL parsing succeeds; manifest is the commit marker.
+        if config.get("risk", {}).get("enabled", False):
+            from .risk import build_risk
+            manifest["risk"] = build_risk(manifest, root, config["risk"], config["bbox"])
+        # Publish only after ALL parsing/map generation succeeds; manifest is the commit marker.
         artifacts = sorted(p for p in root.rglob("*") if p.is_file() and cache not in p.parents and p.name != "manifest.json")
         for path in artifacts:
             relative = path.relative_to(root).as_posix()

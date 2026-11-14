@@ -17,6 +17,7 @@ Usage: fireblock COMMAND [arguments] [--bucket NAME] [--env FILE]
   versions [PREFIX]                   List all versions and hide markers (JSON)
   upload LOCAL [REMOTE] [--type MIME]  Upload any file; default REMOTE is LOCAL basename
   download REMOTE LOCAL               Download without overwriting an existing file
+  download-version FILE_ID LOCAL      Download and verify an exact stored version
   info FILE_ID                        Inspect one file version
   delete REMOTE FILE_ID --yes          Permanently delete exactly one version
   hide REMOTE                         Hide current file; keeps existing versions
@@ -50,12 +51,12 @@ int run(int argc, char** argv) {
         std::map<std::string, std::pair<size_t, size_t>> counts{
             {"account", {0,0}}, {"buckets", {0,0}}, {"create-bucket", {1,1}}, {"visibility", {1,1}},
             {"delete-bucket", {0,0}}, {"list", {0,1}}, {"versions", {0,1}}, {"upload", {1,2}},
-            {"download", {2,2}}, {"info", {1,1}}, {"delete", {2,2}}, {"hide", {1,1}}, {"url", {1,1}}, {"share", {1,1}}};
+            {"download", {2,2}}, {"download-version", {2,2}}, {"info", {1,1}}, {"delete", {2,2}}, {"hide", {1,1}}, {"url", {1,1}}, {"share", {1,1}}};
         auto count = counts.find(command);
         if (count == counts.end()) throw std::runtime_error("Unknown command: " + command);
         if (args.size() < count->second.first || args.size() > count->second.second) throw std::runtime_error("Wrong number of arguments; run fireblock help");
         std::set<std::string> allowed{"--env"};
-        if (command != "account" && command != "buckets" && command != "create-bucket" && command != "info" && command != "delete") allowed.insert("--bucket");
+        if (command != "account" && command != "buckets" && command != "create-bucket" && command != "info" && command != "delete" && command != "download-version") allowed.insert("--bucket");
         if (command == "create-bucket") allowed.insert("--public");
         if (command == "upload") allowed.insert("--type");
         if (command == "share") allowed.insert("--seconds");
@@ -87,6 +88,9 @@ int run(int argc, char** argv) {
         } else if (command == "download") {
             controller.download(bucket, args[0], std::filesystem::u8path(args[1]));
             result = {{"downloaded", args[1]}};
+        } else if (command == "download-version") {
+            controller.downloadVersion(args[0], std::filesystem::u8path(args[1]));
+            result = {{"downloaded", args[1]}, {"fileId", args[0]}};
         } else if (command == "info") result = controller.info(args[0]);
         else if (command == "delete") result = controller.deleteVersion(args[0], args[1]);
         else if (command == "hide") result = controller.hide(bucket, args[0]);

@@ -1,5 +1,13 @@
 # FireBlock
 
+For a basic one-area desktop scraper panel, launch `scraper-control.cmd`.
+See [desktop controller setup](docs/scraper-control.md).
+
+Fire-risk mapping is available through `fireblock_analyze ... risk JOB.json`.
+It connects scraped/B2 inputs to the existing parser and exports an interactive
+map, GeoJSON, GeoTIFF and versioned model features. See [risk-map setup and the
+future prediction interface](docs/risk-maps.md).
+
 A C++17 Backblaze B2 controller and Windows command-line application for images,
 videos, documents, JSON, archives, and arbitrary binary data. Uploads and downloads
 stream from disk. The reusable library is in `include/fireblock/controller.hpp`.
@@ -181,3 +189,9 @@ storage CLI and publish GeoTIFF/NDJSON/JSON artifacts with a completion manifest
 `fireblock_analyze` launches the Python worker from C++, and the ingestion bridge
 can run the existing scraper and stage its outputs in B2. See
 [the analysis guide](docs/analysis.md) and [example job](config/analysis.example.json).
+
+The [connected parser controller](docs/parser-controller.md) can discover B2
+imagery automatically or consume the raw controller's completed manifest file ID.
+Run `fireblock_analyze --python .venv/Scripts/python.exe cloud config/parser.cloud.example.json`
+to download the selected versions, parse them, and publish results through the
+existing C++ storage controller.

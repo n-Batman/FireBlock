@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cwchar>
 #include <fstream>
+#include <iostream>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -75,6 +76,7 @@ Json RawDataController::scrape(const Json& config,const std::filesystem::path& w
     return publish(root,bucket,prefix);
 }
 Json RawDataController::publish(const std::filesystem::path& input,const std::string& bucket,const std::string& prefix) {
+    std::cerr << std::unitbuf;
     relativePath(prefix); require(!bucket.empty(),"Bucket is required");
     auto root=std::filesystem::canonical(input); require(std::filesystem::is_directory(root),"Raw input must be a directory");
     std::vector<std::filesystem::path> files; std::set<std::string> paths;
@@ -96,9 +98,11 @@ Json RawDataController::publish(const std::filesystem::path& input,const std::st
     Json manifest={{"schema_version",1},{"kind","fireblock.raw"},{"run_id",id},{"status","uploading"},
         {"bucket",bucket},{"prefix",remote},{"files",Json::array()}};
     save(receipt,manifest);
+    std::cerr << "Archiving raw dataset: " << files.size() << " files\n";
     try {
         for (const auto& file : files) {
             auto name=file.lexically_relative(root).generic_u8string();
+            std::cerr << "Uploading " << manifest["files"].size()+1 << "/" << files.size() << ": " << name << '\n';
             auto bytes=std::filesystem::file_size(file);
             auto hash=sha1File(file);
             auto result=storage_.upload(bucket,file,remote+name,mime(file));

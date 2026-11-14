@@ -57,6 +57,8 @@ int main() {
                 ++searches;
                 if (r.url==next) return {200,Json{{"value",Json::array({product(id2)})}}.dump()};
                 expect(r.url.find("%27SENTINEL-2%27")!=std::string::npos,"Filter not encoded");
+                expect(r.url.find("&$expand=Assets&$expand=Attributes&")!=std::string::npos,
+                    "Copernicus requires separate expansion parameters");
                 return {200,Json{{"value",Json::array({product(id1)})},{"@odata.nextLink",next}}.dump()};
             }
             expect(r.headers.empty(),"Public image carries credentials");

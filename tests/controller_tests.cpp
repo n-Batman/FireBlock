@@ -8,9 +8,10 @@ void check(bool ok) { if (!ok) throw std::runtime_error("Test assertion failed")
 template<class F> void fails(F f) { bool threw = false; try { f(); } catch (const std::exception&) { threw = true; } check(threw); }
 Response json(Json value) { return {200, value.dump()}; }
 Response auth() {
-    return json({{"accountId", "account"}, {"authorizationToken", "secret-token"}, {"apiInfo", {{"storageApi", {
-        {"apiUrl", "https://api.example"}, {"downloadUrl", "https://download.example"},
-        {"allowed", {{"buckets", Json::array({{{"id", "bucket-id"}, {"name", "photos"}}})}, {"capabilities", {"readFiles"}}}}}}}});
+    Json storage = {{"apiUrl", "https://api.example"}, {"downloadUrl", "https://download.example"},
+        {"allowed", {{"buckets", Json::array({{{"id", "bucket-id"}, {"name", "photos"}}})}, {"capabilities", {"readFiles"}}}}};
+    return json({{"accountId", "account"}, {"authorizationToken", "secret-token"},
+                 {"apiInfo", {{"storageApi", storage}}}});
 }
 int main() {
     try {

@@ -16,9 +16,9 @@ void write(const std::filesystem::path& p,const std::string& s) {
 Json read(const std::filesystem::path& p) { std::ifstream in(p); return Json::parse(in); }
 Response response(const Json& j) { return {200,j.dump()}; }
 Json auth() {
-    return {{"accountId","test"},{"authorizationToken","secret"},{"apiInfo",{{"storageApi",{
-        {"apiUrl","https://api.test"},{"downloadUrl","https://download.test"},
-        {"allowed",{{"buckets",Json::array({{{"id","bucket-id"},{"name","test-bucket"}}})}}}}}}};
+    Json storage = {{"apiUrl","https://api.test"},{"downloadUrl","https://download.test"},
+        {"allowed",{{"buckets",Json::array({{{"id","bucket-id"},{"name","test-bucket"}}})}}}};
+    return {{"accountId","test"},{"authorizationToken","secret"},{"apiInfo",{{"storageApi",storage}}}};
 }
 Json config(const std::filesystem::path& root) {
     return {{"input_root",(root/"input").u8string()},{"output_root",(root/"output").u8string()},

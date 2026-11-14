@@ -1,4 +1,11 @@
-# Raw scraper → Backblaze → future parser
+# Raw scraper → Backblaze → parser
+
+The Python [parser controller](parser-controller.md) now consumes this raw-data
+contract directly: set its `source.manifest_file_id` to the publication's returned
+`manifest_file_id`, or discover completed batches by B2 prefix. It downloads exact
+versions through the C++ storage controller, verifies the inventory, runs the
+Sentinel-2/FIRMS workers, and uploads results. The manual `pull` commands below
+remain useful for restoring datasets independently of parsing.
 
 The connection audit found that `Ingestor` only wrote local files, while
 `ParsingController` uploaded data after parsing. There was no raw archive/restore
