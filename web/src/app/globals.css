@@ -11,10 +11,10 @@
   --paper: #0e1512;
   --surface: #141d18;
   --ink: #e9eee8;
-  --ink-2: #a4b4aa;
+  --ink-2: #b7c5bc;
   --line: #26362d;
 
-  --glass-bg: rgba(16, 24, 20, 0.62);
+  --glass-bg: rgba(16, 24, 20, 0.68);
   --glass-border: rgba(233, 238, 232, 0.14);
   --glass-highlight: rgba(255, 255, 255, 0.06);
 
@@ -160,9 +160,10 @@ body {
 }
 .leaflet-bar a,
 .leaflet-touch .leaflet-bar a {
-  width: 44px;
-  height: 44px;
-  line-height: 44px;
+  /* Leaflet's own stylesheet loads later and sets 30px, so these need !important (44px tap target). */
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
   background: var(--glass-bg);
   color: var(--ink);
   border-bottom: 1px solid var(--glass-border);
@@ -187,6 +188,19 @@ body {
 :focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
+}
+
+/* No 300 ms tap delay on touch screens. */
+a,
+button,
+select,
+summary,
+label {
+  touch-action: manipulation;
+}
+h1,
+h2 {
+  text-wrap: balance;
 }
 
 @media (prefers-reduced-motion: reduce) {

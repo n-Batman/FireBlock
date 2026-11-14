@@ -26,7 +26,7 @@ Green, amber and red are used for risk and for nothing else. There is no brand a
 | `--paper` | `#0e1512` | Page background, visible only while the map loads |
 | `--surface` | `#141d18` | Solid panels, and the fallback when glass is unsupported |
 | `--ink` | `#e9eee8` | Primary text, primary buttons (never pure white) |
-| `--ink-2` | `#a4b4aa` | Secondary text, captions, sources |
+| `--ink-2` | `#b7c5bc` | Secondary text, captions, sources (5.5:1 even on glass over bright ground) |
 | `--line` | `#26362d` | Solid dividers and borders |
 
 ### Risk (the only color)
@@ -43,7 +43,7 @@ Levels: score under 35 is low, 35 to 64 is medium, 65 and up is high.
 
 | Token | Value |
 |---|---|
-| `--glass-bg` | `rgba(16, 24, 20, 0.62)` (allowed range 0.55 to 0.7) |
+| `--glass-bg` | `rgba(16, 24, 20, 0.68)` (allowed range 0.55 to 0.7; 0.68 keeps text above 4.5:1 over bright ground) |
 | `--glass-border` | `rgba(233, 238, 232, 0.14)` |
 | `--glass-highlight` | `rgba(255, 255, 255, 0.06)` (1px inner top edge) |
 
@@ -91,7 +91,7 @@ Body text maximum width 65ch. Sentence case everywhere. No em-dashes in any visi
 
 ## 6. Depth and elevation
 
-Depth comes from blur and a hairline border, not shadow. Three levels only: map (0), glass panels (1), modal slide-over such as Data and limits (2, with a 40% ink-tinted scrim).
+Depth comes from blur and a hairline border, not shadow. Three levels only: map (0), glass panels (1), modal slide-over such as Data and limits (2, with a 70% paper-tinted dark scrim).
 
 ## 7. Do and don't
 
@@ -137,7 +137,7 @@ Don't:
 ## 9. Agent prompt guide
 
 Quick reference when generating UI for this project:
-- Dark only. Background `#0e1512`, text `#e9eee8`, secondary `#a4b4aa`.
+- Dark only. Background `#0e1512`, text `#e9eee8`, secondary `#b7c5bc`.
 - Risk colors `#5db67f` `#e0a83a` `#e5675a`. Nothing else is colored.
 - Panels use the `.glass` utility. Controls radius 8, panels 16, buttons 44px high.
 - Motion with `motion/react`, 150 to 300ms, transform and opacity only, honor reduced motion.

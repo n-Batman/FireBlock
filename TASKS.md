@@ -71,7 +71,7 @@ Workflow: pull before you start → work on your own branch (`milo/...` or `part
 | M15 | `web/DESIGN.md`: palette, type, glass spec, motion, scanner visual language | DONE |
 | M16 | Premium map shell: full-bleed satellite map, glass panels, weather strip, motion | DONE |
 | M17 | Live scanner UI at `/scan`: camera, reticle, boxes, stub `/api/scan`, demo mode, score feed | DONE (needs real demo clip: M6) |
-| M18 | Polish pass on every screen: focus, tap targets, contrast, keyboard, states | DOING (Milo/Claude) |
+| M18 | Polish pass on every screen: focus, tap targets, contrast, keyboard, states | DONE |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
@@ -82,3 +82,6 @@ Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to custo
 ## Decisions log
 - Fri Nov 13: Stack is Next.js + Leaflet + Tailwind with JSON fixtures, deployed on Vercel. Hero user is the vineyard owner; insurers are the buyer of the data.
 - Fri Nov 13: Detailed frontend plan in `docs/superpowers/plans/2026-11-13-fireblock-frontend.md`, design in `docs/superpowers/specs/`.
+- Fri Nov 13: Shared contract `web/src/data/types.ts` changed (partner, please read): `Weather` added to `Property` (wind, humidity, Red Flag, updatedAt), `"photoScan"` added to `FactorKey`, and the scan types `Finding`, `ScanResponse` and `SCAN_JSON_SCHEMA` added. Block names in the fixtures are now real names ("Ridge Top"), not "Block N".
+- Fri Nov 13: `/api/scan` is a STUB (canned findings, 400-800 ms delay). Partner swaps in the OpenAI call (gpt-4.1-mini, Responses API, strict `json_schema` from `SCAN_JSON_SCHEMA`) and keeps the response shape. Requests with `demoTime` must keep using `demoFindingsAt` so the judges' run is the same every time.
+- Fri Nov 13: Look is dark only (see `web/DESIGN.md`). The demo clip `web/public/demo/vineyard.mp4` is not in the repo yet: needs real footage (M6), then retime `web/src/content/demoFindings.ts`.

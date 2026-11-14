@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
@@ -16,6 +16,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "FireBlock",
   description: "Block-by-block fire prep planning for vineyards.",
+};
+
+// Dark browser chrome, and room for notches (the screens use env(safe-area-inset-*)).
+export const viewport: Viewport = {
+  themeColor: "#0e1512",
+  colorScheme: "dark",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

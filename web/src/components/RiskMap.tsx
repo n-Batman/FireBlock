@@ -1,8 +1,16 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { Fragment, useEffect, useMemo } from "react";
-import { MapContainer, Polygon, TileLayer, Tooltip, ZoomControl, useMap } from "react-leaflet";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import {
+  AttributionControl,
+  MapContainer,
+  Polygon,
+  TileLayer,
+  Tooltip,
+  ZoomControl,
+  useMap,
+} from "react-leaflet";
 import { animate } from "motion/react";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { Level, Property } from "@/data/types";
@@ -80,6 +88,8 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen }: R
   const bounds = useMemo(() => boundsOf(property), [property]);
   const wide = useWide();
   const tiles = tileSource(process.env.NEXT_PUBLIC_ARCGIS_KEY);
+  // Three failed tiles in a row means the imagery is not loading. Say so instead of staying grey.
+  const [tileErrors, setTileErrors] = useState(0);
 
   return (
     <>
@@ -99,14 +109,34 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen }: R
         </defs>
       </svg>
 
+      {tileErrors >= 3 && (
+        <p
+          role="status"
+          className="glass pointer-events-none absolute left-1/2 top-28 z-[1000] -translate-x-1/2 px-4 py-2 text-[15px] font-medium"
+        >
+          The satellite imagery is not loading. Check your connection.
+        </p>
+      )}
+
       <MapContainer
         bounds={bounds}
         boundsOptions={{ padding: [56, 56] }}
         maxZoom={19}
         zoomControl={false}
+        attributionControl={false}
         className="h-full w-full"
       >
-        <TileLayer url={tiles.url} attribution={tiles.attribution} maxZoom={19} />
+        <TileLayer
+          url={tiles.url}
+          attribution={tiles.attribution}
+          maxZoom={19}
+          eventHandlers={{
+            tileerror: () => setTileErrors((n) => n + 1),
+            tileload: () => setTileErrors(0),
+          }}
+        />
+        {/* Esri attribution stays visible. The "Leaflet" prefix link is dropped (it is a tiny tap target). */}
+        <AttributionControl prefix={false} />
         {wide && !panelOpen && <ZoomControl position="bottomright" />}
 
         {property.blocks.map((block) => {

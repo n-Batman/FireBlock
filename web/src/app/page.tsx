@@ -56,6 +56,7 @@ function MapShell() {
 
   return (
     <div className="relative h-[100dvh] overflow-hidden bg-paper">
+      <h1 className="sr-only">FireBlock fire prep map</h1>
       <div className="absolute inset-0 isolate">
         <RiskMap
           key={property.id}
@@ -66,7 +67,7 @@ function MapShell() {
         />
       </div>
 
-      <div className="pointer-events-none absolute inset-0 z-10 flex flex-col gap-2 p-4 pb-8">
+      <div className="pointer-events-none absolute inset-0 z-10 flex flex-col gap-2 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
         <TopBar
           properties={properties}
           activeId={property.id}

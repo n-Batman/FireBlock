@@ -80,17 +80,22 @@ export function ScanScreen() {
         playsInline
         aria-label="Camera view"
       />
-      {running && <ScanOverlay videoSize={session.videoSize} tracks={tracks} running />}
+      {running && (
+        <>
+          <h1 className="sr-only">Scanning {block ? block.name : "the rows"}</h1>
+          <ScanOverlay videoSize={session.videoSize} tracks={tracks} running />
+        </>
+      )}
 
       <Link
         href={mapHref}
-        className="glass pointer-events-auto absolute left-4 top-4 z-10 inline-flex h-11 items-center gap-2 px-4 text-[15px] font-medium"
+        className="glass pointer-events-auto absolute left-4 top-[max(1rem,env(safe-area-inset-top))] z-10 inline-flex h-11 items-center gap-2 px-4 text-[15px] font-medium"
       >
         <ArrowLeft size={18} aria-hidden="true" />
         Map
       </Link>
       {running && (
-        <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2">
+        <div className="absolute left-1/2 top-[max(1rem,env(safe-area-inset-top))] z-10 -translate-x-1/2">
           <StatusChip status={status} risks={risks} problem={session.problem} />
         </div>
       )}
@@ -132,7 +137,7 @@ export function ScanScreen() {
       )}
 
       {running && (
-        <div className="absolute inset-x-0 bottom-0 z-10 p-4 pb-6">
+        <div className="absolute inset-x-0 bottom-0 z-10 px-4 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <section className="glass mx-auto w-full max-w-md space-y-3 p-4" aria-label="Scan result">
             {block && from !== null && to !== null && (
               <p aria-live="polite" className="text-[15px]">
