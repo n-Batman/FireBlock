@@ -1,0 +1,60 @@
+{
+  "model_id": "fireblock-relative-risk-v1",
+  "model_kind": "mathematical",
+  "feature_schema": "fireblock.risk-features.v1",
+  "as_of": "2026-11-14T20:14:00.336306+00:00",
+  "bbox": [
+    -120.71656146374816,
+    35.71293876455776,
+    -120.62791811803811,
+    35.775891235442245
+  ],
+  "rows": 36,
+  "columns": 41,
+  "total_cells": 1476,
+  "known_cells": 1476,
+  "recent_detections": 0,
+  "ignored_detections": {
+    "future": 0,
+    "stale": 0,
+    "low_confidence": 0,
+    "duplicates": 0
+  },
+  "scenes": [
+    {
+      "id": "sentinel_10SGE_20261111",
+      "status": "considered",
+      "selected_cells": 1476
+    }
+  ],
+  "parameters": {
+    "enabled": true,
+    "as_of": "2026-11-14T20:14:00.336306+00:00",
+    "cell_km": 0.2,
+    "max_cells": 10000,
+    "samples_per_cell": 8,
+    "min_valid_fraction": 0.6,
+    "scene_max_age_days": 30,
+    "hotspot_max_age_hours": 72,
+    "hotspot_half_life_hours": 24,
+    "hotspot_radius_km": 10,
+    "dryness_weight": 0.7,
+    "hotspot_weight": 0.3,
+    "data_label": "Real Sentinel-2 L2A and NASA FIRMS: Silver River 50-box collection"
+  },
+  "prediction_available": false,
+  "data_label": "Real Sentinel-2 L2A and NASA FIRMS: Silver River 50-box collection",
+  "interpretation": "Experimental relative susceptibility index, not ignition probability or operational fire danger",
+  "formula": "100 * vegetation_proxy * (dryness_weight * dryness_proxy + hotspot_weight * hotspot_pressure) / sum(weights)",
+  "feature_transforms": {
+    "vegetation_proxy": "clip((NDVI-0.2)/0.6,0,1)",
+    "dryness_proxy": "clip((0.4-NDMI)/0.8,0,1)",
+    "hotspot_pressure": "max(exp(-distance_km/radius_km) * 2^(-age_hours/half_life_hours)) within radius"
+  },
+  "limitations": [
+    "No weather, wind, terrain, dead-fuel measurements or exposure model",
+    "Missing detections do not establish absence of fire",
+    "Coverage is sampled; cell sizes are approximate kilometres",
+    "NDVI and NDMI are spectral proxies; no local validation or calibrated probability"
+  ]
+}
