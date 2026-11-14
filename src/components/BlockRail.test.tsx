@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { BlockRail } from "./BlockRail";
 import { properties } from "@/data/properties";
 import type { ParcelUnit } from "@/data/types";
+import { scaleColor } from "@/lib/riskScale";
 import { applyScans } from "@/lib/scanStore";
 
 const adelaida = properties[0];
@@ -149,6 +150,21 @@ describe("BlockRail with county parcels", () => {
     expect(a).toHaveTextContent("Scan: 3 of 4 areas flagged");
     expect(b).toHaveTextContent("41");
     expect(b).toHaveTextContent("Risk map: 82% of the parcel covered");
+  });
+
+  it("colours a scored parcel's chip on Nick's 0 to 100 scale, so it matches his parcel fill", () => {
+    renderParcels([parcel("A-1", { score: scan })]); // 75
+    const chip = screen.getByText("High");
+    const want = document.createElement("i");
+    want.style.color = scaleColor(75);
+    want.style.backgroundColor = scaleColor(75, 0.18);
+    expect(chip.style.color).toBe(want.style.color);
+    expect(chip.style.backgroundColor).toBe(want.style.backgroundColor);
+  });
+
+  it("leaves the sample blocks' chips on the Low, Medium, High colours", () => {
+    renderRail();
+    expect(screen.getAllByText("High")[0].style.color).toBe("");
   });
 
   it("lists scored parcels first, highest score first, then the unscored by parcel number", () => {

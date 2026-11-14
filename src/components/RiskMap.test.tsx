@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { render } from "@testing-library/react";
 import { MapContainer, useMap } from "react-leaflet";
 import type { ParcelUnit } from "@/data/types";
+import { scaleColor } from "@/lib/riskScale";
 import { ParcelPolygons } from "./RiskMap";
 
 const SQUARE = (lat: number, lng: number, d: number): [number, number][] => [
@@ -106,6 +107,14 @@ describe("ParcelPolygons", () => {
     const [poly] = interactive(mount([unit("014-331-010")], null, onSelect).polygons);
     poly.fire("click");
     expect(onSelect).toHaveBeenCalledWith("014-331-010");
+  });
+
+  it("colours a parcel's score pill on Nick's 0 to 100 scale, so it matches his parcel fill", () => {
+    const [marker] = mount([unit("a", { score: { ...high, score: 12, level: "low" } })]).markers;
+    const html = (marker.options.icon as L.DivIcon).options.html as string;
+    expect(html).toContain(`color:${scaleColor(12)}`);
+    expect(html).toContain(`border-color:${scaleColor(12)}`);
+    expect(html).toContain(">12<");
   });
 
   it("puts a score pill only on a scored parcel", () => {

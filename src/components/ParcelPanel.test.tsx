@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ParcelUnit } from "@/data/types";
+import { scaleColor } from "@/lib/riskScale";
 import { ParcelPanel } from "./ParcelPanel";
 
 const ring: [number, number][] = [
@@ -46,6 +47,14 @@ describe("ParcelPanel", () => {
     expect(screen.getByText(/Scan: 3 of 4 areas flagged/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Scan again" })).toBeInTheDocument();
     expect(screen.queryByText("Not scored yet. Scan the rows to score it.")).toBeNull();
+  });
+
+  it("colours the level chip on Nick's 0 to 100 scale, so it matches his parcel fill", () => {
+    const score = { score: 12, level: "low" as const, source: { kind: "risk-map" as const, asOf: "2026-11-14T20:14:00Z", modelId: "m1", coverage: 1 } };
+    render(<ParcelPanel parcel={parcel({ score })} onClose={() => {}} />);
+    const want = document.createElement("i");
+    want.style.color = scaleColor(12);
+    expect(screen.getByText("Low").style.color).toBe(want.style.color);
   });
 
   it("shows a risk-map score with the map and its coverage as the source", () => {
