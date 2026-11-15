@@ -12,6 +12,7 @@ import { NO_BLOCKS_MESSAGE, OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessag
 import { AddressSearch } from "@/components/AddressSearch";
 import { BlockRail } from "@/components/BlockRail";
 import { DataLimitsPanel } from "@/components/DataLimitsPanel";
+import { MapLoading } from "@/components/MapLoading";
 import { Landing } from "@/components/Landing";
 import { Legend } from "@/components/Legend";
 import { ParcelPanel } from "@/components/ParcelPanel";
@@ -31,7 +32,7 @@ import type { PickedPlace } from "@/components/RiskMap";
 
 const RiskMap = dynamic(() => import("@/components/RiskMap"), {
   ssr: false,
-  loading: () => <div className="absolute inset-0 bg-paper" aria-hidden="true" />,
+  loading: () => <MapLoading />,
 });
 
 const DOWNTOWN_SLO: PickedPlace = { lat: 35.2828, lon: -120.6596, label: "Downtown SLO", id: 1 };

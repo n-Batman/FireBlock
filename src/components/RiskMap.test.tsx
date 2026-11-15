@@ -5,7 +5,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MapContainer, useMap } from "react-leaflet";
 import type { ParcelUnit } from "@/data/types";
 import { scaleColor } from "@/lib/riskScale";
-import { ParcelPolygons, ViewWatcher } from "./RiskMap";
+import RiskMap, { ParcelPolygons, ViewWatcher } from "./RiskMap";
 
 vi.hoisted(() => {
   // Canvas pixels are mocked below. Avoid queued painting callbacks surviving
@@ -357,5 +357,69 @@ describe("ParcelPolygons", () => {
   it("puts a score pill only on a scored parcel", () => {
     expect(mount([unit("a")]).markers).toHaveLength(0);
     expect(mount([unit("a", { score: high })]).markers).toHaveLength(1);
+  });
+});
+
+const overlay = vi.hoisted(() => ({ map: null as L.Map | null, active: null as ((active: boolean) => void) | null }));
+vi.mock("@/lib/ParcelOverlay", () => ({
+  ParcelOverlay: ({ onGridActive }: { onGridActive: (active: boolean) => void }) => {
+    overlay.map = useMap();
+    overlay.active = onGridActive;
+    return null;
+  },
+}));
+
+describe("RiskMap opening", () => {
+  const place = { lat: 35.63, lon: -120.86, label: "Chosen place", id: 1 };
+  const property = { id: "test", name: "Test", center: [35.63, -120.86], blocks: [] } as unknown as import("@/data/types").Property;
+  const props = { property, place, selectedId: null, onSelect: () => {}, panelOpen: false };
+  const tiles = () => {
+    let tile: L.TileLayer;
+    overlay.map!.eachLayer(layer => { if (layer instanceof L.TileLayer) tile = layer; });
+    return tile!;
+  };
+  beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] }));
+
+  it("waits for tiles and the first parcels, then fades and unmounts", () => {
+    const view = render(<RiskMap {...props} parcels={[]} />);
+    expect(screen.getByText("Loading the map…")).toBeInTheDocument();
+    act(() => { tiles().fire("load"); });
+    expect(screen.getByText("Loading the map…")).toBeInTheDocument();
+    view.rerender(<RiskMap {...props} parcels={[unit("a")]} />);
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(screen.queryByText("Loading the map…")).toBeNull();
+  });
+
+  it("also accepts the first active grid", () => {
+    render(<RiskMap {...props} parcels={[]} />);
+    act(() => { overlay.active!(true); });
+    expect(screen.getByText("Loading the map…")).toBeInTheDocument();
+    act(() => { tiles().fire("load"); });
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(screen.queryByText("Loading the map…")).toBeNull();
+  });
+
+  it("starts fading at four seconds even without tiles or data", () => {
+    render(<RiskMap {...props} />);
+    act(() => { vi.advanceTimersByTime(4000); });
+    expect(screen.getByText("Loading the map…").parentElement).toHaveClass("opacity-0");
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(screen.queryByText("Loading the map…")).toBeNull();
+  });
+
+  it("hides immediately on a tile error", () => {
+    render(<RiskMap {...props} />);
+    act(() => { tiles().fire("tileerror"); });
+    expect(screen.queryByText("Loading the map…")).toBeNull();
+  });
+
+  it("does not fit or fly on mount at a place, and flies on later picks", () => {
+    const fit = vi.spyOn(L.Map.prototype, "fitBounds");
+    const fly = vi.spyOn(L.Map.prototype, "flyTo");
+    const view = render(<RiskMap {...props} />);
+    expect(fit).not.toHaveBeenCalled();
+    expect(fly).not.toHaveBeenCalled();
+    view.rerender(<RiskMap {...props} place={{ ...place, lat: 35.64, id: 2 }} />);
+    expect(fly).toHaveBeenCalledWith([35.64, -120.86], 17, expect.any(Object));
   });
 });
