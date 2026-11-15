@@ -134,7 +134,11 @@ export function ScanScreen() {
     setSaveError(null);
     setSaving(true);
     try {
-      const here = await currentPosition(navigator.geolocation);
+      const parcelLat = Number(params.get("plat")?.trim() || NaN);
+      const parcelLon = Number(params.get("plon")?.trim() || NaN);
+      const here = session.mode === "photo" && Number.isFinite(parcelLat) && Number.isFinite(parcelLon)
+        ? { lat: parcelLat, lon: parcelLon }
+        : await currentPosition(navigator.geolocation);
       saveParcelScan(window.localStorage, { lat: here.lat, lon: here.lon, risks, clears, at: new Date().toISOString() });
       session.stop();
       router.push(`/?lat=${here.lat}&lon=${here.lon}`);

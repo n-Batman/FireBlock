@@ -4,10 +4,11 @@ import Home from "./page";
 import { FINDING_PARCELS } from "@/content/parcelCopy";
 import type { View } from "@/lib/parcelApi";
 
-const state = vi.hoisted(() => ({ wide: true, units: [] as {id: string; score: null}[], params: new URLSearchParams(), parcels: vi.fn(), weather: vi.fn() }));
+const state = vi.hoisted(() => ({ wide: true, units: [] as {id: string; score: null; center?: [number, number]; parts?: []}[], params: new URLSearchParams(), parcels: vi.fn(), weather: vi.fn() }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => state.params }));
-vi.mock("next/dynamic", () => ({ default: () => (props: { showParcels: boolean; showGrid: boolean; place: { lat: number; lon: number }; parcels: unknown[]; onGridChange: (grid:unknown)=>void; onView: (view: View) => void }) => <div data-testid="map" data-boundaries={props.showParcels} data-grid={props.showGrid} data-lat={props.place.lat} data-lon={props.place.lon} data-parcels={props.parcels.length}>
+vi.mock("next/dynamic", () => ({ default: () => (props: { onSelect: (id: string) => void; showParcels: boolean; showGrid: boolean; place: { lat: number; lon: number }; parcels: unknown[]; onGridChange: (grid:unknown)=>void; onView: (view: View) => void }) => <div data-testid="map" data-boundaries={props.showParcels} data-grid={props.showGrid} data-lat={props.place.lat} data-lon={props.place.lon} data-parcels={props.parcels.length}>
   <button onClick={()=>props.onGridChange({type:"FeatureCollection",features:[{type:"Feature",geometry:{type:"Polygon",coordinates:[[[-120.66,35.28],[-120.65,35.28],[-120.65,35.29],[-120.66,35.29],[-120.66,35.28]]]},properties:{layer:"relative_risk",cell_id:"regional",risk_score:62,model_id:"regional-model",as_of:"2026-11-14T00:00:00Z"}}]})}>Loaded regional grid</button>
+  <button onClick={() => props.onSelect("parcel/1")}>Select parcel</button>
   <button onClick={()=>props.onGridChange(null)}>Grid unavailable</button>
   <button onClick={() => props.onView({ south: 35.401, north: 35.421, west: -120.73, east: -120.696 })}>Pan map</button>
 </div> }));
@@ -73,6 +74,16 @@ describe("map starting place", () => {
     fireEvent.click(screen.getByText("Search address"));
     expect(screen.getByText("Searched address")).toBeInTheDocument();
     expect(screen.getByTestId("map")).toHaveAttribute("data-lat", "35.6");
+  });
+
+  it("includes the selected parcel center in the Scan link", () => {
+    state.params = new URLSearchParams("map=1");
+    state.units = [{ id: "parcel/1", center: [35.632, -120.853], parts: [], score: null }];
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Select parcel" }));
+    expect(screen.getByRole("link", { name: "Scan" })).toHaveAttribute(
+      "href", "/scan?parcel=parcel%2F1&plat=35.632&plon=-120.853",
+    );
   });
 
   it("preserves scan location links", () => {

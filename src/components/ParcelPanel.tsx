@@ -164,7 +164,7 @@ export function ParcelPanel({ parcel, onClose }: { parcel: ParcelUnit; onClose: 
           </div>
         )}
         <Link
-          href={`/scan?parcel=${encodeURIComponent(parcel.id)}${score?.source.kind === "scan" ? "&rescan=1" : ""}`}
+          href={`/scan?parcel=${encodeURIComponent(parcel.id)}&plat=${parcel.center[0]}&plon=${parcel.center[1]}${score?.source.kind === "scan" ? "&rescan=1" : ""}`}
           onClick={handOverSpot}
           className="inline-flex h-11 items-center gap-2 rounded-[var(--r)] border border-[var(--glass-border)] px-3 text-[15px] font-medium text-ink transition-colors hover:bg-white/5 active:scale-[0.98]"
         >

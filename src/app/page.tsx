@@ -132,7 +132,7 @@ function LiveMap({ params }: { params: URLSearchParams }) {
   };
 
   const scanHref = selectedParcel
-    ? `/scan?parcel=${encodeURIComponent(selectedParcel.id)}`
+    ? `/scan?parcel=${encodeURIComponent(selectedParcel.id)}&plat=${selectedParcel.center[0]}&plon=${selectedParcel.center[1]}`
     : "/scan";
 
   return (
