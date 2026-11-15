@@ -111,7 +111,7 @@ describe("lookupParcels", () => {
     const fetcher=vi.fn().mockResolvedValue(reply(body()));
     expect(await lookupParcelsInView({west:-120.86,south:35.63,east:-120.85,north:35.64,zoom:16},{fetcher})).toMatchObject({kind:'ok'});
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(new URL(fetcher.mock.calls[0][0],'https://local.test').searchParams.get('min_acres')).toBe('1');
+    expect(new URL(fetcher.mock.calls[0][0],'https://local.test').searchParams.get('min_acres')).toBe('0.25');
   });
   it("removes the acreage filter again at detail zoom",async()=>{
     const fetcher=vi.fn().mockResolvedValue(reply(body()));

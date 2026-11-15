@@ -225,7 +225,7 @@ describe("useParcels", () => {
     hook.rerender({view:{...detail,zoom:16}});
     expect(hook.result.current.units.map(u=>u.id)).toEqual(["A-1"]);
     await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
-    expect(fetchMock.mock.calls.some(([url])=>String(url).includes("min_acres=1"))).toBe(true);
+    expect(fetchMock.mock.calls.some(([url])=>String(url).includes("min_acres=0.25"))).toBe(true);
     hook.rerender({view:detail});
     await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
     expect(hook.result.current.units).toHaveLength(2);

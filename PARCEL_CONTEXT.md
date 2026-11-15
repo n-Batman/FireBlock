@@ -52,8 +52,8 @@ simple field names are accepted.
   over 25 km2 returns `too-wide` without requesting boundaries.
 
 Viewport lookups send `min_acres` at lower zooms: zoom 17+ includes all sizes,
-16 requires 1 acre, 15 requires 4 acres, 14 requires 16 acres, 13 requires
-64 acres, and lower zooms require 256 acres. These are fixed comparisons in
+16 requires 0.25 acre, 15 requires 1 acre, 14 requires 4 acres, 13 requires
+16 acres, and lower zooms require 64 acres. These are fixed comparisons in
 `minParcelAcres`, not screen-area calculations. Fractional zooms use the same
 intervals; missing zoom defaults to full detail. Exact-point and radius searches
 remain unfiltered.
