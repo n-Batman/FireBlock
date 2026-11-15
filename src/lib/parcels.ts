@@ -7,7 +7,7 @@ export class ParcelError extends Error {
 }
 export type ParcelProperties = { parcelId: string; source: string; fetchedAt: string };
 export type Parcels = FeatureCollection<Polygon | MultiPolygon, ParcelProperties> & {
-  metadata: { source: string; truncated: boolean; limit: number; fetchedAt: string; note: string };
+  metadata: { source: string; truncated: boolean; limit: number; fetchedAt: string; note: string; dataSource?:"bundled-geojson"|"arcgis"|"bundled-geojson+arcgis" };
 };
 export function searchGeometry(params: URLSearchParams) {
   const numeric = (key: string) => {
@@ -35,7 +35,7 @@ function envelope(w:number,s:number,e:number,n:number) {
   if (w < -180 || e > 180 || s < -85 || n > 85 || w >= e || s >= n || area > 25) throw new ParcelError("Use a valid area no larger than 25 km²; split antimeridian searches");
   return {geometry:JSON.stringify({xmin:w,ymin:s,xmax:e,ymax:n,spatialReference:{wkid:4326}}),geometryType:"esriGeometryEnvelope"};
 }
-function geometry(value: unknown): Polygon | MultiPolygon {
+export function normalizeParcelGeometry(value: unknown): Polygon | MultiPolygon {
   if (!value || typeof value !== "object") throw new ParcelError("Invalid parcel geometry from provider",502);
   const g=value as Polygon | MultiPolygon;
   if (g.type!=="Polygon" && g.type!=="MultiPolygon") throw new ParcelError("Provider must return parcel polygons",502);
@@ -62,6 +62,31 @@ export async function findParcels(params:URLSearchParams, fetcher:typeof fetch=f
   const minAcres=params.has("min_acres")?Number(params.get("min_acres")):0;
   if(params.has("min_acres")&&(!params.has("bbox")||!params.get("min_acres")?.trim()||!Number.isFinite(minAcres)||minAcres<0||minAcres>1000000))
     throw new ParcelError("min_acres requires a bbox and a value from 0 to 1000000");
+  // Local-first for SLO; custom providers retain their original adapter/namespace.
+  if(process.env.PARCEL_DATA_SOURCE!=="arcgis"&&(!process.env.PARCEL_LAYER_URL||process.env.PARCEL_LAYER_URL===DEFAULT_PARCEL_LAYER)){
+    const {findBundledParcels,bundledCoverageContains}=await import("./bundledParcels");
+    let local:Parcels;
+    try{local=await findBundledParcels(spatial,minAcres);}catch(error){
+      if(process.env.PARCEL_DATA_SOURCE==="bundled")throw error;
+      return findRemoteParcels(spatial,minAcres,fetcher);
+    }
+    if(process.env.PARCEL_DATA_SOURCE==="bundled"||local.metadata.truncated||(local.features.length>0&&bundledCoverageContains(spatial)))return local;
+    try{
+      const remote=await findRemoteParcels(spatial,minAcres,fetcher);
+      if(!local.features.length)return remote;
+      const byId=new Map(local.features.map(f=>[f.properties.parcelId,f]));
+      for(const f of remote.features)if(!byId.has(f.properties.parcelId))byId.set(f.properties.parcelId,f);
+      const combined=[...byId.values()].sort((a,b)=>a.properties.parcelId.localeCompare(b.properties.parcelId));
+      return {...local,features:combined.slice(0,MAX_PARCELS),metadata:{...local.metadata,truncated:remote.metadata.truncated||combined.length>MAX_PARCELS,
+        dataSource:"bundled-geojson+arcgis",note:local.metadata.note+" County service queried for uncovered area; matching APNs deduplicated."}};
+    }catch(error){
+      if(!local.features.length)throw error;
+      return {...local,metadata:{...local.metadata,truncated:true,note:local.metadata.note+" County fallback unavailable; only local matches returned, coverage incomplete."}};
+    }
+  }
+  return findRemoteParcels(spatial,minAcres,fetcher);
+}
+async function findRemoteParcels(spatial:ReturnType<typeof searchGeometry>,minAcres:number,fetcher:typeof fetch):Promise<Parcels>{
   const source=process.env.PARCEL_LAYER_URL || DEFAULT_PARCEL_LAYER;
   const url=new URL(source);
   if (url.protocol!=="https:" || !/\/(MapServer|FeatureServer)\/\d+\/?$/.test(url.pathname) || url.search || url.username || url.password) throw new ParcelError("Invalid configured parcel layer",503);
@@ -92,7 +117,7 @@ export async function findParcels(params:URLSearchParams, fetcher:typeof fetch=f
   if (data.error || data.type!=="FeatureCollection" || !Array.isArray(data.features)) throw new ParcelError("Parcel provider did not return queryable GeoJSON",502);
   const fetchedAt=new Date().toISOString();
   return {type:"FeatureCollection",features:data.features.slice(0,MAX_PARCELS).map((f:{geometry:unknown;properties:Record<string,unknown>;id?:string|number})=>({
-    type:"Feature",geometry:geometry(f.geometry),properties:{parcelId:String(f.properties?.[apn] ?? f.properties?.[oid] ?? f.id ?? "Unknown"),source,fetchedAt},
+    type:"Feature",geometry:normalizeParcelGeometry(f.geometry),properties:{parcelId:String(f.properties?.[apn] ?? f.properties?.[oid] ?? f.id ?? "Unknown"),source,fetchedAt},
   })),metadata:{source,truncated:data.features.length>MAX_PARCELS || data.exceededTransferLimit===true || data.properties?.exceededTransferLimit===true,
-    limit:MAX_PARCELS,fetchedAt,note:"GIS parcel outlines for planning; not surveyed boundaries. No fire-risk score is inferred."}};
+    limit:MAX_PARCELS,fetchedAt,dataSource:"arcgis",note:"GIS parcel outlines for planning; not surveyed boundaries. No fire-risk score is inferred."}};
 }

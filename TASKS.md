@@ -101,6 +101,8 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 
 | P59 | Backend OpenAI grant narrative, evidence PDF and private cloud report archive | DONE (Codex; private create/download API, validated county APNs and stored scan pairs, deterministic facts and vector map, manifest-last B2 archive; 41 focused checks, TypeScript/lint/build pass; 721 full-suite passes and 3 reproduced baseline map-test failures; live private B2 PDF read-back verified; local OpenAI key/write token require configuration) |
 
+| P60 | Serve supplied SLO parcel GeoJSON from the backend without county query dependence | DONE (Codex; 17,468 unique APNs in 1.86 MB server snapshot; spatial index, local-first with county fallback for gaps/outside coverage, deduplication and incomplete-result preservation; 56 focused checks, lint/TypeScript/production build and live production API pass; four API asset traces verified; 3 pre-existing map reload test failures remain) |
+
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |
 |---|---|---|

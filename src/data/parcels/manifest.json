@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source_filename": "Parcels.geojson",
+  "source_sha256": "d0b536f203594430d75944500e81309c0fff5e9408d59f68522f850ad282a31b",
+  "source_features": 17469,
+  "parcel_count": 17468,
+  "bounds": [
+    -120.73737304440567,
+    35.220762571904416,
+    -120.60425566160863,
+    35.31953274624371
+  ],
+  "imported_at": "2026-11-15T19:45:59.706Z",
+  "compressed_bytes": 1862113,
+  "compressed_sha256": "a808090661765f4387dc003ea81feebf3889cdfa501d87f0005a88f8671d5469",
+  "note": "User-supplied SLO-area export; APN and polygon geometry only. Duplicate APN pieces unioned. Owner links, notes and other source attributes removed."
+}

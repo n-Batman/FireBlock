@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/risk-grid": ["./src/data/real-runs/*/risk_map.geojson"],
+    "/api/parcels": ["./src/data/parcels/*.geojson.gz"],
+    "/api/parcel-display": ["./src/data/parcels/*.geojson.gz"],
+    "/api/parcel-scans": ["./src/data/parcels/*.geojson.gz"],
+    "/api/grant-reports": ["./src/data/parcels/*.geojson.gz"],
   },
   /* config options here */
   // Dev server only: lets a phone load it through a Cloudflare quick tunnel.
