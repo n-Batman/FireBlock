@@ -104,34 +104,63 @@ export function lch(r: number, g: number, b: number): [number, number, number] {
   return [116 * fy - 16, Math.hypot(a, bb), hue < 0 ? hue + 360 : hue];
 }
 
+/*
+ * Colour thresholds, all on the white-balanced frame. Fitted by coordinate descent on the v2 eval's training 70% (fixed
+ * split by id, `heldOut` in scripts/eval/common.ts) against overlay MAE, area gap and dirt false positives; the
+ * held-out 30% went from overlay MAE 15.4 to 13.8 with dirt false positives still 0/11.
+ */
+/** Darker (shade, trunks) or greyer (posts, wire, haze) than this is never rated. CIE L* and chroma. */
+const MIN_L = 20;
+const MIN_CHROMA = 8;
+/** Canopeo's green test (Patrignani & Ochsner 2015): R/G and B/G under a ratio and 2G - R - B over 20. The paper's ratio is 0.95; 1.05 fitted better here, and a live mask allows 1.1 (sunlit yellow-green grass). */
+const GREEN_RATIO = 1.05;
+const LIVE_GREEN_RATIO = 1.1;
+const GREEN_BG = 0.95;
+const GREEN_EXCESS = 20;
+/** Straw by CIE Lab hue angle: cured grass is yellow (76 to 105 degrees), bare dirt is redder (lower), green is higher. */
+const STRAW_HUE: [number, number] = [76, 105];
+const STRAW_CHROMA: [number, number] = [18, 60];
+const STRAW_L = 50;
+/** Inside a dry mask: redder dead grass counts from 50 degrees, from L* 30, and anything pale (chroma 2 to 12: bleached or pinkish) whatever its hue. */
+const DRY_HUE = 50;
+const DRY_L = 30;
+const DRY_CHROMA = 2;
+const PALE_CHROMA = 12;
+/** Inside a live mask only yellower-than-lawn straw is risk (up to 95 degrees). */
+const LIVE_STRAW_HUE = 95;
+
+/** Green by Canopeo's ratios on the raw channels. ExGR > 0 (Meyer & Neto 2008) was tried on top and cost 1.8 pts of overlay MAE on the training split, so it is not used. */
+function isGreen(r: number, g: number, b: number, ratio: number): boolean {
+  return r < ratio * g && b < GREEN_BG * g && 2 * g - r - b > GREEN_EXCESS;
+}
+
+const inBand = (v: number, [lo, hi]: [number, number]) => v >= lo && v <= hi;
+
 /**
- * One pixel's colour class. ponytail: fixed HSV bands tuned on SRV1/3/6/9; a per-camera white balance would
- * tighten them. Dark pixels (shade, trunks) and greys (posts, wire, sky haze) stay neutral.
+ * One pixel's colour class. Dark pixels (shade, trunks) and greys (posts, wire, sky haze) stay neutral. Cured grass
+ * and straw are told from soil by the CIE Lab hue angle: straw is yellower (higher angle), bare dirt redder (lower).
  */
 export function colourOf(r: number, g: number, b: number): Label {
-  const [h, s, v] = hsv(r, g, b);
-  if (v < 0.3 || s < 0.14) return NEUTRAL;
-  if (h >= 62 && h <= 170) return CLEAR;
-  // Cured grass and straw: yellow-tan hue, light. Redder browns (bare dirt, h < 31) and dark browns
-  // (trunks, bark, dormant canes, v < 0.48) are not fuel by colour.
-  if (h >= 31 && h < 62 && s >= 0.2 && s <= 0.75 && v >= 0.48) return RISK;
-  return NEUTRAL;
+  const [l, c, h] = lch(r, g, b);
+  if (l < MIN_L || c < MIN_CHROMA) return NEUTRAL;
+  if (isGreen(r, g, b, GREEN_RATIO)) return CLEAR;
+  return inBand(h, STRAW_HUE) && inBand(c, STRAW_CHROMA) && l >= STRAW_L ? RISK : NEUTRAL;
 }
 
-/** Inside a dry mask the risk band is wider: pale, pinkish and shaded dead grass counts. Clearly green is clear. */
+/** Inside a dry mask the risk band is wider: redder, pale, pinkish and shaded dead grass counts. Clearly green is clear. */
 export function dryColourOf(r: number, g: number, b: number): Label {
-  const [h, s, v] = hsv(r, g, b);
-  if (v < 0.25) return NEUTRAL;
-  if (h >= 62 && h <= 170) return s >= 0.14 && v >= 0.3 ? CLEAR : NEUTRAL;
-  return s >= 0.08 && (h >= 345 || h < 62) ? RISK : NEUTRAL;
+  const [l, c, h] = lch(r, g, b);
+  if (l < DRY_L) return NEUTRAL;
+  if (isGreen(r, g, b, GREEN_RATIO)) return c >= MIN_CHROMA ? CLEAR : NEUTRAL;
+  if (c < DRY_CHROMA) return NEUTRAL;
+  return c <= PALE_CHROMA || (h >= DRY_HUE && h <= STRAW_HUE[1]) ? RISK : NEUTRAL;
 }
 
-/** Inside a live mask sunlit yellow-green grass (hue 50-62) is clear; only truly tan/straw pixels (hue 31-50) are risk. */
+/** Inside a live mask sunlit yellow-green grass is clear (a looser R/G); only truly tan/straw pixels are risk. */
 export function liveColourOf(r: number, g: number, b: number): Label {
-  const [h, s, v] = hsv(r, g, b);
-  if (h >= 50 && h <= 170 && s >= 0.14 && v >= 0.3) return CLEAR;
-  if (h >= 31 && h < 50 && s >= 0.25 && s <= 0.75 && v >= 0.48) return RISK;
-  return NEUTRAL;
+  const [l, c, h] = lch(r, g, b);
+  if (isGreen(r, g, b, LIVE_GREEN_RATIO) && c >= MIN_CHROMA && l >= MIN_L) return CLEAR;
+  return h >= STRAW_HUE[0] && h <= LIVE_STRAW_HUE && inBand(c, STRAW_CHROMA) && l >= STRAW_L ? RISK : NEUTRAL;
 }
 
 /** Luminance standard deviation in a (2r+1)² window around every pixel (summed-area tables). */

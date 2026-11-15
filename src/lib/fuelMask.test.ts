@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, CLEAR, colourOf, liveColourOf, NEUTRAL, RISK, riskAreas, smooth, verdict, whiteBalance } from "./fuelMask";
+import { classify, CLEAR, colourOf, dryColourOf, liveColourOf, NEUTRAL, RISK, riskAreas, smooth, verdict, whiteBalance } from "./fuelMask";
 
 const px = (...rgb: [number, number, number][]) => Uint8ClampedArray.from(rgb.flatMap(([r, g, b]) => [r, g, b, 255]));
 const STRAW: [number, number, number] = [200, 170, 110]; // cured grass
@@ -8,6 +8,7 @@ const SKY: [number, number, number] = [90, 140, 210];
 const DIRT: [number, number, number] = [170, 120, 90]; // redder brown
 const TRUNK: [number, number, number] = [90, 70, 50]; // dark brown
 const POST: [number, number, number] = [150, 150, 150];
+const PALE: [number, number, number] = [205, 185, 180]; // pinkish dead grass
 
 describe("colourOf", () => {
   it("rates straw as risk and green as clear", () => {
@@ -17,6 +18,15 @@ describe("colourOf", () => {
 
   it("keeps sky, posts, dark trunks and reddish dirt neutral", () => {
     expect([SKY, POST, TRUNK, DIRT].map((c) => colourOf(...c))).toEqual([NEUTRAL, NEUTRAL, NEUTRAL, NEUTRAL]);
+  });
+});
+
+describe("dryColourOf", () => {
+  it("counts yellow and pale dead grass but not red-brown soil, even inside a dry mask", () => {
+    const RED_SOIL: [number, number, number] = [150, 90, 70]; // Lab hue 43: redder than any cured grass
+    expect([STRAW, PALE, DIRT].map((c) => dryColourOf(...c))).toEqual([RISK, RISK, RISK]);
+    expect(dryColourOf(...RED_SOIL)).toBe(NEUTRAL);
+    expect(dryColourOf(...GREEN)).toBe(CLEAR);
   });
 });
 
@@ -63,7 +73,6 @@ describe("liveColourOf", () => {
   });
 });
 
-const PALE: [number, number, number] = [205, 185, 180]; // pinkish dead grass
 const masks = (dry: number[], live: number[], exclude: number[]) => ({ dry: Uint8Array.from(dry), live: Uint8Array.from(live), exclude: Uint8Array.from(exclude) });
 
 describe("classify", () => {
