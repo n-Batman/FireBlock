@@ -117,6 +117,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | M25 | Reconcile the SAM overlay to the headline dry_pct inside `scan()` (gate, fill, trim) | DONE (v2 VLM gap 54/153 to 38/153, mean 19.8 to 12.0; pass/MAE and dirt FP unchanged) |
 | M26 | Scan screen survives a demo with the camera or APIs down: offline sample photos, request timeouts, Retry, capture guidance | DONE (2 own SRV stills with saved masks and estimate; no saved notes yet) |
 | M27 | Reject blurry, dark or foggy photos before the scanner and ask for a retake (local pixel stats only) | DONE (0/163 good eval photos rejected; the 7 snow/fog negatives have real contrast and still pass, so the estimate handles them) |
+| M28 | Photo mode shows the whole photo (contain at the top, under the controls) with its map aligned; camera overlay follows rotation | DONE (`mapBoxToRect` fit "contain-top", `FuelOverlay` fit prop, video "resize" updates videoSize; checked at 375x812) |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
