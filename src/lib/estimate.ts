@@ -45,6 +45,7 @@ Golden, tan or straw cured grass counts as dry even with a green tint, but only 
 Brown, tan, red or grey ground with no standing plants is soil even when it is a big uniform field: plowed or tilled fields, furrows, clods and crop-residue stubble are "soil". When unsure whether a tan area is soil or grass, call it soil.
 Snow, frost and fog-covered ground with no plants clearly standing in it means dry_pct 0 and veg_frac 0. Dormant leafless vines, canes and branches are canopy, not ground vegetation.
 Measure veg_frac and dry_pct only over the plants you can actually see; a dirt road or field with a few plants has a small veg_frac.
+dry_pct is the percentage of dead or cured material in the ground vegetation, on a grassland curing scale: 0 to 20 is still mostly green (seed heads may be present); 50 is about half green and half yellow or straw; 70 to 80 is mostly straw with only a little green left; 100 is fully bleached with no green. Some grasses turn red-brown or reddish-purple as they cure; that still counts as cured, not healthy green.
 Return dry_pct (percent of the ground vegetation that is dry, 0 if there is none), veg_frac (share of the frame that is ground vegetation) and a ${EST_ROWS} x ${EST_COLS} grid over the frame labelling each cell by what mostly fills it: "dry" (dry ground vegetation), "live" (green ground vegetation), "soil" (bare soil, road, gravel, sand, snow) or "other" (canopy, trunks, posts, sky, buildings).`;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
