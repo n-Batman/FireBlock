@@ -6,6 +6,9 @@ import type { View } from "./parcelApi";
 import { clearParcelCache } from "./parcelCache";
 import { ParcelScoreCache } from "./parcelScoreCache";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
+import * as parcelApi from "./parcelApi";
+import {toParcelUnits} from "./parcelUnits";
+import type {Parcels} from "./parcels";
 
 vi.mock("@turf/boolean-point-in-polygon",async importOriginal=>{
   const actual=await importOriginal<typeof import("@turf/boolean-point-in-polygon")>();
@@ -72,6 +75,68 @@ const detail:View={west:-120.87,south:35.62,east:-120.84,north:35.64,zoom:17};
 const useParcels=(place:Parameters<typeof useViewportParcels>[0],view:View|null=detail)=>useViewportParcels(place,view);
 
 describe("useParcels", () => {
+  it("reuses displayed parcel objects for cloned and reordered identical APN results",async()=>{
+    routes();
+    const raw=toParcelUnits(parcelsBody as Parcels);
+    vi.spyOn(parcelApi,"lookupParcelsInView")
+      .mockResolvedValueOnce({kind:"ok",units:raw,truncated:false})
+      .mockResolvedValueOnce({kind:"ok",units:structuredClone(raw).reverse(),truncated:false})
+      .mockResolvedValueOnce({kind:"ok",units:structuredClone(raw),truncated:true});
+    const place=at(1);
+    const hook=renderHook(({view})=>useParcels(place,view),{initialProps:{view:detail}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    const [a,b]=hook.result.current.units;
+    const get=vi.spyOn(ParcelScoreCache.prototype,"get");
+    hook.rerender({view:{...detail,west:detail.west-.0001}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    expect(hook.result.current.units[0]).toBe(a);expect(hook.result.current.units[1]).toBe(b);
+    expect(get).not.toHaveBeenCalled();
+    hook.rerender({view:{...detail,west:detail.west-.0002}});
+    await waitFor(()=>expect(hook.result.current.truncated).toBe(true));
+    expect(hook.result.current.units[0]).toBe(a);expect(hook.result.current.units[1]).toBe(b);
+    expect(get).not.toHaveBeenCalled();
+    hook.unmount();
+  });
+  it("keeps unchanged APNs when geometry changes, adds new IDs and drops missing IDs",async()=>{
+    routes();
+    const raw=toParcelUnits(parcelsBody as Parcels),changed=structuredClone(raw[1]);
+    changed.parts[0][0][1][1]+=.0001;
+    const added={...structuredClone(raw[0]),id:"C-3"};
+    vi.spyOn(parcelApi,"lookupParcelsInView")
+      .mockResolvedValueOnce({kind:"ok",units:raw,truncated:false})
+      .mockResolvedValueOnce({kind:"ok",units:[structuredClone(raw[0]),changed,added],truncated:false})
+      .mockResolvedValueOnce({kind:"ok",units:[structuredClone(raw[0]),structuredClone(added)],truncated:false});
+    const place=at(1);
+    const hook=renderHook(({view})=>useParcels(place,view),{initialProps:{view:detail}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    const [a,b]=hook.result.current.units;
+    hook.rerender({view:{...detail,west:detail.west-.0001}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    const [nextA,nextB,c]=hook.result.current.units;
+    expect(nextA).toBe(a);expect(nextB).not.toBe(b);
+    expect(nextB.parts).toBe(changed.parts);expect(c.id).toBe("C-3");
+    hook.rerender({view:{...detail,west:detail.west-.0002}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    expect(hook.result.current.units.map(u=>u.id)).toEqual(["A-1","C-3"]);
+    expect(hook.result.current.units[0]).toBe(a);expect(hook.result.current.units[1]).toBe(c);
+    hook.unmount();
+  });
+  it.each(["acres","center"] as const)("replaces an APN when its %s changes",async field=>{
+    routes();
+    const raw=toParcelUnits(parcelsBody as Parcels),changed=structuredClone(raw[0]);
+    if(field==="acres")changed.acres+=1;else changed.center[0]+=.0001;
+    vi.spyOn(parcelApi,"lookupParcelsInView")
+      .mockResolvedValueOnce({kind:"ok",units:raw,truncated:false})
+      .mockResolvedValueOnce({kind:"ok",units:[changed,structuredClone(raw[1])],truncated:false});
+    const place=at(1);
+    const hook=renderHook(({view})=>useParcels(place,view),{initialProps:{view:detail}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    const [a,b]=hook.result.current.units;
+    hook.rerender({view:{...detail,west:detail.west-.0001}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    expect(hook.result.current.units[0]).not.toBe(a);expect(hook.result.current.units[1]).toBe(b);
+    hook.unmount();
+  });
   it("filters retained units on view changes without repeating point tests or score lookups",async()=>{
     routes({risk:riskMap});
     const place=at(1);

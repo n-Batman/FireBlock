@@ -166,6 +166,7 @@ export function ParcelPolygons({
   onSelect: (id: string) => void;
 }) {
   const { individuals, areas } = useParcelDisplay(parcels, selectedId);
+  const [renderer] = useState(() => L.canvas({ padding: 0.5 }));
   const selected = parcels.find((p) => p.id === selectedId) ?? null;
   // A scored parcel's outline, fill and glow use Nick's 0 to 100 scale, like its pill and chip.
   const colorOf = (p: ParcelUnit) => (p.score ? scaleColor(p.score.score) : PARCEL_NEUTRAL);
@@ -183,6 +184,7 @@ export function ParcelPolygons({
           <Polygon
             key={parcel.id}
             positions={parcel.parts}
+            renderer={renderer}
             pathOptions={{
               color,
               fillColor: color,
