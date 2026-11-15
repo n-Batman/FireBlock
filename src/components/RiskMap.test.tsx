@@ -360,9 +360,10 @@ describe("ParcelPolygons", () => {
   });
 });
 
-const overlay = vi.hoisted(() => ({ map: null as L.Map | null, active: null as ((active: boolean) => void) | null }));
+const overlay = vi.hoisted(() => ({ map: null as L.Map | null, mask: undefined as unknown, grid: false, active: null as ((active: boolean) => void) | null }));
 vi.mock("@/lib/ParcelOverlay", () => ({
-  ParcelOverlay: ({ onGridActive }: { onGridActive: (active: boolean) => void }) => {
+  ParcelOverlay: ({ onGridActive, parcelMask, showGrid }: { onGridActive: (active: boolean) => void; parcelMask: unknown; showGrid: boolean }) => {
+    overlay.mask = parcelMask; overlay.grid = showGrid;
     overlay.map = useMap();
     overlay.active = onGridActive;
     return null;
@@ -379,6 +380,27 @@ describe("RiskMap opening", () => {
     return tile!;
   };
   beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] }));
+
+  it("toggles boundaries independently and removes their grid mask", () => {
+    render(<RiskMap {...props} parcels={[unit("a")]} />);
+    const polygons = () => {
+      const layers: L.Polygon[] = [];
+      overlay.map!.eachLayer(layer => { if(layer instanceof L.Polygon) layers.push(layer); });
+      return layers;
+    };
+    expect(polygons()).toHaveLength(1);
+    expect(overlay.mask).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", {name:"Property boundaries"}));
+    expect(polygons()).toHaveLength(0);
+    expect(overlay.mask).toEqual([]);
+    expect(overlay.grid).toBe(true);
+    fireEvent.click(screen.getByRole("button", {name:"Risk grid"}));
+    expect(overlay.grid).toBe(false);
+    expect(screen.getByRole("button", {name:"Risk grid"})).toHaveAttribute("aria-pressed","false");
+    fireEvent.click(screen.getByRole("button", {name:"Property boundaries"}));
+    expect(polygons()).toHaveLength(1);
+    expect(overlay.mask).toHaveLength(1);
+  });
 
   it("waits for tiles and the first parcels, then fades and unmounts", () => {
     const view = render(<RiskMap {...props} parcels={[]} />);
