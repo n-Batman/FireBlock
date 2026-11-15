@@ -4,6 +4,13 @@ import { PARCEL_SCAN_KEY } from "./parcelScanStore";
 import { useParcels as useViewportParcels } from "./useParcels";
 import type { View } from "./parcelApi";
 import { clearParcelCache } from "./parcelCache";
+import { ParcelScoreCache } from "./parcelScoreCache";
+import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
+
+vi.mock("@turf/boolean-point-in-polygon",async importOriginal=>{
+  const actual=await importOriginal<typeof import("@turf/boolean-point-in-polygon")>();
+  return {...actual,default:vi.fn(actual.default)};
+});
 
 const square = (lon: number, lat: number, w: number) => [
   [lon, lat], [lon + w, lat], [lon + w, lat + w], [lon, lat + w], [lon, lat],
@@ -54,6 +61,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   clearParcelCache();
   fetchMock.mockReset();
   vi.unstubAllGlobals();
@@ -64,6 +72,42 @@ const detail:View={west:-120.87,south:35.62,east:-120.84,north:35.64,zoom:17};
 const useParcels=(place:Parameters<typeof useViewportParcels>[0],view:View|null=detail)=>useViewportParcels(place,view);
 
 describe("useParcels", () => {
+  it("filters retained units on view changes without repeating point tests or score lookups",async()=>{
+    routes({risk:riskMap});
+    const place=at(1);
+    const hook=renderHook(({view}:{view:View|null})=>useViewportParcels(place,view),{initialProps:{view:detail as View|null}});
+    await waitFor(()=>expect(hook.result.current.units[0]?.score?.score).toBe(40));
+    const [a,b]=hook.result.current.units;
+    expect(a.atPoint).toBe(true);expect(b.atPoint).toBe(false);
+    const get=vi.spyOn(ParcelScoreCache.prototype,"get");
+    vi.mocked(booleanPointInPolygon).mockClear();
+    hook.rerender({view:{...detail,east:-120.852}});
+    expect(hook.result.current.units).toEqual([a]);
+    expect(hook.result.current.units[0]).toBe(a);
+    expect(get).not.toHaveBeenCalled();
+    // The API cache may test viewport corners; only chosen-point work belongs
+    // to this memo and must stay unchanged on pan.
+    const pointTests=()=>vi.mocked(booleanPointInPolygon).mock.calls.filter(([p])=>
+      "geometry" in p&&p.geometry.coordinates[0]===place.lon&&p.geometry.coordinates[1]===place.lat);
+    expect(pointTests()).toHaveLength(0);
+    // Too-wide replies do not replace the retained display/evidence version.
+    hook.rerender({view:{west:-121,south:35.5,east:-120.5,north:36,zoom:10}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("zoom"));
+    expect(hook.result.current.units[0]).toBe(a);
+    expect(hook.result.current.units[1]).toBe(b);
+    expect(get).not.toHaveBeenCalled();
+    expect(pointTests()).toHaveLength(0);
+    hook.unmount();
+  });
+  it("recomputes atPoint when the chosen coordinates change within the same display",async()=>{
+    routes();
+    const hook=renderHook(({place})=>useParcels(place),{initialProps:{place:at(1)}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    expect(hook.result.current.units.map(u=>u.atPoint)).toEqual([true,false]);
+    hook.rerender({place:at(1,35.632,-120.848)});
+    expect(hook.result.current.units.map(u=>u.atPoint)).toEqual([false,true]);
+    hook.unmount();
+  });
   it('loads real parcel units through the browser cache with a native-style fetch receiver check',async()=>{
     fetchMock.mockImplementation(function(this:unknown,url:string){
       if(this!==undefined&&this!==globalThis)throw new TypeError('Illegal invocation');

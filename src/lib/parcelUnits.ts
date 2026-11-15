@@ -5,6 +5,8 @@ import { labelPoint, pointInPolygon, type LatLng } from "./geo";
 import type { Parcels } from "./parcels";
 
 const ACRES_PER_M2 = 1 / 4046.8564224;
+const CENTER_CACHE_LIMIT = 256;
+const centers = new Map<string, LatLng>();
 
 // GeoJSON is [lon, lat]. Leaflet is [lat, lng]. These two functions are the only place that flips.
 const flip = ([lon, lat]: Position): LatLng => [lat, lon];
@@ -40,12 +42,24 @@ function centerOf(parts: PolygonRings[]): LatLng {
   return middle;
 }
 
+function cachedCenterOf(id: string, parts: PolygonRings[]): LatLng {
+  // Preserve the part/ring structure so holes and multipart changes miss too.
+  const key = JSON.stringify([id, parts.map((rings) => rings.map((ring) => ring.length))]);
+  let center = centers.get(key);
+  if (center) centers.delete(key); // Refresh insertion order for LRU eviction.
+  else center = centerOf(parts);
+  centers.set(key, center);
+  if (centers.size > CENTER_CACHE_LIMIT) centers.delete(centers.keys().next().value!);
+  // Callers own their unit; mutating its center must not poison later responses.
+  return [...center];
+}
+
 /** The county's GeoJSON parcels as map units: [lat, lng] rings, acres from the geometry, no score yet. */
 export function toParcelUnits(parcels: Parcels): ParcelUnit[] {
   return parcels.features.map((f) => {
     const polygons = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
     const parts: PolygonRings[] = polygons.map((rings) => rings.map((ring) => ring.map(flip)));
-    return { id: f.properties.parcelId, parts, acres: area(f.geometry) * ACRES_PER_M2, center: centerOf(parts), score: null };
+    return { id: f.properties.parcelId, parts, acres: area(f.geometry) * ACRES_PER_M2, center: cachedCenterOf(f.properties.parcelId, parts), score: null };
   });
 }
 
