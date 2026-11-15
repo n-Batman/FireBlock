@@ -1,43 +1,47 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { scaleColor } from "./riskScale";
+import { RISK_STOPS, scaleColor } from "./riskScale";
+
+function rgbAt(score: number) {
+  return scaleColor(score).match(/\d+/g)!.map(Number);
+}
+
+function luminance(score: number) {
+  const [r, g, b] = rgbAt(score).map(value => {
+    const channel = value / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
 
 describe("scaleColor", () => {
-  it("is yellow at 0 and red at 100, on Nick's 0 to 100 scale", () => {
-    expect(scaleColor(0)).toBe("hsl(45 75% 75%)");
-    expect(scaleColor(100)).toBe("hsl(0 75% 37%)");
+  it("uses the exact stop colours and gets darker as risk increases", () => {
+    RISK_STOPS.forEach(({ score, rgb }, index) => {
+      expect(rgbAt(score)).toEqual(rgb);
+      if (index > 0) expect(luminance(score)).toBeLessThan(luminance(RISK_STOPS[index - 1].score));
+    });
   });
 
-  it("moves smoothly between: hue falls 0.45 and lightness 0.38 per point", () => {
-    expect(scaleColor(12)).toBe(`hsl(${45 - 12 * 0.45} 75% ${75 - 12 * 0.38}%)`);
-    expect(scaleColor(50)).toBe("hsl(22.5 75% 56%)");
+  it("interpolates between stops and clearly separates scores of 12 and 24", () => {
+    expect(rgbAt(12)).toEqual(rgbAt(8).map((channel, i) => Math.round((channel + rgbAt(16)[i]) / 2)));
+    expect(rgbAt(12)[1] - rgbAt(24)[1]).toBeGreaterThan(60);
   });
 
   it("can be made see-through for a chip background", () => {
-    expect(scaleColor(50, 0.18)).toBe("hsl(22.5 75% 56% / 0.18)");
+    expect(scaleColor(50, 0.18)).toBe(`rgba(${rgbAt(50).join(", ")}, 0.18)`);
   });
 
   it("keeps a score outside 0 to 100 on the scale", () => {
     expect(scaleColor(-5)).toBe(scaleColor(0));
     expect(scaleColor(140)).toBe(scaleColor(100));
+    expect(scaleColor(100)).toBe(scaleColor(90));
   });
 });
 
-describe("the same colours as Nick's parcel fill", () => {
-  // His overlay builds the fill inline: hsl(${45-score*.45} 75% ${75-score*.38}%). It is not exported
-  // and is not mine to change, so this reads his source and checks my function against his formula.
+it("uses the shared scale for both overlay fills without an inline HSL formula", () => {
   const source = readFileSync(resolve(process.cwd(), "src/lib/ParcelOverlay.tsx"), "utf8");
-  const formulas = [...source.matchAll(/hsl\(\$\{([^}]+)\} 75% \$\{([^}]+)\}%\)/g)];
-
-  it("finds his formula in his overlay (if this fails, his colour scale moved)", () => {
-    expect(formulas.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it.each([0, 4, 12, 24.6, 40, 67, 100])("gives the same colour for a score of %s", (score) => {
-    for (const [, hue, light] of formulas) {
-      const his = new Function("score", `return \`hsl(\${${hue}} 75% \${${light}}%)\`;`)(score) as string;
-      expect(scaleColor(score)).toBe(his);
-    }
-  });
+  expect(source).toMatch(/import\s+\{\s*scaleColor\s*\}\s+from\s+["']\.\/riskScale["']/);
+  expect(source.match(/fillColor:[^\n]*\bscaleColor\(score\)/g)).toHaveLength(2);
+  expect(source).not.toMatch(/\bhsl\(\$\{/);
 });

@@ -10,6 +10,7 @@ import { gridOutsideParcels, gridSignature } from "./gridCoverage";
 import { insideSlo } from "./geocode";
 import { OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
 import { fetchParcelResponse } from "./parcelCache";
+import { scaleColor } from "./riskScale";
 
 /** Independent parcel geometry; never changes or invents risk block scores. `lookup` is a place picked in the address search; a new `id` runs a new lookup. `onPoint` reports the point of a latitude/longitude or "Pick on map" lookup. */
 export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,showGridByDefault=true,parcelMask}:{center:[number,number];onGridActive?:(active:boolean)=>void;onGridChange?:(grid:RiskGrid|null)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void;showGridByDefault?:boolean;parcelMask?:(Polygon|MultiPolygon)[]}) {
@@ -164,14 +165,14 @@ export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,s
     {visible && data && !managedParcels && <Pane name="parcel-boundaries" style={{zIndex:450}}>
       <GeoJSON key={`${data.metadata.fetchedAt}-${gridRevision}`} data={projection.data??data} style={feature=>{
         const p=feature?.properties;const score=p?.risk_score;
-        return {color:"#38e6ff",weight:2,fill:!!projection.data,fillColor:typeof score==="number"?`hsl(${45-score*.45} 75% ${75-score*.38}%)`:"#777777",fillOpacity:.6};
+        return {color:"#38e6ff",weight:2,fill:!!projection.data,fillColor:typeof score==="number"?scaleColor(score):"#777777",fillOpacity:.6};
       }} onEachFeature={(feature,layer)=>{
         const p=feature.properties;const label=document.createElement("span");
         label.textContent=`Parcel ${p.parcelId}`+("coverage" in p?` · ${p.risk_score===null?"Unknown / insufficient coverage":`Score ${p.risk_score.toFixed(1)}/100`} · Known area ${(p.coverage*100).toFixed(0)}% · Peak cell ${p.peak_score??"unknown"}`:"");layer.bindTooltip(label);
       }}/>
     </Pane>}
     {showGrid&&visibleGrid&&<Pane name="backend-risk-grid" style={{zIndex:410}}><GeoJSON key={`${gridRevision}-${gridSignature(visibleGrid)}`} data={visibleGrid} style={feature=>{
-      const score=feature?.properties?.risk_score;return {color:"#eeeeee",weight:1,fillColor:typeof score==="number"?`hsl(${45-score*.45} 75% ${75-score*.38}%)`:"#777777",fillOpacity:.3};
+      const score=feature?.properties?.risk_score;return {color:"#eeeeee",weight:1,fillColor:typeof score==="number"?scaleColor(score):"#777777",fillOpacity:.3};
     }}/></Pane>}
   </>;
 }

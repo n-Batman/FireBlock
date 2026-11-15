@@ -4,6 +4,7 @@ import { MapContainer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { ParcelOverlay } from "./ParcelOverlay";
 import { clearParcelCache } from "./parcelCache";
+import { scaleColor } from "./riskScale";
 import * as riskProjection from "./parcelRisk";
 import * as coverage from "./gridCoverage";
 
@@ -86,7 +87,7 @@ describe("ParcelOverlay risk-grid refresh",()=>{
     const {onGridActive}=await mountGrid();
     expect(onGridActive.mock.calls.filter(([active])=>active===true)).toHaveLength(1);
     expect(screen.getByText(/Published real-data snapshot.*1 cells.*test-model/)).toBeInTheDocument();
-    let drawn=false;map.eachLayer(layer=>{if(layer instanceof L.GeoJSON&&layer.getLayers().length)drawn=true;});
+    let drawn=false;map.eachLayer(layer=>{if(layer instanceof L.GeoJSON&&layer.getLayers().some(path=>path instanceof L.Polygon&&path.options.fillColor===scaleColor(40)))drawn=true;});
     expect(drawn).toBe(true);
     pan(35.625,-120.855);await advance(125000);
     expect(onGridActive.mock.calls.filter(([active])=>active===true)).toHaveLength(1);
