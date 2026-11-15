@@ -24,7 +24,7 @@ beforeEach(() => { state.wide = true; state.units = []; });
 it("shows the landing screen without map parameters", () => {
   state.params = new URLSearchParams();
   render(<Home />);
-  expect(screen.getByRole("heading", { name: "Know which vineyard blocks to clear before fire season." })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Know which parts of your land to clear before fire season." })).toBeInTheDocument();
   expect(screen.queryByTestId("map")).not.toBeInTheDocument();
 });
 
