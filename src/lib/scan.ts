@@ -10,17 +10,21 @@ export interface Rect {
   height: number;
 }
 
-/** Maps a 0 to 999 box onto the on-screen video, which `object-fit: cover` crops. */
+/** How the picture sits in its box: `object-fit: cover` (cropped, centred) or `object-contain object-top` (whole, at the top). */
+export type Fit = "cover" | "contain-top";
+
+/** Maps a 0 to 999 box onto the on-screen video or photo, placed as `fit` places it (cover by default). */
 export function mapBoxToRect(
   bbox: BBox,
   video: { w: number; h: number },
   box: { w: number; h: number },
+  fit: Fit = "cover",
 ): Rect {
-  const scale = Math.max(box.w / video.w, box.h / video.h);
+  const scale = fit === "cover" ? Math.max(box.w / video.w, box.h / video.h) : Math.min(box.w / video.w, box.h / video.h);
   const shownW = video.w * scale;
   const shownH = video.h * scale;
   const offsetX = (box.w - shownW) / 2;
-  const offsetY = (box.h - shownH) / 2;
+  const offsetY = fit === "cover" ? (box.h - shownH) / 2 : 0;
   const [x0, y0, x1, y1] = bbox;
   return {
     x: offsetX + (x0 * shownW) / 1000,

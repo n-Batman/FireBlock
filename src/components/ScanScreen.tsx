@@ -9,8 +9,9 @@ import { scanDelta, summarize, withScan } from "@/lib/scan";
 import { scoreOf } from "@/lib/score";
 import { currentPosition, LocationError } from "@/lib/geolocate";
 import { saveParcelScan } from "@/lib/parcelScanStore";
+import { SAMPLES } from "@/lib/samples";
 import { saveScan, scanKey } from "@/lib/scanStore";
-import { headlineVerdict, shownTracks } from "@/lib/scanView";
+import { headlineCertainty, headlineVerdict, shownTracks } from "@/lib/scanView";
 import { useScanSession } from "@/lib/useScanSession";
 import { useDemoAvailable } from "@/lib/useDemoAvailable";
 import { AreaFindingsList, FindingsList } from "./FindingsList";
@@ -38,6 +39,24 @@ function DemoSwitch({ checked, onChange }: { checked: boolean; onChange: (on: bo
       />
       <span className="relative h-7 w-12 shrink-0 rounded-full bg-white/15 transition-colors after:absolute after:left-1 after:top-1 after:size-5 after:rounded-full after:bg-ink after:transition-transform peer-checked:bg-ink peer-checked:after:translate-x-5 peer-checked:after:bg-paper peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink" />
     </label>
+  );
+}
+
+/** Saved stills that scan with no camera and no requests, for when the camera or the scanner is down. */
+function SampleButtons({ onPick, disabled }: { onPick: (id: string) => void; disabled?: boolean }) {
+  return (
+    <div role="group" aria-labelledby="sample-title" className="space-y-2">
+      <p id="sample-title" className="text-xs text-ink-2">
+        Try a sample photo
+      </p>
+      <div className="flex flex-col gap-2">
+        {SAMPLES.map((s) => (
+          <button key={s.id} type="button" onClick={() => onPick(s.id)} disabled={disabled} className={SECONDARY}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -126,8 +145,12 @@ export function ScanScreen() {
   return (
     <main className="fixed inset-0 overflow-hidden bg-paper text-ink">
       {photoMode && session.photo && (
-        // eslint-disable-next-line @next/next/no-img-element -- a local blob URL, nothing for next/image to optimise
-        <img src={session.photo.src} alt="The photo being scanned" className="absolute inset-0 h-full w-full object-cover" />
+        // The whole photo, from just under the top controls, with the page background in the empty bands; its map sits on it.
+        <div className="absolute inset-x-0 top-16 bottom-0">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a local blob URL, nothing for next/image to optimise */}
+          <img src={session.photo.src} alt="The photo being scanned" className="h-full w-full object-contain object-top" />
+          {running && fuel && <FuelOverlay videoSize={session.videoSize} map={fuel} fit="contain-top" />}
+        </div>
       )}
       <video
         ref={videoRef}
@@ -151,7 +174,7 @@ export function ScanScreen() {
             />
           )}
           {fuel ? (
-            <FuelOverlay videoSize={session.videoSize} map={fuel} />
+            !photoMode && <FuelOverlay videoSize={session.videoSize} map={fuel} />
           ) : (
             <ScanOverlay videoSize={session.videoSize} tracks={shown} running frozen={session.frozen} />
           )}
@@ -188,6 +211,9 @@ export function ScanScreen() {
               Point the camera at the rows, brush lines and buildings. FireBlock flags dry growth
               and brush touching structures, then{" "}
               {parcelMode ? "scores the parcel you are standing in." : "updates the block's score."}
+            </p>
+            <p className="mt-2 text-xs text-ink-2">
+              For the best read, point down at the ground from a couple of steps back and keep the shot sharp and bright.
             </p>
             <p className="mt-3 text-[15px]">
               {parcelMode
@@ -240,6 +266,9 @@ export function ScanScreen() {
                 Upload a photo
               </button>
             </div>
+            <div className="mt-4">
+              <SampleButtons onPick={session.startSample} disabled={session.phase === "starting"} />
+            </div>
           </section>
         </div>
       )}
@@ -247,10 +276,24 @@ export function ScanScreen() {
       {running && (
         <div className="absolute inset-x-0 bottom-0 z-10 px-4 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <section className="glass mx-auto w-full max-w-md space-y-3 p-4" aria-label="Scan result">
+            {session.problem && (photoMode || session.frozen) && (
+              <div className="space-y-3">
+                <p role="alert" className="text-[15px] text-high-ink">
+                  Could not reach the scanner. Try again, or use a sample photo.
+                </p>
+                <button type="button" onClick={session.retry} className={SECONDARY}>
+                  Retry
+                </button>
+                <SampleButtons onPick={session.startSample} />
+              </div>
+            )}
             {call && (
               <p aria-live="polite" className="text-[15px] font-semibold">
                 {call.text}
               </p>
+            )}
+            {call && headlineCertainty(fuel, session.estimate) === "uncertain" && (
+              <p className="text-xs text-ink-2">Try another angle or a sharper photo for a firmer number.</p>
             )}
             {fuel?.colourOnly && (
               <p className="text-xs text-ink-2">Colour-only estimate: the vegetation outlines did not load, so bare dirt may show as dry.</p>

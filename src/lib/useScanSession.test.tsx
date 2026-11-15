@@ -19,6 +19,11 @@ vi.mock("./fuelMask", () => ({
   loadImage: async () => ({ naturalWidth: 1024, naturalHeight: 768 }),
 }));
 const NOTE = { area: 1, label: "Cured grass", reason: "Tan and standing.", action: "Mow it." };
+/** A fixture still with its cached masks and estimate, like public/demo/samples.json. */
+const SAMPLE_MASKS = vi.hoisted(() => [{ group: "dry", polys: [[[0, 0], [20, 0], [20, 20]]] }]);
+vi.mock("./samples", () => ({
+  SAMPLES: [{ id: "fixture", label: "Fixture row", src: "/demo/fixture.jpg", masks: SAMPLE_MASKS, estimate: { dry_pct: 70, veg_frac: 0.4, grid: [["dry"]] } }],
+}));
 /** Answers like the real routes: masks from /api/segment, words from /api/findings. */
 const routes = (url: string) =>
   Promise.resolve({
@@ -183,6 +188,29 @@ describe("useScanSession", () => {
     expect(hook.result.current.frozen).toBe(false);
   });
 
+  it("updates videoSize when the video resizes (the phone was rotated)", async () => {
+    fetchMock.mockImplementation(() => new Promise(() => {}));
+    let size = { w: 1280, h: 720 };
+    const v = document.createElement("video");
+    Object.defineProperties(v, {
+      videoWidth: { get: () => size.w },
+      videoHeight: { get: () => size.h },
+      readyState: { value: 4 },
+    });
+    v.play = vi.fn(async () => {});
+    v.pause = vi.fn();
+    v.load = vi.fn();
+    const ref = { current: v };
+    const hook = renderHook(() => useScanSession(ref));
+    await act(async () => {
+      await hook.result.current.start("camera");
+    });
+    expect(hook.result.current.videoSize).toEqual({ w: 1280, h: 720 });
+    size = { w: 720, h: 1280 };
+    act(() => void v.dispatchEvent(new Event("resize")));
+    expect(hook.result.current.videoSize).toEqual({ w: 720, h: 1280 });
+  });
+
   it("asks the camera for 1920x1080 with continuous focus", async () => {
     fetchMock.mockResolvedValue(ok());
     await startSession();
@@ -209,6 +237,58 @@ describe("useScanSession", () => {
     const urls = fetchMock.mock.calls.map((c) => c[0]);
     expect(urls).toEqual(["/api/segment", "/api/estimate", "/api/findings"]);
     expect(JSON.parse(fetchMock.mock.calls[2][1].body).areas).toEqual(MAP.areas); // the words are about the measured areas only
+  });
+
+  describe("photo quality gate", () => {
+    /** A 2D context whose pixels are `luma(x, y)` grey, so the quality check reads them. */
+    const pixels = (luma: (x: number, y: number) => number) =>
+      vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+        drawImage: () => {},
+        getImageData: (_x: number, _y: number, w: number, h: number) => {
+          const data = new Uint8ClampedArray(w * h * 4);
+          for (let i = 0; i < w * h; i++) data.fill(luma(i % w, Math.floor(i / w)), i * 4, i * 4 + 3), (data[i * 4 + 3] = 255);
+          return { data };
+        },
+      } as never);
+    const upload = async () => {
+      vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 1600, height: 1200, close: () => {} })));
+      vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:photo", revokeObjectURL: () => {} }));
+      const ref = { current: liveVideo() };
+      const hook = renderHook(() => useScanSession(ref));
+      await act(async () => {
+        await hook.result.current.startPhoto(new File(["x"], "row.jpg", { type: "image/jpeg" }));
+      });
+      await advance(1);
+      return hook;
+    };
+
+    it("rejects a foggy upload with a retake message and no requests", async () => {
+      pixels(() => 235);
+      fetchMock.mockImplementation(routes);
+      const hook = await upload();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(hook.result.current.phase).toBe("error");
+      expect(hook.result.current.error).toBe("This photo is too foggy to rate. Wait for a clearer view and retake.");
+      expect(hook.result.current.photo).toBeNull();
+    });
+
+    it("maps a sharp, well-lit upload as before", async () => {
+      pixels((x, y) => ((x + y) % 2 ? 70 : 190));
+      fetchMock.mockImplementation(routes);
+      const hook = await upload();
+      expect(hook.result.current.error).toBeNull();
+      expect(fetchMock.mock.calls.map((c) => c[0])).toEqual(["/api/segment", "/api/estimate", "/api/findings"]);
+      expect(hook.result.current.fuel?.verdict.share).toBe(0.25);
+    });
+
+    it("skips dark camera frames (even sharp ones), then sends one anyway after three", async () => {
+      pixels((x, y) => ((x + y) % 2 ? 5 : 45));
+      fetchMock.mockResolvedValue(ok());
+      await startSession();
+      expect(fetchMock).not.toHaveBeenCalled();
+      await advance(300 * 3);
+      expect(fetchMock).toHaveBeenCalledTimes(2); // masks and estimate for the escape frame
+    });
   });
 
   it("falls back to colour only when segmentation fails", async () => {
@@ -267,6 +347,22 @@ describe("useScanSession", () => {
     expect(fetchMock.mock.calls.length).toBe(frozenCalls);
   });
 
+  it("(a) startSample paints the cached still's fuel map and estimate with no requests", async () => {
+    const ref = { current: liveVideo() };
+    const hook = renderHook(() => useScanSession(ref));
+    analyse.mockClear();
+    await act(async () => hook.result.current.startSample("fixture"));
+    await advance(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(hook.result.current.mode).toBe("photo");
+    expect(hook.result.current.photo?.src).toBe("/demo/fixture.jpg");
+    expect(analyse.mock.calls.at(-1)?.slice(3)).toEqual([SAMPLE_MASKS, [["dry"]], 70]); // cached masks, grid and dry_pct
+    expect(hook.result.current.fuel?.verdict.share).toBe(0.25);
+    expect(hook.result.current.estimate).toEqual({ dry_pct: 70, veg_frac: 0.4, grid: [["dry"]] });
+    expect(hook.result.current.notes).toEqual([]);
+    expect(hook.result.current.scanning).toBe(false);
+  });
+
   describe("estimate", () => {
     const photo = async () => {
       vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 800, height: 600, close: () => {} })));
@@ -291,7 +387,7 @@ describe("useScanSession", () => {
       const hook = await photo();
       await advance(1);
       expect(hook.result.current.estimate).toEqual(EST);
-      expect(headline(hook)).toMatchObject({ share: 0.6, level: "high", text: "High risk: 60% of the vegetation looks dry." });
+      expect(headline(hook)).toMatchObject({ share: 0.6, level: "high", text: expect.stringContaining("About 60%") });
       expect(hook.result.current.fuel?.verdict.share).toBe(0.25); // the SAM overlay is untouched
     });
 
@@ -377,6 +473,51 @@ describe("useScanSession", () => {
       await advance(1);
       expect(findingsBodies().map((b) => b.share)).toEqual([0.25, 0.6]); // a cache miss, not the 25% words
       expect(second.result.current.notes).toEqual([NOTE]);
+    });
+
+    it("(b) a photo whose masks hang past 20 s and whose estimate fails sets problem and stops scanning", async () => {
+      analyse.mockReturnValueOnce(null as never);
+      fetchMock.mockImplementation((url: string, init: RequestInit) =>
+        url === "/api/segment"
+          ? new Promise((_, reject) => init.signal?.addEventListener("abort", () => reject(new Error("aborted"))))
+          : Promise.resolve(failing),
+      );
+      const hook = await photo();
+      await advance(19_900);
+      expect(hook.result.current.scanning).toBe(true);
+      await advance(200);
+      expect(hook.result.current.scanning).toBe(false);
+      expect(hook.result.current.problem).toBe(true);
+    });
+
+    it("(c) Retry sends the same photo to /api/segment and /api/estimate again", async () => {
+      analyse.mockReturnValueOnce(null as never);
+      fetchMock.mockImplementation((url: string) => (url === "/api/findings" ? routes(url) : Promise.resolve(failing)));
+      const hook = await photo();
+      await advance(1);
+      expect(hook.result.current.problem).toBe(true);
+      fetchMock.mockClear();
+      fetchMock.mockImplementation(routes);
+      await act(async () => hook.result.current.retry());
+      await advance(1);
+      expect(fetchMock.mock.calls.map((c) => c[0])).toEqual(["/api/segment", "/api/estimate", "/api/findings"]);
+      expect(hook.result.current.problem).toBe(false);
+      expect(hook.result.current.fuel?.verdict.share).toBe(0.25);
+    });
+
+    it("times out the words after 12 s and shows the map without them", async () => {
+      let aborted = false;
+      fetchMock.mockImplementation((url: string, init: RequestInit) =>
+        url === "/api/findings"
+          ? new Promise((_, reject) => init.signal?.addEventListener("abort", () => ((aborted = true), reject(new Error("aborted")))))
+          : routes(url),
+      );
+      const hook = await photo();
+      await advance(11_900);
+      expect(aborted).toBe(false);
+      await advance(200);
+      expect(aborted).toBe(true);
+      expect(hook.result.current.notes).toEqual([]);
     });
 
     it("aborts the estimate when a new scan starts", async () => {

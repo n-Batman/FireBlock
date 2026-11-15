@@ -137,16 +137,38 @@ export interface ScanEstimate {
   grid: string[][];
 }
 
+/** Below this vegetation share the model had little to rate, so its dry % is shaky. */
+const MIN_VEG_FRAC = 0.05;
+/** Points the overlay share may differ from the estimate's dry % before the number is called shaky. */
+const MAX_GAP_PTS = 15;
+
+/** "uncertain" when the headline number is a fallback or the two measures disagree. Never changes the number itself. */
+export function headlineCertainty(fuel: FuelMap | null, est: ScanEstimate | null): "exact" | "uncertain" {
+  if (!est) return fuel?.verdict.share != null ? "uncertain" : "exact";
+  if (est.veg_frac > 0 && est.veg_frac < MIN_VEG_FRAC) return "uncertain";
+  const overlay = fuel?.verdict.share;
+  return overlay != null && Math.abs(est.dry_pct - overlay * 100) > MAX_GAP_PTS + 1e-9 ? "uncertain" : "exact";
+}
+
 /**
  * The headline verdict: the estimate's dry_pct when it came back, else the SAM share, else null.
- * Same 0.15 / 0.4 cut-offs as the SAM verdict.
+ * Same 0.15 / 0.4 cut-offs as the SAM verdict. When the number is shaky the text says "About N%";
+ * the share stays the exact number.
  */
 export function headlineVerdict(fuel: FuelMap | null, est: ScanEstimate | null): Verdict | null {
+  const v = rate(fuel, est);
+  if (!v || v.share === null || v.share <= 0 || headlineCertainty(fuel, est) === "exact") return v;
+  return { ...v, text: `${wordOf(v.level)}: About ${pctOf(v.share)} of the vegetation looks dry. This photo is hard to read.` };
+}
+
+const wordOf = (level: Verdict["level"]) => ({ high: "High risk", moderate: "Moderate risk", low: "Some risk", clear: "", none: "" })[level];
+const pctOf = (share: number) => (share < 0.01 ? "<1%" : `${Math.round(share * 100)}%`);
+
+function rate(fuel: FuelMap | null, est: ScanEstimate | null): Verdict | null {
   if (!est) return fuel?.verdict ?? null;
   if (est.veg_frac <= 0) return { risk: 0, clear: 0, share: null, level: "none", text: "No vegetation to rate in this frame." };
   const share = est.dry_pct / 100;
   if (share <= 0) return { risk: 0, clear: 0, share, level: "clear", text: "All clear: no dry vegetation found." };
   const level = share >= 0.4 ? "high" : share >= 0.15 ? "moderate" : "low";
-  const word = { high: "High risk", moderate: "Moderate risk", low: "Some risk" }[level];
-  return { risk: 0, clear: 0, share, level, text: `${word}: ${share < 0.01 ? "<1%" : `${Math.round(share * 100)}%`} of the vegetation looks dry.` };
+  return { risk: 0, clear: 0, share, level, text: `${wordOf(level)}: ${pctOf(share)} of the vegetation looks dry.` };
 }
