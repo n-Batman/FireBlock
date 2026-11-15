@@ -29,6 +29,7 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
   const [gridRevision,setGridRevision]=useState(0);
   const gridGeneration=useRef(0);
   const automaticGrid=useRef(true);
+  const forceGrid=useRef(false);
   const [showGrid,setShowGrid]=useState(showGridByDefault);
   const [gridMessage,setGridMessage]=useState("Load backend risk_map.geojson to color whole properties.");
   const managedParcels=parcelMask!==undefined;
@@ -56,19 +57,27 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
   },[map,showGridByDefault]);
   useEffect(()=>{
     let abort:AbortController|undefined,timer:ReturnType<typeof setTimeout>|undefined;
+    let fetchedBox:L.LatLngBounds|undefined;
     function refresh(){
       if(!automaticGrid.current)return;
+      const force=forceGrid.current;forceGrid.current=false;
+      const b=map.getBounds();
+      if(!force&&fetchedBox?.contains(b))return;
       abort?.abort();const control=new AbortController();abort=control;
-      const generation=gridGeneration.current,b=map.getBounds();
-      const bbox=[Math.max(-180,b.getWest()),Math.max(-85,b.getSouth()),Math.min(180,b.getEast()),Math.min(85,b.getNorth())].join(",");
+      const generation=gridGeneration.current,padded=b.pad(.5);
+      const box=L.latLngBounds([Math.max(-85,padded.getSouth()),Math.max(-180,padded.getWest())],[Math.min(85,padded.getNorth()),Math.min(180,padded.getEast())]);
+      const bbox=[box.getWest(),box.getSouth(),box.getEast(),box.getNorth()].join(",");
       void fetch(`/api/risk-grid?bbox=${bbox}`,{signal:control.signal,cache:"no-store"}).then(async response=>{
         const value=await response.json();if(!response.ok)throw new Error(value.error);
-        if(!control.signal.aborted&&gridGeneration.current===generation)loadGrid(value,false);
-      }).catch(error=>{if(!control.signal.aborted&&gridGeneration.current===generation){setGrid(null);setGridMessage(error instanceof Error?error.message:"Risk coverage is unavailable");}});
+        if(!control.signal.aborted&&gridGeneration.current===generation){loadGrid(value,false);fetchedBox=box;}
+      }).catch(error=>{if(!control.signal.aborted&&gridGeneration.current===generation){fetchedBox=undefined;setGrid(null);setGridMessage(error instanceof Error?error.message:"Risk coverage is unavailable");}});
     }
-    const moved=()=>{abort?.abort();clearTimeout(timer);timer=setTimeout(refresh,250);};
-    refresh();map.on("moveend",moved);const interval=setInterval(refresh,60000);
-    return ()=>{abort?.abort();clearTimeout(timer);clearInterval(interval);map.off("moveend",moved);};
+    const moved=()=>{
+      abort?.abort();clearTimeout(timer);
+      if(automaticGrid.current&&(forceGrid.current||!fetchedBox?.contains(map.getBounds())))timer=setTimeout(refresh,250);
+    };
+    refresh();map.on("moveend",moved);
+    return ()=>{abort?.abort();clearTimeout(timer);map.off("moveend",moved);};
   },[map,loadGrid]);
   const pending=useRef<AbortController|null>(null);
   const serial=useRef(0);
@@ -128,7 +137,7 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
       }}/></label>
       <button style={buttonStyle} onClick={()=>{
         setGridMessage("Loading backend grid…");
-        automaticGrid.current=true;map.fire("moveend");
+        automaticGrid.current=true;forceGrid.current=true;map.fire("moveend");
       }}>Load configured backend grid</button>
       <label style={{display:"block"}}><input type="checkbox" checked={showGrid} onChange={e=>setShowGrid(e.target.checked)}/> Show underlying grid</label>
       <p role="status">{gridMessage}</p>
