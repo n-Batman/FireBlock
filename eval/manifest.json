@@ -9,8 +9,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 75,
-   "notes": "A wildfire burns through dry scrub on a coastal hillside."
+   "dry_pct_estimate": 80,
+   "notes": "A wildfire burns across a dry, sparsely vegetated coastal hillside."
   }
  },
  {
@@ -23,8 +23,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 25,
-   "notes": "A dry hillside with mostly green shrubs and patches of cured grass."
+   "dry_pct_estimate": 40,
+   "notes": "A scrub-covered hillside with green vegetation and patches of dry grass."
   }
  },
  {
@@ -37,8 +37,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A grassy dirt path runs between green shrubs and flowering trees."
+   "dry_pct_estimate": 10,
+   "notes": "A dirt track is bordered by mostly green grass and flowering shrubs."
   }
  },
  {
@@ -52,7 +52,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 55,
-   "notes": "A harvested field with dry crop stubble and green grass between rows."
+   "notes": "A harvested field with dry crop stubble and green ground cover."
   }
  },
  {
@@ -65,8 +65,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A green orchard with lush ground cover and small dry patches between tree rows."
+   "dry_pct_estimate": 15,
+   "notes": "An orchard has lush green ground cover with some dry grass along the tree rows."
   }
  },
  {
@@ -80,7 +80,7 @@
   "expected": {
    "relevant": false,
    "dry_pct_estimate": 0,
-   "notes": "A photographed page of text about field peas."
+   "notes": "A scanned page of text about field peas."
   }
  },
  {
@@ -94,7 +94,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 95,
-   "notes": "A field covered mostly in dry crop residue with a few green seedlings."
+   "notes": "A field floor covered in dry crop residue with a few green seedlings."
   }
  },
  {
@@ -107,8 +107,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 80,
-   "notes": "A field with green shoots emerging through abundant dry crop residue."
+   "dry_pct_estimate": 85,
+   "notes": "A field with mostly dry crop residue and scattered green shoots."
   }
  },
  {
@@ -122,7 +122,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 98,
-   "notes": "A harvested field is covered in dry crop stubble with a few green weeds."
+   "notes": "A harvested field is covered in dry crop stubble and litter, with a few green weeds."
   }
  },
  {
@@ -136,7 +136,7 @@
   "expected": {
    "relevant": false,
    "dry_pct_estimate": 0,
-   "notes": "A man and child pose with vegetables in a green field."
+   "notes": "Two people pose with vegetables in a green field."
   }
  },
  {
@@ -149,8 +149,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 10,
-   "notes": "A field of mostly green, cut or flattened vegetation with trees in the background."
+   "dry_pct_estimate": 5,
+   "notes": "A field with mostly green, cut or flattened vegetation."
   }
  },
  {
@@ -164,7 +164,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 90,
-   "notes": "Green shoots emerge through a field of dry crop stubble."
+   "notes": "A ground-level field view shows green shoots emerging through mostly dry crop litter."
   }
  },
  {
@@ -178,7 +178,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 95,
-   "notes": "Hands hold a clump of soil in a field of mostly dry stubble."
+   "notes": "Hands hold soil in a field of mostly dry, straw-colored vegetation."
   }
  },
  {
@@ -192,7 +192,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 95,
-   "notes": "Dry field stubble surrounds a few green shoots above exposed soil."
+   "notes": "A soil cross-section beneath mostly dry crop stubble with a few green shoots."
   }
  },
  {
@@ -206,7 +206,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 95,
-   "notes": "Dry cut stalks and sparse green shoots surround exposed soil and a person's boots."
+   "notes": "Close ground view of dry crop stubble and exposed soil with a few green shoots."
   }
  },
  {
@@ -220,7 +220,7 @@
   "expected": {
    "relevant": false,
    "dry_pct_estimate": 0,
-   "notes": "Close-up of flowering plants and insects."
+   "notes": "Close-up of flowering stems and insects among green foliage."
   }
  },
  {
@@ -234,7 +234,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 5,
-   "notes": "A sunflower stands in a predominantly green grassy field."
+   "notes": "A sunflower stands in a mostly green grassy field."
   }
  },
  {
@@ -248,7 +248,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 0,
-   "notes": "Mushrooms and sparse green grass grow in bare soil."
+   "notes": "Close-up of mushrooms on bare soil with a few green grass blades."
   }
  },
  {
@@ -262,7 +262,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 10,
-   "notes": "A grassy farm track runs between trees and green flowering fields."
+   "notes": "A grassy track runs through a green flowering field lined with trees."
   }
  },
  {
@@ -275,8 +275,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 10,
-   "notes": "A grassy farm track runs between green flowering fields and trees."
+   "dry_pct_estimate": 5,
+   "notes": "A grassy farm track runs between green flowering fields."
   }
  },
  {
@@ -289,8 +289,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 55,
-   "notes": "A harvested, dry field borders a green crop and tree line."
+   "dry_pct_estimate": 65,
+   "notes": "A harvested field with dry crop stubble lies beside a green cover crop."
   }
  },
  {
@@ -303,8 +303,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 35,
-   "notes": "A rural lane runs between fields with green ground cover and autumn-colored trees."
+   "dry_pct_estimate": 30,
+   "notes": "Fields beside a rural road have green cover crop and patches of dry grass."
   }
  },
  {
@@ -317,8 +317,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A cultivated field with green and flowering crops, trees, and farm buildings."
+   "dry_pct_estimate": 0,
+   "notes": "Farm fields contain lush green and flowering ground vegetation."
   }
  },
  {
@@ -332,7 +332,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 5,
-   "notes": "Rolling farmland with green crops, bare fields, and trees."
+   "notes": "Distant agricultural fields show mostly green crops alongside bare soil."
   }
  },
  {
@@ -346,7 +346,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 35,
-   "notes": "A grassy farm track runs between trees and a green crop field, with dry grass along the verge."
+   "notes": "A grassy farm track runs between green fields and a strip of dry grass."
   }
  },
  {
@@ -360,7 +360,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 5,
-   "notes": "A plowed field with a green crop strip and trees near farm buildings."
+   "notes": "A plowed field borders a strip of mostly green crop vegetation."
   }
  },
  {
@@ -373,8 +373,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 70,
-   "notes": "Patchy ground grass is mostly dry and straw-colored, with some green growth."
+   "dry_pct_estimate": 75,
+   "notes": "A patch of mostly dry grass with some green growth."
   }
  },
  {
@@ -388,7 +388,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 90,
-   "notes": "A field of mostly dry, brown brush with scattered green growth."
+   "notes": "A field of mostly dry, brown weeds with scattered green growth."
   }
  },
  {
@@ -402,7 +402,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 95,
-   "notes": "An open field with predominantly dry grass and scrub."
+   "notes": "An arid field with mostly dry grasses and weeds among scattered shrubs."
   }
  },
  {
@@ -430,7 +430,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 80,
-   "notes": "A field of mostly dry, straw-colored grass with some green vegetation."
+   "notes": "Dense field grass is mostly dry and straw-colored, with some green growth."
   }
  },
  {
@@ -444,7 +444,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 99,
-   "notes": "Ground is covered with dry, dead grass and plant debris."
+   "notes": "Ground is covered with dry, dead grass and plant litter."
   }
  },
  {
@@ -458,7 +458,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 98,
-   "notes": "The ground is covered mostly in dry, dead grass with a few green shoots."
+   "notes": "Ground covered mostly in dry grass and plant litter, with a few green weeds."
   }
  },
  {
@@ -472,7 +472,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 75,
-   "notes": "A snake lies among mostly dry grass with some green shoots."
+   "notes": "A snake lies among mostly dry grass with some green blades."
   }
  },
  {
@@ -486,7 +486,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 75,
-   "notes": "Dry ground vegetation with scattered green grasses surrounds a fallen log."
+   "notes": "A snake lies among mostly dry grasses and scattered green blades."
   }
  },
  {
@@ -500,7 +500,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 70,
-   "notes": "Patchy ground vegetation with mostly dry grasses and some green shoots."
+   "notes": "Patchy ground vegetation contains mostly dry grass and litter with some green shoots."
   }
  },
  {
@@ -513,8 +513,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 45,
-   "notes": "Dry golden grass covers a field in front of green trees and shrubs."
+   "dry_pct_estimate": 95,
+   "notes": "A field of mostly dry grass borders a wooded area."
   }
  },
  {
@@ -526,9 +526,9 @@
   "category": "Dry grass",
   "source": "commons",
   "expected": {
-   "relevant": true,
-   "dry_pct_estimate": 90,
-   "notes": "Tall, mostly dry grasses and seed heads are viewed against the sky."
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "Close-up view looking upward through tall grass stems against the sky."
   }
  },
  {
@@ -541,8 +541,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 65,
-   "notes": "Dry seed-head grasses grow in front of green shrubs and trees."
+   "dry_pct_estimate": 90,
+   "notes": "Dense, mostly dry tall grasses stand in front of green shrubs."
   }
  },
  {
@@ -555,8 +555,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 90,
-   "notes": "A dry, straw-covered yard with scattered trees and buildings."
+   "dry_pct_estimate": 100,
+   "notes": "A yard with predominantly dry, straw-colored ground vegetation."
   }
  },
  {
@@ -569,8 +569,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 55,
-   "notes": "Dry ornamental grasses grow beside a green lawn."
+   "dry_pct_estimate": 65,
+   "notes": "Dry ornamental grass and leaf litter sit beside a green lawn."
   }
  },
  {
@@ -583,8 +583,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 80,
-   "notes": "Patchy ground grass is mostly dry and brown with some green growth."
+   "dry_pct_estimate": 85,
+   "notes": "A patch of mostly dry grass with some green growth."
   }
  },
  {
@@ -598,7 +598,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 55,
-   "notes": "A grassy roadside verge with a mix of green and dry grass beside gravel."
+   "notes": "A grassy roadside verge has a mix of green and dry grass."
   }
  },
  {
@@ -611,8 +611,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 70,
-   "notes": "Windblown grass is mostly tan and dry, with some green blades."
+   "dry_pct_estimate": 75,
+   "notes": "A patch of mostly dry, tan grass with some green blades."
   }
  },
  {
@@ -625,7 +625,7 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 98,
+   "dry_pct_estimate": 100,
    "notes": "Rolling fields are covered in golden, dry vegetation."
   }
  },
@@ -639,8 +639,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 45,
-   "notes": "A gravel lane is bordered by green grass, dry brush, and trees."
+   "dry_pct_estimate": 40,
+   "notes": "A gravel lane bordered by green and dry grass and woodland."
   }
  },
  {
@@ -654,7 +654,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 98,
-   "notes": "A field of mostly dry golden grass bordered by leafless trees."
+   "notes": "An open field covered mostly in dry brown grass and weeds."
   }
  },
  {
@@ -667,8 +667,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 98,
-   "notes": "A field of dry golden grass bordered by leafless trees."
+   "dry_pct_estimate": 100,
+   "notes": "A field of dry golden grass and weeds borders a line of trees."
   }
  },
  {
@@ -681,8 +681,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 95,
-   "notes": "A field of dry golden grass borders autumn-colored trees."
+   "dry_pct_estimate": 100,
+   "notes": "A field of dry golden grass and weeds borders autumn trees."
   }
  },
  {
@@ -695,8 +695,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 95,
-   "notes": "A hillside field is covered in dry golden grass, with sparse autumn trees."
+   "dry_pct_estimate": 98,
+   "notes": "A hillside field covered mostly in dry golden grass."
   }
  },
  {
@@ -710,7 +710,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 98,
-   "notes": "A pond surrounded by mostly dry, straw-colored grassland."
+   "notes": "A pond is surrounded by mostly dry, straw-colored grassland."
   }
  },
  {
@@ -724,7 +724,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 5,
-   "notes": "A mostly green grassy field with scattered trees and shrubs."
+   "notes": "A green grassy field stretches across rolling hills."
   }
  },
  {
@@ -752,7 +752,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 5,
-   "notes": "A mostly green grassy field lies beneath shrub-covered hills."
+   "notes": "A mostly green grassy field lies below shrub-covered hills."
   }
  },
  {
@@ -780,7 +780,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 95,
-   "notes": "A field of mostly dry, brown grass with distant trees."
+   "notes": "A field of mostly dry brown grass at dusk."
   }
  },
  {
@@ -793,7 +793,7 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 15,
+   "dry_pct_estimate": 10,
    "notes": "A dirt road runs through mostly green fields beneath power lines."
   }
  },
@@ -808,7 +808,7 @@
   "expected": {
    "relevant": false,
    "dry_pct_estimate": 0,
-   "notes": "A horseback rider is the subject in a grassy field."
+   "notes": "A rider on horseback is the subject of the photo."
   }
  },
  {
@@ -822,7 +822,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 50,
-   "notes": "A black-and-white photo of a grassy field with mountains in the background; vegetation dryness is uncertain."
+   "notes": "A broad grassy field lies beneath snow-capped mountains; the monochrome image makes dryness uncertain."
   }
  },
  {
@@ -835,8 +835,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 95,
-   "notes": "A hillside field is covered mostly in dry golden grass, with a few scattered shrubs and trees."
+   "dry_pct_estimate": 98,
+   "notes": "A hillside field is covered in dry golden grass with a dirt track."
   }
  },
  {
@@ -863,7 +863,7 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
+   "dry_pct_estimate": 10,
    "notes": "A mostly green grassy field with scattered trees."
   }
  },
@@ -877,8 +877,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 70,
-   "notes": "A dry grassy hillside with scattered green trees and shrubs."
+   "dry_pct_estimate": 98,
+   "notes": "A rocky hillside pasture is covered mostly in dry golden grass."
   }
  },
  {
@@ -891,8 +891,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 90,
-   "notes": "Dry grassland with scattered green trees and rolling hills."
+   "dry_pct_estimate": 98,
+   "notes": "A dry grassy field with scattered trees and bare patches."
   }
  },
  {
@@ -905,8 +905,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 95,
-   "notes": "A broad field of dry golden grass with scattered trees and a small green patch."
+   "dry_pct_estimate": 98,
+   "notes": "A broad field of mostly dry golden grass stretches across rolling hills."
   }
  },
  {
@@ -920,7 +920,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 100,
-   "notes": "A rocky hillside and foreground covered in dry golden grass."
+   "notes": "A rocky hillside and field covered in dry, golden grass."
   }
  },
  {
@@ -934,7 +934,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 98,
-   "notes": "A broad field of dry golden grass stretches toward low hills."
+   "notes": "A broad field of mostly dry, golden grass with a small green strip in the distance."
   }
  },
  {
@@ -947,8 +947,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 45,
-   "notes": "Dry grass covers a hillside with mostly green trees and shrubs."
+   "dry_pct_estimate": 98,
+   "notes": "A dry grassy hillside with scattered trees and wooded hills beyond."
   }
  },
  {
@@ -961,8 +961,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 95,
-   "notes": "A mostly dry grassy field with a narrow green strip and hills in the distance."
+   "dry_pct_estimate": 98,
+   "notes": "A broad field of mostly dry, golden grass with hills in the distance."
   }
  },
  {
@@ -975,8 +975,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 95,
-   "notes": "A broad field of dry golden grass with scattered green trees in the distance."
+   "dry_pct_estimate": 99,
+   "notes": "A broad field is covered in dry golden grass."
   }
  },
  {
@@ -989,8 +989,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 25,
-   "notes": "Dry grass covers the foreground beneath mostly green trees and hills."
+   "dry_pct_estimate": 98,
+   "notes": "A dry grassy field with scattered trees and wooded hills."
   }
  },
  {
@@ -1003,8 +1003,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 60,
-   "notes": "Dry grass covers a field with green trees and shrubs."
+   "dry_pct_estimate": 98,
+   "notes": "A field beneath trees is covered mostly in dry, golden grass."
   }
  },
  {
@@ -1017,8 +1017,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 45,
-   "notes": "A fallen tree lies in a dry grassy field surrounded by green trees."
+   "dry_pct_estimate": 100,
+   "notes": "A fallen tree lies beside a field of dry grass."
   }
  },
  {
@@ -1031,8 +1031,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 75,
-   "notes": "A dry grassy field with scattered green trees and shrubs."
+   "dry_pct_estimate": 95,
+   "notes": "A grassy field with mostly dry, cured ground vegetation and scattered trees."
   }
  },
  {
@@ -1045,8 +1045,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 55,
-   "notes": "Dry grass covers the ground beneath green trees."
+   "dry_pct_estimate": 98,
+   "notes": "A wooded field has mostly dry, straw-colored ground grass."
   }
  },
  {
@@ -1060,7 +1060,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 5,
-   "notes": "A green hillside meadow covered in wildflowers."
+   "notes": "A hillside meadow is covered mostly in green grass and wildflowers."
   }
  },
  {
@@ -1074,7 +1074,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 25,
-   "notes": "A shoe lies in a mostly green grassy field with some dry brown grass."
+   "notes": "A shoe lies on a mostly green lawn with some dry grass."
   }
  },
  {
@@ -1102,7 +1102,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 2,
-   "notes": "A carton of blackberries sits on mostly green lawn grass."
+   "notes": "A basket of blackberries sits on mostly green lawn grass."
   }
  },
  {
@@ -1116,7 +1116,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 35,
-   "notes": "A mowed field with mostly green grass and some dry brown patches near farm buildings."
+   "notes": "A mowed grassy field has a mix of green and dry brown grass."
   }
  },
  {
@@ -1129,8 +1129,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 60,
-   "notes": "A grassy vacant lot with brown and green vegetation and leafless trees."
+   "dry_pct_estimate": 65,
+   "notes": "An urban vacant lot has patchy brown and green grass."
   }
  },
  {
@@ -1143,8 +1143,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 2,
-   "notes": "A green lawn and garden with trees and shrubs."
+   "dry_pct_estimate": 1,
+   "notes": "A fenced garden with mostly green lawn and surrounding shrubs."
   }
  },
  {
@@ -1158,7 +1158,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 5,
-   "notes": "A mostly green grassy field bordered by leafy trees."
+   "notes": "A mostly green grassy meadow bordered by trees."
   }
  },
  {
@@ -1172,7 +1172,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 2,
-   "notes": "A park with a mostly green lawn and leafy trees."
+   "notes": "A park with a largely green, mowed lawn."
   }
  },
  {
@@ -1186,7 +1186,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 0,
-   "notes": "A green lawn and leafy trees surround a large building."
+   "notes": "A green lawn in front of a large building."
   }
  },
  {
@@ -1200,7 +1200,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 1,
-   "notes": "A landscaped park with mostly green lawn, trees, and flowers."
+   "notes": "A mostly green mowed lawn with a small patch of flowers."
   }
  },
  {
@@ -1214,7 +1214,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 5,
-   "notes": "Mostly green flowering vegetation grows outside an apartment building."
+   "notes": "Mostly green weeds and wildflowers grow outside an apartment building."
   }
  },
  {
@@ -1228,7 +1228,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 5,
-   "notes": "A landscaped green lawn with palm trees and shrubs near a parking area."
+   "notes": "A mostly green lawn in a landscaped outdoor area."
   }
  },
  {
@@ -1241,8 +1241,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 2,
-   "notes": "A green lawn with trees and shrubs surrounds a house."
+   "dry_pct_estimate": 1,
+   "notes": "A house yard with mostly lush green lawn."
   }
  },
  {
@@ -1255,8 +1255,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 2,
-   "notes": "A landscaped yard with green lawns, flower beds, shrubs, and gravel paths."
+   "dry_pct_estimate": 0,
+   "notes": "A landscaped garden with green lawn and flower beds."
   }
  },
  {
@@ -1270,7 +1270,7 @@
   "expected": {
    "relevant": false,
    "dry_pct_estimate": 0,
-   "notes": "Close-up of a flower and a few surrounding stems."
+   "notes": "Extreme close-up of flowers and grass stems."
   }
  },
  {
@@ -1283,8 +1283,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A landscaped courtyard with mostly green grass and some dry ornamental plants."
+   "dry_pct_estimate": 0,
+   "notes": "A landscaped courtyard with green lawns outside an apartment building."
   }
  },
  {
@@ -1297,8 +1297,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 2,
-   "notes": "A green lawn with palms, hedges, and trees outside a building."
+   "dry_pct_estimate": 0,
+   "notes": "A lush green lawn in front of a building and palm trees."
   }
  },
  {
@@ -1311,8 +1311,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 25,
-   "notes": "A shaded lawn with sprinklers, green trees, and scattered fallen leaves."
+   "dry_pct_estimate": 35,
+   "notes": "A watered lawn with green grass and scattered fallen leaves."
   }
  },
  {
@@ -1325,8 +1325,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 10,
-   "notes": "A grassy park with trees and a dirt path."
+   "dry_pct_estimate": 15,
+   "notes": "A park-like yard with mostly green grass and a dirt path."
   }
  },
  {
@@ -1340,7 +1340,7 @@
   "expected": {
    "relevant": false,
    "dry_pct_estimate": 0,
-   "notes": "A labeled diagram of a synthetic turf system."
+   "notes": "Diagram of a synthetic turf installation."
   }
  },
  {
@@ -1353,8 +1353,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 1,
-   "notes": "A mostly green grassy field bordered by trees and buildings."
+   "dry_pct_estimate": 2,
+   "notes": "A broad outdoor lawn is covered mostly in green grass."
   }
  },
  {
@@ -1367,8 +1367,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 1,
-   "notes": "A lush green lawn surrounds a large house and trees."
+   "dry_pct_estimate": 0,
+   "notes": "A lush green lawn in front of a house."
   }
  },
  {
@@ -1381,8 +1381,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "An urban grassy field and shrubs with mostly green vegetation."
+   "dry_pct_estimate": 10,
+   "notes": "An urban grassy field with mostly green ground vegetation."
   }
  },
  {
@@ -1395,8 +1395,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 10,
-   "notes": "A vineyard with mostly green vines and trees on exposed soil."
+   "dry_pct_estimate": 20,
+   "notes": "A hillside vineyard has mostly bare soil with sparse green and dry ground cover."
   }
  },
  {
@@ -1409,8 +1409,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A vineyard with predominantly green ground cover between the rows."
+   "dry_pct_estimate": 2,
+   "notes": "Vineyard rows with predominantly green ground cover."
   }
  },
  {
@@ -1423,8 +1423,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 10,
-   "notes": "A vineyard with mostly green grapevines and bare soil between rows."
+   "dry_pct_estimate": 75,
+   "notes": "A vineyard with mostly bare soil and sparse dry ground vegetation."
   }
  },
  {
@@ -1437,8 +1437,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 20,
-   "notes": "A vineyard with green grapevines and patches of dry grass and weeds."
+   "dry_pct_estimate": 55,
+   "notes": "A vineyard row with mixed green and dry ground weeds and exposed soil."
   }
  },
  {
@@ -1451,8 +1451,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 55,
-   "notes": "A vineyard with autumn-colored vines, trees, and bare soil."
+   "dry_pct_estimate": 100,
+   "notes": "Vineyard rows with mostly bare soil and sparse dry ground litter."
   }
  },
  {
@@ -1465,8 +1465,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A grapevine with mostly green leaves stands in a tilled, bare vineyard."
+   "dry_pct_estimate": 100,
+   "notes": "A vineyard with mostly bare soil and scattered dry plant litter."
   }
  },
  {
@@ -1479,8 +1479,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "Green vineyard rows and shrubs cover a hilly landscape with some exposed soil."
+   "dry_pct_estimate": 0,
+   "notes": "A hillside vineyard with surrounding trees and exposed soil between rows."
   }
  },
  {
@@ -1493,8 +1493,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 25,
-   "notes": "A black-and-white photo of a cultivated hillside and farmstead with patches of grass and trees."
+   "dry_pct_estimate": 80,
+   "notes": "Black-and-white view of a vineyard hillside and farmyard with sparse, apparently dry ground vegetation."
   }
  },
  {
@@ -1507,8 +1507,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 10,
-   "notes": "A tractor drives over bare soil beside mostly green vegetation."
+   "dry_pct_estimate": 0,
+   "notes": "A tractor works bare soil beside vegetation."
   }
  },
  {
@@ -1522,7 +1522,7 @@
   "expected": {
    "relevant": false,
    "dry_pct_estimate": 0,
-   "notes": "A person drives a tractor among grapevines, with no usable view of ground vegetation."
+   "notes": "A person drives a tractor among dense grapevines; the ground is not visible."
   }
  },
  {
@@ -1535,8 +1535,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A vineyard with mostly green grapevines and bare soil between rows."
+   "dry_pct_estimate": 70,
+   "notes": "Vineyard rows with mostly bare soil and sparse dry ground vegetation."
   }
  },
  {
@@ -1548,9 +1548,9 @@
   "category": "Vineyards in California",
   "source": "commons",
   "expected": {
-   "relevant": true,
-   "dry_pct_estimate": 15,
-   "notes": "A lake bordered by trees and a distant green vineyard."
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "A distant lake and wooded hills with vineyard rows; ground vegetation is not discernible."
   }
  },
  {
@@ -1563,8 +1563,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 80,
-   "notes": "People stand in a harvested field with sparse, mostly dry plant residue; the black-and-white image limits certainty."
+   "dry_pct_estimate": 90,
+   "notes": "Workers stand in a field with sparse, mostly dry crop residue."
   }
  },
  {
@@ -1577,8 +1577,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A vineyard with mostly green vines and grass."
+   "dry_pct_estimate": 25,
+   "notes": "A vineyard with mostly green ground cover and some dry patches between rows."
   }
  },
  {
@@ -1591,8 +1591,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 85,
-   "notes": "A vineyard with dormant vines and mostly dry grass between the rows."
+   "dry_pct_estimate": 90,
+   "notes": "Vineyard rows have mostly dry, yellow-brown ground cover."
   }
  },
  {
@@ -1606,7 +1606,7 @@
   "expected": {
    "relevant": true,
    "dry_pct_estimate": 0,
-   "notes": "A grapevine canopy stands over mostly bare ground."
+   "notes": "An old grapevine stands over mostly bare ground in a yard."
   }
  },
  {
@@ -1619,8 +1619,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A vineyard with green ground cover and leafy trees."
+   "dry_pct_estimate": 0,
+   "notes": "A vineyard with green ground cover beneath dormant vines."
   }
  },
  {
@@ -1633,8 +1633,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 45,
-   "notes": "A vineyard with dormant vines and sparse green ground cover between rows."
+   "dry_pct_estimate": 25,
+   "notes": "Vineyard rows have sparse green ground cover and some dry vegetation."
   }
  },
  {
@@ -1647,8 +1647,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 15,
-   "notes": "A hillside vineyard with green vines and some dry grass along the foreground."
+   "dry_pct_estimate": 85,
+   "notes": "A hillside vineyard with sparse, mostly dry ground vegetation along the foreground."
   }
  },
  {
@@ -1661,8 +1661,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 10,
-   "notes": "A vineyard with mostly green grapevines and dry ground cover."
+   "dry_pct_estimate": 95,
+   "notes": "Vineyard rows with mostly dry ground litter and sparse green weeds."
   }
  },
  {
@@ -1675,8 +1675,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 75,
-   "notes": "Black-and-white view of a dormant vineyard with sparse ground cover and leafless trees."
+   "dry_pct_estimate": 0,
+   "notes": "A black-and-white vineyard view shows dormant vines and mostly bare ground."
   }
  },
  {
@@ -1689,8 +1689,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 70,
-   "notes": "Snow-covered vineyard with dormant brown vines and evergreen trees in the distance."
+   "dry_pct_estimate": 0,
+   "notes": "Snow covers the ground in a dormant vineyard, with no visible ground vegetation."
   }
  },
  {
@@ -1703,8 +1703,8 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 5,
-   "notes": "A vineyard hillside with mostly green vines, trees, and lawn over dry soil."
+   "dry_pct_estimate": 10,
+   "notes": "A hillside vineyard with sparse dry ground cover and a green lawn in the foreground."
   }
  },
  {
@@ -1717,8 +1717,484 @@
   "source": "commons",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 3,
-   "notes": "Green vineyard rows flank a mostly bare soil path with scattered leaves."
+   "dry_pct_estimate": 20,
+   "notes": "Vineyard rows with mostly bare soil and sparse green ground vegetation and litter."
+  }
+ },
+ {
+  "id": "bare-soil-field-107999407",
+  "file": "bare-soil-field/107999407.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Coastal_erosion_at_Thornwick_Bay_-_bare_soil_-_geograph.org.uk_-_2411926.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Leslie",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "A rocky coastal cliff with mostly bare ground and sparse green vegetation."
+  }
+ },
+ {
+  "id": "bare-soil-field-12581098",
+  "file": "bare-soil-field/12581098.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Soil_erosion,_Southfield_-_geograph.org.uk_-_367917.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Jim Bain",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 85,
+   "notes": "A misty field with scattered trees and mostly dry ground cover."
+  }
+ },
+ {
+  "id": "bare-soil-field-12581099",
+  "file": "bare-soil-field/12581099.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Soil_erosion,_brownout_-_geograph.org.uk_-_367915.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Jim Bain",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 85,
+   "notes": "A dusty field edge has mostly dry grass with some green patches."
+  }
+ },
+ {
+  "id": "bare-soil-field-13103759",
+  "file": "bare-soil-field/13103759.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bare_field_adjacent_to_Cupola_Farm_-_geograph.org.uk_-_579587.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Alison Rawson",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 45,
+   "notes": "A mostly bare plowed field with sparse mixed green and dry grass along the edge."
+  }
+ },
+ {
+  "id": "bare-soil-field-13919394",
+  "file": "bare-soil-field/13919394.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bare_soil_in_a_large_field_-_geograph.org.uk_-_1204334.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Nigel Chadwick",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 100,
+   "notes": "A mostly bare cultivated field with scattered dry crop residue."
+  }
+ },
+ {
+  "id": "bare-soil-field-140493129",
+  "file": "bare-soil-field/140493129.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bare_soil_-_geograph.org.uk_-_5700369.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "N Chadwick",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "A mostly bare plowed field with distant green fields."
+  }
+ },
+ {
+  "id": "bare-soil-field-141012421",
+  "file": "bare-soil-field/141012421.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bare_soil_-_geograph.org.uk_-_5756696.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "N Chadwick",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "A freshly tilled field with mostly bare soil."
+  }
+ },
+ {
+  "id": "bare-soil-field-163311025",
+  "file": "bare-soil-field/163311025.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bare_soil_on_Cefn_y_Ffridd_-_geograph.org.uk_-_7521003.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "David Medcalf",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 15,
+   "notes": "A plowed field overlooks mostly green grassy hills and woodland."
+  }
+ },
+ {
+  "id": "bare-soil-field-184067229",
+  "file": "bare-soil-field/184067229.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Are_barren_core_and_bare_mineral_soil_the_same_thing%3F_At_Stanton_Lake_(50745217002).jpg",
+  "license": "Public domain",
+  "author": "Forest Service - Northern Region",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "A person sits on a forest floor beside a lake."
+  }
+ },
+ {
+  "id": "bare-soil-field-65885730",
+  "file": "bare-soil-field/65885730.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Rainfall_Simulator_Soil_Graphic_(7687080332).jpg",
+  "license": "Public domain",
+  "author": "USDA NRCS South Dakota",
+  "category": "bare soil field",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "An educational diagram about rainfall and soil health."
+  }
+ },
+ {
+  "id": "dirt-road-25728732",
+  "file": "dirt-road/25728732.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Calle_Calafate.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Rodarte",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 20,
+   "notes": "A dirt road borders sparse, mostly green roadside vegetation."
+  }
+ },
+ {
+  "id": "dirt-road-397995",
+  "file": "dirt-road/397995.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:DirtRoadCows.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "No machine-readable author provided. Zafiroblue05 assumed (based on copyright claims).",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 35,
+   "notes": "A dirt road with cattle and patches of green and dry roadside grass."
+  }
+ },
+ {
+  "id": "dirt-road-40489878",
+  "file": "dirt-road/40489878.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Palo_Alto_Baylands_January_2013_002.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "King of Hearts",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 35,
+   "notes": "A gravel track runs through a grassy field with fence posts."
+  }
+ },
+ {
+  "id": "dirt-road-48874192",
+  "file": "dirt-road/48874192.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Tarnica,_Bieszczady_(by_Pudelek).JPG",
+  "license": "CC BY-SA 4.0",
+  "author": "Pudelek",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 85,
+   "notes": "A mountain hillside has mostly brown, dry ground vegetation with some green grass along a track."
+  }
+ },
+ {
+  "id": "dirt-road-53370701",
+  "file": "dirt-road/53370701.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:-_panoramio_(1689).jpg",
+  "license": "CC BY 3.0",
+  "author": "M Asif",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 70,
+   "notes": "A dirt road runs alongside a mostly bare, sparsely vegetated lot."
+  }
+ },
+ {
+  "id": "dirt-road-57097467",
+  "file": "dirt-road/57097467.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Trevi%C3%B1o_-_Cerro_de_Trevi%C3%B1o_-_Camino_04.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Basotxerri",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 85,
+   "notes": "A dirt track runs through mostly dry hillside grasses, with some green vegetation along the road."
+  }
+ },
+ {
+  "id": "dirt-road-62010457",
+  "file": "dirt-road/62010457.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Dirt_road_in_Artigas_Department.jpg",
+  "license": "CC0",
+  "author": "Mx. Granger",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 15,
+   "notes": "A gravel road bordered by mostly green grass and shrubs."
+  }
+ },
+ {
+  "id": "dirt-road-69212286",
+  "file": "dirt-road/69212286.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Piste_im_Erongo.jpg",
+  "license": "CC BY-SA 3.0 de",
+  "author": "Rüdiger Wenzel",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A dirt road runs through arid terrain with mostly dry grass."
+  }
+ },
+ {
+  "id": "dirt-road-76888953",
+  "file": "dirt-road/76888953.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Dirt_road_between_Susice_and_Kudlovice.jpg",
+  "license": "CC0",
+  "author": "Drummyfish",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 2,
+   "notes": "A gravel path runs through a predominantly green grassy field."
+  }
+ },
+ {
+  "id": "dirt-road-82006907",
+  "file": "dirt-road/82006907.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Rainy_dirt_road_on_the_Tibetan_Plateau.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Tenace10",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "A muddy dirt road runs through green fields under an overcast sky."
+  }
+ },
+ {
+  "id": "dirt-road-85385183",
+  "file": "dirt-road/85385183.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Kakadu_National_Park_(AU),_Marrakai_Road_--_2019_--_3765.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Dietmar Rabich",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 90,
+   "notes": "A dirt road passes through dry, sparsely vegetated woodland."
+  }
+ },
+ {
+  "id": "dirt-road-85385188",
+  "file": "dirt-road/85385188.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Kakadu_National_Park_(AU),_Marrakai_Road_--_2019_--_3766.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Dietmar Rabich",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 85,
+   "notes": "A dirt road runs through scrubland with sparse, mostly dry ground vegetation."
+  }
+ },
+ {
+  "id": "dirt-road-85385193",
+  "file": "dirt-road/85385193.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Kakadu_National_Park_(AU),_Marrakai_Road_--_2019_--_3767.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Dietmar Rabich",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A dirt road runs through woodland with sparse, mostly dry ground vegetation and litter."
+  }
+ },
+ {
+  "id": "dirt-road-8694322",
+  "file": "dirt-road/8694322.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Dirt_road_in_winter.JPG",
+  "license": "Public domain",
+  "author": "Juliancolton",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 80,
+   "notes": "A snowy woodland road with sparse exposed leaf litter along the edges."
+  }
+ },
+ {
+  "id": "dirt-road-87683516",
+  "file": "dirt-road/87683516.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bouak%C3%A9_suburb_street_01.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Adélie Ranville",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "A mostly bare dirt street with sparse green roadside vegetation."
+  }
+ },
+ {
+  "id": "dirt-road-90163135",
+  "file": "dirt-road/90163135.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Dirt_road_in_Lopeichubei_Central_Forest_Reserve.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Elisha Muwanguzi",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A dirt road passes through mostly green vegetation under a cloudy sky."
+  }
+ },
+ {
+  "id": "dirt-road-90163142",
+  "file": "dirt-road/90163142.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Dirt_road_Northern_Uganda_Wildlife_park.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Elisha Muwanguzi",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A dirt track runs through a mostly green field."
+  }
+ },
+ {
+  "id": "dirt-road-91927867",
+  "file": "dirt-road/91927867.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:20200705_Polna_droga_w_Piekarach_pod_Krakowem_1051_2708.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Jakub Hałun",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 20,
+   "notes": "A green field and grassy hillside border a winding dirt path."
+  }
+ },
+ {
+  "id": "dirt-road-92391675",
+  "file": "dirt-road/92391675.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Tortuous_dirt_road_in_wet_paddy_fields_and_green_hills_in_Vang_Vieng,_Laos.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Basile Morin",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "Flooded rice paddies contain mostly green young crops and grassy field edges."
+  }
+ },
+ {
+  "id": "dirt-road-92654458",
+  "file": "dirt-road/92654458.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:20191213_Ulica_wioski_Himtasar_w_Indiach_1138_8398.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Jakub Hałun",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 75,
+   "notes": "A dirt village road with sparse, mostly dry roadside weeds."
+  }
+ },
+ {
+  "id": "dirt-road-92655067",
+  "file": "dirt-road/92655067.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:20191213_Ulica_wioski_Himtasar_w_Indiach_1137_8393.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Jakub Hałun",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "A bare dirt road runs past a house and sparse roadside vegetation."
+  }
+ },
+ {
+  "id": "dirt-road-92679918",
+  "file": "dirt-road/92679918.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:20191213_Dirt_road,_Thar_Desert,_Bikaner,_1325_8425.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Jakub Hałun",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "A largely bare, sandy field with vehicle tracks."
+  }
+ },
+ {
+  "id": "dirt-road-92679920",
+  "file": "dirt-road/92679920.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:20191213_Dirt_road,_Thar_Desert,_Bikaner,_1402_8450.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Jakub Hałun",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 75,
+   "notes": "A sandy, sparsely vegetated landscape with mostly dry ground cover and scattered trees."
+  }
+ },
+ {
+  "id": "dirt-road-93130230",
+  "file": "dirt-road/93130230.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Water_reflection_of_a_dirt_road_in_green_paddy_fields,_karst_mountains_and_clouds_at_sunset_in_Vang_Vieng_Laos.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Basile Morin",
+  "category": "dirt road",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "Flooded rice paddies contain mostly green young vegetation with some brown growth along the raised banks."
   }
  },
  {
@@ -1731,8 +2207,22 @@
   "source": "own",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 30,
-   "notes": "Vineyard rows with dormant vines and mostly green ground cover."
+   "dry_pct_estimate": 10,
+   "notes": "Vineyard rows have mostly green ground cover with some dry weeds and litter."
+  }
+ },
+ {
+  "id": "own-srv2",
+  "file": "own/SRV2.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "Vineyard rows have mostly dry, straw-colored ground vegetation."
   }
  },
  {
@@ -1745,8 +2235,36 @@
   "source": "own",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 20,
-   "notes": "A dry, mostly bare vineyard hillside with green grapevines and sparse ground weeds."
+   "dry_pct_estimate": 75,
+   "notes": "A tilled vineyard hillside with sparse weeds and dry ground litter."
+  }
+ },
+ {
+  "id": "own-srv4",
+  "file": "own/SRV4.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 98,
+   "notes": "Vineyard rows with mostly dry, cured ground vegetation."
+  }
+ },
+ {
+  "id": "own-srv5",
+  "file": "own/SRV5.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 85,
+   "notes": "Vineyard rows are overgrown with mostly dry, straw-colored grasses and weeds."
   }
  },
  {
@@ -1759,8 +2277,36 @@
   "source": "own",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 65,
-   "notes": "A vineyard row has dry grass and weeds between green grapevines."
+   "dry_pct_estimate": 85,
+   "notes": "Vineyard rows with mostly dry grass and weeds between them."
+  }
+ },
+ {
+  "id": "own-srv7",
+  "file": "own/SRV7.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 85,
+   "notes": "Vineyard rows with mostly dry grasses and weeds, plus some flowering plants."
+  }
+ },
+ {
+  "id": "own-srv8",
+  "file": "own/SRV8.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 90,
+   "notes": "Vineyard rows with mostly dry ground vegetation along a dirt track."
   }
  },
  {
@@ -1773,8 +2319,22 @@
   "source": "own",
   "expected": {
    "relevant": true,
-   "dry_pct_estimate": 25,
-   "notes": "Vineyard rows with mostly green vines and sparse dry ground cover."
+   "dry_pct_estimate": 85,
+   "notes": "Vineyard rows with mostly dry ground cover and scattered green weeds."
+  }
+ },
+ {
+  "id": "own-srv10",
+  "file": "own/SRV10.jpg",
+  "url": "local:test-photos",
+  "license": "own",
+  "author": "FireBlock",
+  "category": "own",
+  "source": "own",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 45,
+   "notes": "Vineyard rows with patches of green weeds and dry ground litter beside a dirt track."
   }
  }
 ]

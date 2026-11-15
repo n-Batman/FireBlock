@@ -3,9 +3,10 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { CACHE, DATA, MANIFEST, mk, pool, sha, type Item } from "./common";
 
 const MODEL = "gpt-6.1-terra"; // same model family the app uses for words
-const PROMPT = `You rate photos for a wildfire fuel scanner that looks at ground vegetation in vineyards, fields and yards.
+const PROMPT_VERSION = "ground-v2"; // part of the cache key: bump to relabel
+const PROMPT = `You rate photos for a wildfire fuel scanner that looks at GROUND vegetation in vineyards, fields and yards: grass, weeds, cover crop and litter only. Ignore vine and tree canopy, trunks and dormant canes entirely.
 Return relevant=false if the photo is not a usable outdoor view of ground vegetation or bare ground: people as the subject, maps, diagrams, indoor shots, extreme close-ups of a few stems or bales, aerial/satellite views, text.
-Otherwise relevant=true and dry_pct_estimate = of the VEGETATION visible (plants, grass, leaves; not sky, soil, roads, buildings), what percent is dry, dead, straw or cured (0 to 100). If there is no vegetation at all (bare soil, gravel, dirt road), dry_pct_estimate = 0.
+Otherwise relevant=true and dry_pct_estimate = of the GROUND VEGETATION visible (grass, weeds, cover crop, litter; not vine or tree canopy, trunks, dormant canes, sky, soil, roads, buildings), what percent is dry, dead, straw or cured (0 to 100). If there is no ground vegetation at all (bare soil, gravel, dirt road, only vines or trees), dry_pct_estimate = 0.
 notes: one short sentence on what the scene is.`;
 const SCHEMA = {
   name: "label",
@@ -19,7 +20,7 @@ const SCHEMA = {
 };
 
 async function label(it: Item, key: string) {
-  const cache = `${CACHE}/label-${sha(it.file)}.json`;
+  const cache = `${CACHE}/label-${sha(it.file + PROMPT_VERSION)}.json`;
   if (existsSync(cache)) return JSON.parse(readFileSync(cache, "utf8"));
   const b64 = readFileSync(`${DATA}/${it.file}`).toString("base64");
   for (let a = 0; a < 3; a++) {
