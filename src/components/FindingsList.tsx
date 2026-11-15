@@ -37,24 +37,35 @@ export function FindingsList({ tracks, empty }: { tracks: Track[]; empty: string
  */
 export function AreaFindingsList({ areas, notes }: { areas: RiskArea[]; notes: AreaNote[] | null }) {
   if (areas.length === 0) return <p className="text-[15px] text-ink-2">No dry patches big enough to list.</p>;
-  const rest = 100 - areas.reduce((sum, a) => sum + a.pctOfRisk, 0);
+  const listed = areas.filter((a, i) => i === 0 || a.pctOfRisk >= 5);
+  const first = notes?.find((n) => n.area === areas[0].id);
+  const rest = 100 - listed.reduce((sum, a) => sum + a.pctOfRisk, 0);
   return (
+    <>
+    {first && <p className="font-semibold">Do first: {first.action}</p>}
     <ul aria-label="Findings" className="max-h-48 space-y-2 overflow-y-auto">
-      {areas.map((a) => {
+      {listed.map((a) => {
         const note = notes?.find((n) => n.area === a.id);
         return (
           <li key={a.id} className="flex items-start gap-3 text-[15px] leading-snug">
             <span aria-hidden="true" className={`mt-1.5 size-2.5 shrink-0 rounded-full ${TONE.risk.dot}`} />
-            <span>
+            <div>
               <span className="sr-only">{TONE.risk.word}: </span>
-              <span className="font-medium">{note?.label ?? "Dry fuel"}</span>, {a.where} ({a.pctOfRisk}% of the dry fuel).{" "}
+              <p className="font-medium">{note?.label ?? "Dry fuel"}</p>
+              <p className="text-sm text-ink-2">{a.where} · {a.pctOfRisk}% of the dry fuel</p>
               {note ? (
-                `${note.reason} ${note.action}`
+                <p>{note.action}</p>
               ) : notes === null ? (
                 <span className="scan-shimmer">Writing the findings…</span>
               ) : null}
-              {a.reasons?.length ? <span className="block text-xs text-ink-2">{a.reasons.join(" · ")}</span> : null}
-            </span>
+              {(note?.reason || !!a.reasons?.length) && (
+                <details>
+                  <summary className="min-h-11 cursor-pointer py-3 text-xs text-ink-2">Why</summary>
+                  {note?.reason && <p className="text-xs text-ink-2">{note.reason}</p>}
+                  {!!a.reasons?.length && <p className="text-xs text-ink-2">{a.reasons.join(" · ")}</p>}
+                </details>
+              )}
+            </div>
           </li>
         );
       })}
@@ -68,5 +79,6 @@ export function AreaFindingsList({ areas, notes }: { areas: RiskArea[]; notes: A
         </li>
       )}
     </ul>
+    </>
   );
 }

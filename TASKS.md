@@ -143,6 +143,8 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 
 | M38 | Add independent property boundary and risk grid display toggles | DONE |
 
+| M39 | Clarify scan measurement wording and prioritize readable actions | DONE |
+
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
 

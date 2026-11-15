@@ -313,6 +313,9 @@ export function ScanScreen() {
                 {call.text}
               </p>
             )}
+            {call && session.estimate !== null && (
+              <p className="text-xs text-ink-2">Vines and trees are not counted.</p>
+            )}
             {call && headlineCertainty(fuel, session.estimate) === "uncertain" && (
               <p className="text-xs text-ink-2">Try another angle or a sharper photo for a firmer number.</p>
             )}
@@ -332,7 +335,7 @@ export function ScanScreen() {
               <p aria-live="polite" className="text-[15px]">
                 {decided
                   ? call
-                    ? `This scan rates ${Math.round((call.share ?? 0) * 100)}% of the vegetation as dry.`
+                    ? `This scan rates ${Math.round((call.share ?? 0) * 100)}% of the ${session.estimate !== null ? "ground cover" : "vegetation"} as dry.`
                     : `This scan flagged ${risks} of ${risks + clears} areas.`
                   : "Looking for risks..."}
               </p>

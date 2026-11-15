@@ -424,7 +424,7 @@ describe("useScanSession", () => {
       await advance(1);
       expect(hook.result.current.fuel).toBeNull();
       expect(hook.result.current.problem).toBe(false);
-      expect(headline(hook)?.text).toBe("High risk: 60% of the vegetation looks dry.");
+      expect(headline(hook)?.text).toBe("High risk: 60% of the ground cover looks dry.");
     });
 
     const findingsBodies = () =>
