@@ -1,10 +1,11 @@
 import {intersection,union} from "polyclip-ts";
 import type {ParcelUnit,PolygonRings} from "@/data/types";
 import type {View} from "./parcelApi";
+import {PARCEL_SCREEN_THRESHOLD} from "./parcelDisplayConfig";
+export {PARCEL_SCREEN_THRESHOLD} from "./parcelDisplayConfig";
 
 // Retained for legacy risk overview helpers; parcel loading/rendering has no zoom cutoff.
 export const INDIVIDUAL_PARCEL_ZOOM=17;
-export const PARCEL_SCREEN_THRESHOLD=.1;
 const R=6378137;
 type XY=[number,number];
 const project=([lat,lon]:number[]):XY=>[R*lon*Math.PI/180,R*Math.log(Math.tan(Math.PI/4+Math.max(-85,Math.min(85,lat))*Math.PI/360))];
@@ -35,7 +36,7 @@ export function parcelScreenFraction(parcel:ParcelUnit,view:View):number {
   }catch{return 1;} // A geometry failure must keep the original boundary visible.
 }
 
-/** Group only parcels occupying <10% of the screen. Union member outlines;
+/** Group only parcels occupying <5% of the screen. Union member outlines;
  * never invent a rectangular boundary, fill roads/holes, or mutate source units.
  */
 export function parcelDisplay(parcels:ParcelUnit[],view:View,selectedId:string|null=null):{individuals:ParcelUnit[];areas:ParcelAreaSummary[]} {
@@ -44,10 +45,11 @@ export function parcelDisplay(parcels:ParcelUnit[],view:View,selectedId:string|n
   const individuals:ParcelUnit[]=[],buckets=new Map<string,ParcelUnit[]>();
   // Screen-sized neighborhoods bound the cost and extent of each merged shape.
   const width=(e-w)*Math.sqrt(PARCEL_SCREEN_THRESHOLD),height=(n-s)*Math.sqrt(PARCEL_SCREEN_THRESHOLD);
+  const lastBucket=Math.ceil(1/Math.sqrt(PARCEL_SCREEN_THRESHOLD))-1;
   for(const parcel of parcels){
     if(parcel.id===selectedId||parcelScreenFraction(parcel,view)+1e-9>=PARCEL_SCREEN_THRESHOLD){individuals.push(parcel);continue;}
     const [x,y]=project(parcel.center);
-    const key=`${Math.max(0,Math.min(3,Math.floor((x-w)/width)))}:${Math.max(0,Math.min(3,Math.floor((y-s)/height)))}`;
+    const key=`${Math.max(0,Math.min(lastBucket,Math.floor((x-w)/width)))}:${Math.max(0,Math.min(lastBucket,Math.floor((y-s)/height)))}`;
     const members=buckets.get(key)??[];members.push(parcel);buckets.set(key,members);
   }
   const areas:ParcelAreaSummary[]=[];

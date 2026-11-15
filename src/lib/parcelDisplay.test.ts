@@ -8,7 +8,14 @@ function lot(id:string,x=10,y=10,size=40,score:number|null=20):ParcelUnit{
   return {id,acres:1,center:ll(x+size/2,y+size/2),parts:[[[ll(x,y),ll(x+size,y),ll(x+size,y+size),ll(x,y+size),ll(x,y)]]],score:score===null?null:{score,level:"low",source:{kind:"risk-map",modelId:"test",asOf:"2026-11-14",coverage:1}}};
 }
 describe("screen-sized parcel display",()=>{
-  it("groups below 10% and restores the original polygons when zooming back in",()=>{
+  it("restores parcels between 5% and the previous 10% threshold",()=>{
+    const parcels=[lot("a"),lot("b",50)];
+    const camera={...view(100),east:view(300).east};
+    expect(parcelScreenFraction(parcels[0],camera)).toBeGreaterThan(.05);
+    expect(parcelScreenFraction(parcels[0],camera)).toBeLessThan(.1);
+    expect(parcelDisplay(parcels,camera)).toEqual({individuals:parcels,areas:[]});
+  });
+  it("groups below 5% and restores the original polygons when zooming back in",()=>{
     const parcels=[lot("a"),lot("b",50)],original=JSON.stringify(parcels);
     const wide=parcelDisplay(parcels,view(1000));
     expect(wide.individuals).toHaveLength(0);expect(wide.areas).toHaveLength(1);
@@ -25,9 +32,9 @@ describe("screen-sized parcel display",()=>{
     expect(parcelScreenFraction(hole,view(100))).toBeCloseTo(.36);
     expect(parcelScreenFraction(parcel,{...view(100),east:view(1000).east})).toBeCloseTo(.1);
   });
-  it("keeps parcels at exactly 10% and a selected small parcel individually visible",()=>{
+  it("keeps parcels at exactly 5% and a selected small parcel individually visible",()=>{
     const parcel=lot("p",0,0,100),other=lot("other",150);
-    const v={...view(100),east:view(1000).east};
+    const v={...view(100),east:view(2000).east};
     expect(parcelDisplay([parcel,other],v).individuals).toContain(parcel);
     expect(parcelDisplay([parcel,other],view(1000),"p").individuals).toContain(parcel);
   });

@@ -1,13 +1,13 @@
 # Parcel detail by screen coverage
 
 Individual parcel visibility has no fixed zoom cutoff. A parcel remains an
-individual boundary when its actual visible shape occupies at least 10% of the
+individual boundary when its actual visible shape occupies at least 5% of the
 map viewport area. The calculation uses Web Mercator (screen) coordinates,
 clips against the viewport, and subtracts holes. A selected parcel always keeps
 its original boundary. Invalid camera or grouping geometry retains the original
 parcels rather than hiding them.
 
-Parcels below 10% are grouped with other small parcels in screen-sized
+Parcels below 5% are grouped with other small parcels in screen-sized
 neighborhoods. Each displayed shape is the polygon union of the member outlines,
 not a bounding box. It preserves holes, roads/gaps and disconnected parts as
 multipart polygons. A lone small parcel stays individual. Group scores use the
@@ -16,7 +16,7 @@ unknown scores are never treated as zero. The source polygons, per-parcel scores
 and backend risk grid remain unchanged.
 
 Grouping recomputes on pan, zoom and viewport resize. Zooming back in restores
-the exact source parcel units once they reach 10%. Clicking a group fits its
+the exact source parcel units once they reach 5%. Clicking a group fits its
 member geometry. The map permits zoom through level 24, enlarging level-19
 imagery beyond its native resolution, so small city lots can reach the screen
 threshold. There is no guarantee of additional imagery detail at those levels.
@@ -30,7 +30,7 @@ aborted. Wide views show only already loaded properties until the camera returns
 to a queryable area. Synthetic rectangular risk-overview tiles no longer replace
 property polygons. Existing session cache and score-cache bounds still apply.
 
-Regression checks cover the 10% boundary, visible-area clipping, holes,
+Regression checks cover the 5% boundary, visible-area clipping, holes,
 aspect-ratio changes, nonrectangular unions, multipart gaps, selected parcels,
 score weighting, real Leaflet zoom/resize events and data retention through
 zoom-out/zoom-in.
