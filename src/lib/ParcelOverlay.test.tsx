@@ -52,10 +52,31 @@ describe("ParcelOverlay risk-grid refresh",()=>{
     const mounted=render(<MapContainer center={CENTER} zoom={12} style={{height:400,width:400}}>
       <Grab/><ParcelOverlay center={CENTER} onGridActive={onGridActive}/>
     </MapContainer>);
+    fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     await advance(0);
     expect(gridCalls()).toHaveLength(1);
     return {...mounted,onGridActive};
   }
+
+  it("controls grid visibility independently of legacy outlines and hides managed checkboxes",async()=>{
+    const view=(showGrid:boolean,managed=false)=><MapContainer center={CENTER} zoom={12} style={{height:400,width:400}}>
+      <ParcelOverlay center={CENTER} showGrid={showGrid} parcelMask={managed?[]:undefined}/>
+    </MapContainer>;
+    const mounted=render(view(true));
+    expect(screen.getByRole("button",{name:"Data tools"})).toHaveAttribute("aria-expanded","false");
+    expect(screen.queryByRole("button",{name:"Find at point"})).toBeNull();
+    fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
+    await advance(0);
+    expect(mounted.container.querySelector(".leaflet-backend-risk-grid-pane")).not.toBeNull();
+    expect(screen.queryByRole("checkbox",{name:/Show underlying grid/})).toBeNull();
+    fireEvent.click(screen.getByRole("checkbox",{name:/Show parcel outlines/}));
+    mounted.rerender(view(true,true));
+    expect(screen.queryByRole("checkbox",{name:/Show parcel outlines/})).toBeNull();
+    expect(mounted.container.querySelector(".leaflet-backend-risk-grid-pane")).not.toBeNull();
+    mounted.rerender(view(false,true));
+    expect(mounted.container.querySelector(".leaflet-backend-risk-grid-pane")).toBeNull();
+    expect(gridCalls()).toHaveLength(1);
+  });
 
   it("makes no new fetches for small pans inside the 50%-padded bbox",async()=>{
     await mountGrid();
@@ -95,6 +116,7 @@ describe("ParcelOverlay risk-grid refresh",()=>{
 
   it("forces a fetch from Load configured backend grid inside the cached bbox",async()=>{
     await mountGrid();
+    if(screen.getByRole("button",{name:"Data tools"}).getAttribute("aria-expanded")==="false")fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     fireEvent.click(screen.getByRole("button",{name:"Load configured backend grid"}));
     await advance(249);expect(gridCalls()).toHaveLength(1);
     await advance(1);expect(gridCalls()).toHaveLength(2);
@@ -140,9 +162,11 @@ describe("ParcelOverlay lookup", () => {
     expect(parcelCalls()).toBe(0);
     expect(project).not.toHaveBeenCalled();expect(clip).not.toHaveBeenCalled();
     // An explicit control request is still supported, but must not score a hidden duplicate layer.
+    if(screen.getByRole("button",{name:"Data tools"}).getAttribute("aria-expanded")==="false")fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     fireEvent.click(screen.getByRole('button',{name:'Find at point'}));
     await screen.findByText('0 parcels.');
     expect(project).not.toHaveBeenCalled();expect(clip).not.toHaveBeenCalled();
+    if(screen.getByRole("button",{name:"Data tools"}).getAttribute("aria-expanded")==="false")fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     fireEvent.click(screen.getByRole('checkbox',{name:/Show underlying grid/}));
     expect(clip).toHaveBeenCalledTimes(1);
   });
@@ -181,6 +205,7 @@ describe("ParcelOverlay lookup", () => {
     render(mount(null));
     fireEvent.change(screen.getByLabelText("Parcel latitude"), { target: { value: "36.6777" } });
     fireEvent.change(screen.getByLabelText("Parcel longitude"), { target: { value: "-121.6555" } });
+    if(screen.getByRole("button",{name:"Data tools"}).getAttribute("aria-expanded")==="false")fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     fireEvent.click(screen.getByRole("button", { name: "Find at point" }));
     expect(await screen.findByText("Parcel lines cover SLO County only for now.")).toBeInTheDocument();
     expect(parcelCalls()).toBe(0);
@@ -191,6 +216,7 @@ describe("ParcelOverlay lookup", () => {
     render(mount(null, onPoint));
     fireEvent.change(screen.getByLabelText("Parcel latitude"), { target: { value: "35.5" } });
     fireEvent.change(screen.getByLabelText("Parcel longitude"), { target: { value: "-120.7" } });
+    if(screen.getByRole("button",{name:"Data tools"}).getAttribute("aria-expanded")==="false")fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     fireEvent.click(screen.getByRole("button", { name: "Find at point" }));
     await waitFor(() => expect(onPoint).toHaveBeenCalledWith({ lat: 35.5, lon: -120.7 }));
   });
@@ -200,6 +226,7 @@ describe("ParcelOverlay lookup", () => {
     render(mount(null, onPoint));
     fireEvent.change(screen.getByLabelText("Parcel latitude"), { target: { value: "36.6777" } });
     fireEvent.change(screen.getByLabelText("Parcel longitude"), { target: { value: "-121.6555" } });
+    if(screen.getByRole("button",{name:"Data tools"}).getAttribute("aria-expanded")==="false")fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     fireEvent.click(screen.getByRole("button", { name: "Find at point" }));
     await waitFor(() => expect(onPoint).toHaveBeenCalledWith({ lat: 36.6777, lon: -121.6555 }));
   });
@@ -207,6 +234,7 @@ describe("ParcelOverlay lookup", () => {
   it("does not tell the page about the visible-area search, which has no single point", async () => {
     const onPoint = vi.fn();
     render(mount(null, onPoint));
+    if(screen.getByRole("button",{name:"Data tools"}).getAttribute("aria-expanded")==="false")fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     fireEvent.click(screen.getByRole("button", { name: "Find in visible area" }));
     await waitFor(() => expect(parcelCalls()).toBeGreaterThan(0));
     expect(onPoint).not.toHaveBeenCalled();
@@ -219,14 +247,17 @@ describe("ParcelOverlay lookup", () => {
         <ParcelOverlay center={CENTER} showGridByDefault={false} />
       </MapContainer>,
     );
+    fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     expect(grid()).not.toBeChecked();
     unmount();
     render(mount(null));
+    fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     expect(grid()).toBeChecked();
   });
 
   it("keeps his controls: latitude, longitude, Find at point, Pick on map, Find in visible area", () => {
     render(mount(null));
+    fireEvent.click(screen.getByRole("button",{name:"Data tools"}));
     expect(screen.getByLabelText("Parcel latitude")).toBeInTheDocument();
     expect(screen.getByLabelText("Parcel longitude")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Find at point" })).toBeInTheDocument();

@@ -139,6 +139,8 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 
 | M37 | Prevent initial map camera jumps and show bounded loading overlay | DONE |
 
+| M38 | Add independent property boundary and risk grid display toggles | DONE |
+
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
 

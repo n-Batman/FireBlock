@@ -28,6 +28,7 @@ import { useWide } from "@/lib/useWide";
 import type { Place } from "@/lib/geocode";
 import { ParcelOverlay } from "@/lib/ParcelOverlay";
 import { ParcelAreas, useParcelDisplay } from "@/lib/ParcelAreas";
+import { LayerToggles } from "./LayerToggles";
 import { MapLoading } from "./MapLoading";
 import { ScanSpotPins, type ScanSpots } from "./ScanSpotPins";
 
@@ -313,6 +314,8 @@ interface RiskMapProps {
 
 export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null, parcels = null, onPoint, onView, onGridChange, scanSpots = null }: RiskMapProps) {
   const wide = useWide();
+  const [showParcels, setShowParcels] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
   const tiles = tileSource(process.env.NEXT_PUBLIC_ARCGIS_KEY);
   // Three failed tiles in a row means the imagery is not loading. Say so instead of staying grey.
   const [tileErrors, setTileErrors] = useState(0);
@@ -399,11 +402,12 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
         {!(wide && panelOpen) && (
           <ZoomControl key={wide ? "wide" : "narrow"} position={wide ? "bottomright" : "topright"} />
         )}
-        <ParcelOverlay center={place ? [place.lat, place.lon] : property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} onGridActive={setGridActive} onGridChange={onGridChange} showGridByDefault={false} parcelMask={parcelMask} />
+        <ParcelOverlay center={place ? [place.lat, place.lon] : property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} onGridActive={setGridActive} onGridChange={onGridChange} showGrid={showGrid} parcelMask={showParcels ? parcelMask : []} />
+        <LayerToggles showParcels={showParcels} showGrid={showGrid} onParcels={() => setShowParcels(value => !value)} onGrid={() => setShowGrid(value => !value)} />
         {onView && <ViewWatcher onView={onView} />}
         <PlaceFocus place={place} />
 
-        {parcels && <ParcelPolygons parcels={parcels} selectedId={selectedId} onSelect={onSelect} />}
+        {showParcels && parcels && <ParcelPolygons parcels={parcels} selectedId={selectedId} onSelect={onSelect} />}
         {parcels && <ScanSpotPins spots={scanSpots} />}
 
         {blocks.map((block) => {

@@ -13,7 +13,7 @@ import { fetchParcelResponse } from "./parcelCache";
 import { scaleColor } from "./riskScale";
 
 /** Independent parcel geometry; never changes or invents risk block scores. `lookup` is a place picked in the address search; a new `id` runs a new lookup. `onPoint` reports the point of a latitude/longitude or "Pick on map" lookup. */
-export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,showGridByDefault=true,parcelMask}:{center:[number,number];onGridActive?:(active:boolean)=>void;onGridChange?:(grid:RiskGrid|null)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void;showGridByDefault?:boolean;parcelMask?:(Polygon|MultiPolygon)[]}) {
+export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,showGridByDefault=true,showGrid:controlledGrid,parcelMask}:{center:[number,number];onGridActive?:(active:boolean)=>void;onGridChange?:(grid:RiskGrid|null)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void;showGridByDefault?:boolean;showGrid?:boolean;parcelMask?:(Polygon|MultiPolygon)[]}) {
   const map=useMap();
   const [host,setHost]=useState<HTMLElement|null>(null);
   const [lat,setLat]=useState(String(center[0]));
@@ -31,7 +31,9 @@ export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,s
   const gridGeneration=useRef(0);
   const automaticGrid=useRef(true);
   const forceGrid=useRef(false);
-  const [showGrid,setShowGrid]=useState(showGridByDefault);
+  const [internalGrid,setShowGrid]=useState(showGridByDefault);
+  const showGrid=controlledGrid??internalGrid;
+  const [toolsOpen,setToolsOpen]=useState(false);
   const [gridMessage,setGridMessage]=useState("Load backend risk_map.geojson to color whole properties.");
   const managedParcels=parcelMask!==undefined;
   useEffect(()=>{onGridActive?.(!!grid?.features.length);},[grid,onGridActive]);
@@ -43,7 +45,7 @@ export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,s
   },[data,grid,visible,managedParcels]);
   // The grid is drawn only where no parcel covers it. Scoring above still uses the whole grid.
   const visibleGrid=useMemo(()=>{
-    if(!visible||!showGrid||!grid)return null;
+    if((!managedParcels&&!visible)||!showGrid||!grid)return null;
     return gridOutsideParcels(grid,managedParcels?parcelMask!:(data?.features.map(f=>f.geometry)??[]));
   },[grid,parcelMask,data,visible,showGrid,managedParcels]);
   const loadGrid=useCallback((value:unknown,focus=true)=>{
@@ -86,7 +88,7 @@ export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,s
   useEffect(()=>{
     const control=new L.Control({position:"bottomright"});
     const node=L.DomUtil.create("div");
-    node.style.cssText="background:white;color:#18241d;padding:12px;width:270px;max-height:45vh;overflow:auto;border:1px solid #aaa;border-radius:6px;font:13px system-ui";
+
     L.DomEvent.disableClickPropagation(node); L.DomEvent.disableScrollPropagation(node);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the Leaflet control's host node exists only after mount
     control.onAdd=()=>node; control.addTo(map); setHost(node);
@@ -118,7 +120,9 @@ export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,s
   useMapEvents({click(event){if(pick){setLat(String(event.latlng.lat));setLon(String(event.latlng.lng));setPick(false);void search(new URLSearchParams({lat:String(event.latlng.lat),lon:String(event.latlng.lng)}));}}});
   const buttonStyle={border:"1px solid #888",padding:"5px 8px",borderRadius:3,margin:"4px 3px 4px 0",cursor:"pointer"};
   return <>
-    {host && createPortal(<section aria-label="Property boundary search">
+    {host && createPortal(<>
+      <button type="button" aria-expanded={toolsOpen} onClick={()=>setToolsOpen(!toolsOpen)} className="glass min-h-11 px-3 text-[15px] text-ink">Data tools</button>
+      <section hidden={!toolsOpen} aria-label="Property boundary search" style={{background:"white",color:"#18241d",padding:12,width:270,maxHeight:"45vh",overflow:"auto",border:"1px solid #aaa",borderRadius:6,font:"13px system-ui"}}>
       <strong>Property boundaries</strong>
       <form onSubmit={e=>{e.preventDefault();setPick(false);void search(new URLSearchParams({lat,lon}));}}>
         <label style={{display:"block"}}>Latitude <input aria-label="Parcel latitude" type="number" step="any" min="-85" max="85" required value={lat} onChange={e=>setLat(e.target.value)} style={{width:120,border:"1px solid #aaa",margin:3}}/></label>
@@ -127,7 +131,7 @@ export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,s
         <button style={buttonStyle} type="button" disabled={busy} onClick={()=>setPick(!pick)}>{pick?"Cancel map pick":"Pick on map"}</button>
       </form>
       <button style={buttonStyle} disabled={busy} onClick={()=>{setPick(false);const b=map.getBounds();void search(new URLSearchParams({bbox:[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(",")}));}}>Find in visible area</button>
-      <label style={{display:"block"}}><input type="checkbox" checked={visible} onChange={e=>setVisible(e.target.checked)}/> Show parcel outlines over risk</label>
+      {!managedParcels&&<label style={{display:"block"}}><input type="checkbox" checked={visible} onChange={e=>setVisible(e.target.checked)}/> Show parcel outlines over risk</label>}
       <p role="status">{pick?"Click a location on the map.":message}</p>
       <hr style={{margin:"8px 0"}}/>
       <strong>Property risk display</strong>
@@ -141,7 +145,7 @@ export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,s
         setGridMessage("Loading backend grid…");
         automaticGrid.current=true;forceGrid.current=true;map.fire("moveend");
       }}>Load configured backend grid</button>
-      <label style={{display:"block"}}><input type="checkbox" checked={showGrid} onChange={e=>setShowGrid(e.target.checked)}/> Show underlying grid</label>
+      {controlledGrid===undefined&&<label style={{display:"block"}}><input type="checkbox" checked={showGrid} onChange={e=>setShowGrid(e.target.checked)}/> Show underlying grid</label>}
       <p role="status">{gridMessage}</p>
       <button style={buttonStyle} disabled={!lastQuery||archiveBusy||busy} onClick={async()=>{
         setArchiveBusy(true);setArchiveMessage("Archiving licensed boundaries and cloud-grid projection…");
@@ -161,7 +165,7 @@ export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,s
         const url=URL.createObjectURL(new Blob([JSON.stringify(projection.data??data)],{type:"application/geo+json"}));
         const a=document.createElement("a");a.href=url;a.download="parcels.geojson";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
       }}>Save GeoJSON</button></p>}
-    </section>,host)}
+    </section></>,host)}
     {visible && data && !managedParcels && <Pane name="parcel-boundaries" style={{zIndex:450}}>
       <GeoJSON key={`${data.metadata.fetchedAt}-${gridRevision}`} data={projection.data??data} style={feature=>{
         const p=feature?.properties;const score=p?.risk_score;
