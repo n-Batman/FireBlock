@@ -4,6 +4,10 @@ The [mathematical risk pipeline](docs/mathematical-risk.md) uses cloud-backed
 parsed satellite data, publishes a verified frontend grid and keeps scoring
 replaceable for a later AI model.
 
+The [daily backend runner](docs/daily-collection.md) refreshes weather and NASA
+FIRMS data every 24 hours and runs risk analysis, with satellite collection
+reserved for a future adapter.
+
 Cloud-backed runs now support verified working-file cleanup and direct cloud
 grid serving. See [cloud storage and retention](docs/cloud-retention.md) for
 configuration, parcel-license gating and recovery behavior.

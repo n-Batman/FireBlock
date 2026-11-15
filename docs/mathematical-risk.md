@@ -68,10 +68,11 @@ Any missing measurement makes that record unavailable. Invalid numeric values,
 physical ranges, timestamps or boxes fail the run instead of being invented.
 Each output cell carries the chosen raw record for source/time/unit provenance.
 
-A collector can normalize [NWS hourly forecasts](https://www.weather.gov/documentation/services-web-api)
-or another timestamped provider to this contract; the browser's point-weather
-response is not silently reused as regional weather. This model update includes
-the snapshot ingestion/scoring path, not a new weather collection service.
+The [daily backend collector](daily-collection.md) normalizes NWS hourly forecasts
+to this contract. Other collectors can supply the same timestamped contract;
+the browser's point-weather response is not silently reused as regional weather.
+Records can include a closed convex `coverage_polygon`; the entire cell must
+then be contained in that footprint as well as the bbox.
 The additive weather fields preserve the `fireblock.risk-features.v1` contract
 for existing custom models; the mathematical model ID advances to v2.
 Custom models receive weather_pressure arrays (NaN means unavailable) and can

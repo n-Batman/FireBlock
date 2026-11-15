@@ -1,0 +1,13 @@
+{
+  "analysis_job": "config/risk.cloud.example.json",
+  "state_dir": ".cache/daily-risk",
+  "firms": {
+    "sources": ["VIIRS_NOAA20_NRT", "VIIRS_SNPP_NRT", "MODIS_NRT"],
+    "days": 4
+  },
+  "weather": {
+    "sample_km": 2,
+    "max_points": 256
+  },
+  "satellite": {"enabled": false}
+}

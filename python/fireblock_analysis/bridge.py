@@ -13,11 +13,11 @@ class Backend:
         self.bucket = config.get("bucket", "")
 
     @staticmethod
-    def execute(arguments):
+    def execute(arguments, environment=None):
         # C++ diagnostics and stdout are captured, since sharing/error output may be sensitive.
         try:
             result = subprocess.run(arguments, capture_output=True, encoding="utf-8", errors="replace",
-                                    timeout=3600, check=False, shell=False)
+                                    timeout=3600, check=False, shell=False, env=environment)
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise RuntimeError("Could not execute C++ backend; check executable and build status") from exc
         if result.returncode:
@@ -49,7 +49,7 @@ class Backend:
             verified = response["contentLength"] == path.stat().st_size and response["contentSha1"] == checksum
         return {"key": key, "file_id": response["fileId"], "verified": verified}
 
-    def ingest(self, config_path):
+    def ingest(self, config_path, environment=None):
         executable = str(Path(self.config.get("ingest_executable", "build/native/fireblock_ingest.exe")).resolve())
         # Scraper takes CDSE/FIRMS credentials from its inherited environment.
-        self.execute([executable, str(config_path)])
+        self.execute([executable, str(config_path)], environment=environment)

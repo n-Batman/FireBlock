@@ -9,6 +9,11 @@ from .controller import ParserController
 def main():
     parser = argparse.ArgumentParser(description="Sentinel-2 and FIRMS worker connected to the FireBlock C++ backend")
     sub = parser.add_subparsers(dest="command", required=True)
+    daily = sub.add_parser("daily", help="Collect weather/FIRMS and run risk analysis every 24 hours")
+    daily.add_argument("config")
+    daily.add_argument("--validate", action="store_true", help="Validate without network access")
+    daily.add_argument("--watch", action="store_true", help="Stay running and check the persisted 24-hour schedule")
+    daily.add_argument("--force", action="store_true", help="Run once even when not yet due")
     analysis = sub.add_parser("run", help="Download B2 inputs, analyze, and upload a completed manifest")
     analysis.add_argument("job")
     analysis.add_argument("--validate", action="store_true", help="Check job structure without network or raster dependencies")
@@ -26,7 +31,20 @@ def main():
     ingest.add_argument("--job-out", required=True, help="Write generated analysis job here")
     args = parser.parse_args()
     try:
-        if args.command == "risk":
+        if args.command == "daily":
+            from .daily import run_daily, validate_daily, watch_daily
+            config = json.loads(Path(args.config).read_text(encoding="utf-8-sig"))
+            validate_daily(config)
+            if args.watch and (args.force or args.validate):
+                raise ValueError("--watch cannot be combined with --force or --validate")
+            if args.validate:
+                print("Daily collection configuration valid")
+            elif args.watch:
+                watch_daily(config)
+            else:
+                manifest = run_daily(config, force=args.force)
+                print(manifest if manifest else "Daily job not due yet")
+        elif args.command == "risk":
             job = json.loads(Path(args.job).read_text(encoding="utf-8-sig"))
             if not job.get("risk", {}).get("enabled", False):
                 raise ValueError("Risk command requires risk.enabled=true")

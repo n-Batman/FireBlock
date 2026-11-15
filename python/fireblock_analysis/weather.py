@@ -7,6 +7,31 @@ from pathlib import Path
 import numpy as np
 
 
+def polygon_coverage(ring, lon, lat, dx, dy):
+    """Whole-cell containment in a convex forecast footprint, including its edges."""
+    points = np.asarray(ring, dtype="float64")
+    if (points.ndim != 2 or points.shape[1] != 2 or not 4 <= len(points) <= 17 or
+            not np.isfinite(points).all() or not np.array_equal(points[0], points[-1]) or
+            (np.abs(points[:, 0]) > 180).any() or (np.abs(points[:, 1]) > 90).any()):
+        raise ValueError("Weather coverage must be a closed convex polygon")
+    points = points[:-1]
+    edges = np.roll(points, -1, axis=0) - points
+    following = np.roll(edges, -1, axis=0)
+    turns = edges[:, 0] * following[:, 1] - edges[:, 1] * following[:, 0]
+    if np.all(turns > 0):
+        direction = 1
+    elif np.all(turns < 0):
+        direction = -1
+    else:
+        raise ValueError("Weather coverage must be strictly convex")
+    inside = np.ones(lon.shape, dtype=bool)
+    for point, edge in zip(points, edges):
+        for x, y in ((lon-dx/2, lat-dy/2), (lon-dx/2, lat+dy/2),
+                     (lon+dx/2, lat-dy/2), (lon+dx/2, lat+dy/2)):
+            inside &= direction * (edge[0] * (y-point[1]) - edge[1] * (x-point[0])) >= -1e-12
+    return inside
+
+
 def timestamp(value):
     stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if stamp.tzinfo is None:
@@ -53,6 +78,8 @@ def weather_features(path, lon, lat, dx, dy, as_of, max_age_hours=6):
         mask = ((lon - dx/2 >= w - 1e-12) & (lon + dx/2 <= e + 1e-12) &
                 (lat - dy/2 >= s - 1e-12) & (lat + dy/2 <= n + 1e-12) &
                 (issued.timestamp() > selected))
+        if "coverage_polygon" in record:
+            mask &= polygon_coverage(record["coverage_polygon"], lon, lat, dx, dy)
         value = (.5 * np.clip(wind / 30, 0, 1) +
                  .3 * np.clip((60 - humidity) / 50, 0, 1) +
                  .2 * np.clip((temperature - 15) / 25, 0, 1))

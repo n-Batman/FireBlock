@@ -1,5 +1,9 @@
 # Copernicus and NASA FIRMS ingestion
 
+For automatic weather/FIRMS collection and risk analysis every 24 hours, use the
+[daily backend runner](daily-collection.md). It keeps satellite scraping disabled
+and reuses already-stored imagery.
+
 To send scraper output directly into raw Backblaze storage and later restore it
 for a parser, use the [raw pipeline controller](raw-pipeline.md). The standalone
 `fireblock_ingest` command below remains local-only.
