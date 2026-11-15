@@ -91,6 +91,8 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P50 | Isolate parcel pills during movement and share DivIcons | DONE (Codex; one parcel-pills pane at zIndex 600, hide/show on movement/zoom, blur removed and module DivIcon cache keyed by presentation; sample markers/controls/polygons stay visible; 22 map tests and TypeScript pass; partner/parcel-pill-pane) |
 | P51 | Include weather in backend mathematical risk model | DONE (Codex; versioned weather snapshot ingestion, wind/humidity/temperature blend, full-cell coverage and issue/validity checks, explicit unavailable fallback and per-cell provenance; 54 Python tests pass; partner/weather-risk-model) |
 | P52 | Automate daily backend weather/FIRMS refresh and leave satellite adapter hook | DONE (Codex; restart-safe 24-hour runner, OS overlap lock, one-hour failure retry, rolling native FIRMS collection and bounded NWS collection; existing imagery reused with satellite scraping disabled; 72 Python tests, TypeScript and native/offline config checks pass; partner/weather-risk-model) |
+| P53 | Scrape and analyze the area around 35.324008, -120.717764 | DONE (Codex; existing native scraper, verified stored Nov 11 satellite products, three fresh FIRMS sensor requests and live NWS weather; 25/25 scored cells, weather on 22, zero local detections; artifact hashes/B2 uploads verified; analysis/point-35.324008--120.717764-20261115T055421Z; no frontend publication) |
+| P54 | Publish requested-point analysis to the live website | DONE (Codex; verified cloud catalog entry and bundled 25-cell weather-aware snapshot; five mosaic tests, TypeScript and production build pass; traced grid bundled for hosted API) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

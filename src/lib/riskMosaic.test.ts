@@ -37,4 +37,10 @@ describe("location-based risk mosaic",()=>{
     expect(silver.features).toHaveLength(1476);
     expect((await publishedRiskGrid([0,0,1,1])).features).toHaveLength(0);
   });
+  it("serves the requested point's verified weather-aware analysis",async()=>{
+    const result=await publishedRiskGrid([-120.72326930720696,35.31951643832833,-120.71225918028274,35.32849955007824]);
+    expect(result.publication.runs).toEqual(["20261115T055439Z-073c7c3e9013"]);
+    expect(result.features).toHaveLength(25);
+    expect(result.features.every(f=>f.properties.model_id==="fireblock-relative-risk-v2"&&f.properties.risk_score!==null)).toBe(true);
+  });
 });
