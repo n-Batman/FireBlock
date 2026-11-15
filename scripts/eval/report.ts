@@ -39,6 +39,7 @@ async function row(r: Result): Promise<Buffer> {
 }
 
 async function sheet(rs: Result[], name: string) {
+  if (rs.length === 0) return; // sharp cannot make a 0-height image
   const rows = await Promise.all(rs.map(row));
   await sharp({ create: { width: CW * 2 + TXT, height: CH * rows.length, channels: 3, background: "#000" } })
     .composite(rows.map((input, i) => ({ input, left: 0, top: i * CH })))
@@ -66,13 +67,14 @@ export async function report(all: Result[], meta: { total: number; dropped: numb
     const errs = rs.flatMap((r) => (r.err == null ? [] : [r.err]));
     lines.push(`| ${c} | ${rs.length} | ${pct(rs.filter((r) => r.pass).length, rs.length)} | ${errs.length ? (errs.reduce((a, b) => a + b, 0) / errs.length).toFixed(1) : "n/a"} |`);
   }
-  lines.push(`| **all** | ${results.length} | ${pct(results.filter((r) => r.pass).length, results.length)} | |`, "");
-  const dirt = results.filter((r) => ["bare soil field", "dirt road"].includes(r.item.category));
+  const allErrs = results.flatMap((r) => (r.err == null ? [] : [r.err]));
+  lines.push(`| **all** | ${results.length} | ${pct(results.filter((r) => r.pass).length, results.length)} | ${allErrs.length ? (allErrs.reduce((a, b) => a + b, 0) / allErrs.length).toFixed(1) : "n/a"} |`, "");
+  const dirt = results.filter((r) => r.dirt);
   const veg = results.filter((r) => r.bgFp != null);
   const meanBg = veg.reduce((a, r) => a + (r.bgFp ?? 0), 0) / (veg.length || 1);
   const acr = all.filter((r) => r.allClearWithRisk);
   lines.push(
-    `- Dirt false positives (bare-soil + dirt-road buckets, risk over 3% of frame): ${dirt.filter((r) => r.riskFrame > 0.03).length}/${dirt.length}`,
+    `- Dirt false positives (frames scored with the dirt rule, risk over 3% of frame): ${dirt.filter((r) => r.riskFrame > 0.03).length}/${dirt.length}`,
     `- VegAnn background false positives: mean ${(meanBg * 100).toFixed(1)}% of background pixels read as risk; ${veg.filter((r) => (r.bgFp ?? 0) > 0.05).length}/${veg.length} images over 5%`,
     `- "All clear" while risk is drawn (must be 0): **${acr.length}**${acr.length ? " — " + acr.slice(0, 10).map((r) => r.item.id).join(", ") : ""}`,
     "",

@@ -48,6 +48,9 @@ export function withHumanLabels(items: Item[], labels: HumanLabel[]): Item[] {
   });
 }
 
+/** Dirt buckets: "bare soil field" / "dirt road", with or without the v2 "v2 " prefix. */
+export const isDirtBucket = (category: string) => /^(v2 )?(bare soil|dirt road)/.test(category);
+
 export const sha = (s: string | Buffer) => createHash("sha1").update(s).digest("hex").slice(0, 16);
 export const mk = (d: string) => mkdirSync(d, { recursive: true });
 

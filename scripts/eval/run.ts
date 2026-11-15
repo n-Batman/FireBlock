@@ -1,14 +1,16 @@
-/* Scores the scanner on eval/manifest.json. Run: npm run eval:run  (needs ROBOFLOW_API_KEY in .env.local; replies cached in eval/cache) */
+/* Scores the scanner on eval/manifest.json. Run: npm run eval:run  (needs ROBOFLOW_API_KEY in .env.local; replies cached in eval/cache)
+   EVAL_ESTIMATOR=vlm scores src/lib/estimate.ts instead of SAM (needs OPENAI_API_KEY; replies cached as eval/cache/est-<sha>.json). */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
-import { MAP_WIDTH, RISK, hsv, scan, type FuelMap } from "../../src/lib/fuelMask";
+import { EST_COLS, EST_ROWS, SYSTEM_PROMPT, estimateDry, type Estimate } from "../../src/lib/estimate";
+import { CLEAR, MAP_WIDTH, NEUTRAL, RISK, hsv, scan, type FuelMap } from "../../src/lib/fuelMask";
 import { ENDPOINT, parseSegments, segmentBody } from "../../src/lib/segment";
-import { CACHE, DATA, LABELS_V2, MANIFEST, V2, mk, pool, sha, sleep, withHumanLabels, type Item } from "./common";
+import { CACHE, DATA, LABELS_V2, MANIFEST, V2, isDirtBucket, mk, pool, sha, sleep, withHumanLabels, type Item } from "./common";
 
+const VLM = process.env.EVAL_ESTIMATOR === "vlm";
 const PASS_PTS = 15; // |our dry% - GPT estimate|
 const BG_PASS = 0.05; // VegAnn: risk on background pixels, share of background
 const DIRT_PASS = 0.03; // dirt buckets: risk pixels, share of frame
-const DIRT = ["bare soil field", "dirt road"];
 
 export interface Result {
   item: Item;
@@ -18,6 +20,8 @@ export interface Result {
   err: number | null; // |ours - expected|
   bgFp: number | null; // VegAnn only
   riskFrame: number; // risk pixels / frame
+  /** Scored with the dirt rule (risk under 3% of frame). */
+  dirt: boolean;
   allClearWithRisk: boolean;
   pass: boolean;
   why: string;
@@ -61,13 +65,47 @@ async function segment(jpeg: Buffer, key: string) {
   throw new Error("segmentation failed after retries");
 }
 
+/** One VLM estimate, cached by frame. Retries 429/5xx twice. */
+async function estimate(jpeg: Buffer): Promise<Estimate> {
+  const cache = `${CACHE}/est-${sha(sha(jpeg) + sha(SYSTEM_PROMPT))}.json`;
+  if (existsSync(cache)) return JSON.parse(readFileSync(cache, "utf8"));
+  for (let a = 0; ; a++) {
+    try {
+      const est = await estimateDry(`data:image/jpeg;base64,${jpeg.toString("base64")}`);
+      writeFileSync(cache, JSON.stringify(est));
+      return est;
+    } catch (e) {
+      const status = (e as { status?: number }).status;
+      if (a >= 2 || (status !== 429 && status !== 502 && status !== 504)) throw e;
+      await sleep(1500 * (a + 1));
+    }
+  }
+}
+
+/** The VLM's 6x8 grid as a FuelMap (dry = risk, live = clear, the rest neutral), so reports and sheets draw it like SAM's. */
+function gridMap(est: Estimate, w: number, h: number): FuelMap {
+  const labels = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const c = est.grid[Math.min(EST_ROWS - 1, Math.floor((y / h) * EST_ROWS))][Math.min(EST_COLS - 1, Math.floor((x / w) * EST_COLS))];
+      labels[y * w + x] = c === "dry" ? RISK : c === "live" ? CLEAR : NEUTRAL;
+    }
+  }
+  const share = est.vegFrac > 0 ? est.dryPct / 100 : null;
+  return { w, h, labels, verdict: { risk: 0, clear: 0, share, level: share == null ? "none" : share > 0 ? "moderate" : "clear", text: "" }, areas: [], colourOnly: false };
+}
+
 async function evaluate(item: Item, key: string): Promise<Result> {
   const { jpeg, w: sw, h: sh } = await frame(`${DATA}/${item.file}`);
-  const polygons = parseSegments(await segment(jpeg, key));
   const w = MAP_WIDTH;
   const h = Math.max(1, Math.round((sh / sw) * w));
   const rgba = await sharp(jpeg).resize(w, h, { fit: "fill" }).ensureAlpha().raw().toBuffer();
-  const map = scan(rgba, w, h, sw, polygons);
+  let vlm: Estimate | null = null;
+  let map: FuelMap;
+  if (VLM) {
+    vlm = await estimate(jpeg);
+    map = gridMap(vlm, w, h);
+  } else map = scan(rgba, w, h, sw, parseSegments(await segment(jpeg, key)));
   const n = w * h;
   let snow = 0;
   let satSum = 0;
@@ -78,7 +116,7 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   }
   let risk = 0;
   for (const l of map.labels) if (l === RISK) risk++;
-  const ours = map.verdict.share == null ? 0 : map.verdict.share * 100;
+  const ours = vlm ? vlm.dryPct : map.verdict.share == null ? 0 : map.verdict.share * 100;
   const expected = item.expected?.relevant ? item.expected.dry_pct_estimate : null;
   let bgFp: number | null = null;
   if (item.mask) {
@@ -93,20 +131,20 @@ async function evaluate(item: Item, key: string): Promise<Result> {
     }
     bgFp = bg ? bgRisk / bg : null;
   }
-  const riskFrame = risk / n;
+  const riskFrame = vlm ? (vlm.dryPct / 100) * vlm.vegFrac : risk / n; // vlm: dry share of vegetation x vegetation share of frame
   const err = expected == null ? null : Math.abs(ours - expected);
-  const dirt = DIRT.includes(item.category) || item.dirt === true;
+  const dirt = V2 ? item.dirt === true : isDirtBucket(item.category) || item.dirt === true; // v2: only hand-flagged soil-dominant frames; dirt-road buckets often hold real dry grass
   let pass = true;
   let why = "";
   if (err != null && err > PASS_PTS) (pass = false), (why = `dry% off by ${err.toFixed(0)}`);
   if (dirt && riskFrame > DIRT_PASS) (pass = false), (why = `dirt read as risk (${(riskFrame * 100).toFixed(0)}% of frame)`);
   if (bgFp != null && bgFp > BG_PASS) (pass = false), (why = `risk on ${(bgFp * 100).toFixed(0)}% of background`);
-  return { item, map, ours, expected, err, bgFp, riskFrame, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: V2 ? null : suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
+  return { item, map, ours, expected, err, bgFp, riskFrame, dirt, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: V2 ? null : suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
 }
 
 async function main() {
-  const key = process.env.ROBOFLOW_API_KEY?.trim();
-  if (!key) throw new Error("ROBOFLOW_API_KEY missing (run via npm run eval:run)");
+  const key = (VLM ? process.env.OPENAI_API_KEY : process.env.ROBOFLOW_API_KEY)?.trim();
+  if (!key) throw new Error(`${VLM ? "OPENAI_API_KEY" : "ROBOFLOW_API_KEY"} missing (run via npm run eval:run)`);
   mk(CACHE);
   const raw: Item[] = JSON.parse(readFileSync(MANIFEST, "utf8"));
   const all = V2 ? withHumanLabels(raw, JSON.parse(readFileSync(LABELS_V2, "utf8"))) : raw;

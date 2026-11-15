@@ -2,8 +2,8 @@ import { FINDINGS_JSON_SCHEMA, type AreaNote, type RiskAreaInput } from "@/data/
 
 // gpt-6.1-terra with no reasoning answers in about 3 s. It only writes words: the areas, their places and
 // sizes are measured in the browser and passed in, so it cannot add or move a risk.
-const MODEL = "gpt-6.1-terra";
-const REASONING_EFFORT = "none";
+export const MODEL = "gpt-6.1-terra";
+export const REASONING_EFFORT = "none";
 const TIMEOUT_MS = 15000;
 
 const SYSTEM_PROMPT = `You are a wildfire fuels inspector using defensible-space guidance (CAL FIRE / Ready for Wildfire). You get a vineyard photo and a list of risk areas that were already measured in it: each has an id, a box [xmin, ymin, xmax, ymax] as fractions of the frame (0,0 top left), location words, and how much of the dry fuel it holds.
@@ -26,7 +26,7 @@ export class VisionError extends Error {
 }
 
 /** The model's text out of a Responses API reply. A refusal or empty reply is an error. */
-function outputText(reply: unknown): string {
+export function outputText(reply: unknown): string {
   const output = (reply as { output?: { content?: { type: string; text?: string }[] }[] } | null)?.output ?? [];
   for (const item of output) {
     for (const part of item.content ?? []) {
