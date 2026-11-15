@@ -4,6 +4,7 @@ import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Camera, UploadSimple } from "@phosphor-icons/react";
+import { SAVE_RESCAN } from "@/content/parcelCopy";
 import { properties } from "@/data/properties";
 import { scanDelta, summarize, withScan } from "@/lib/scan";
 import { scoreOf } from "@/lib/score";
@@ -85,6 +86,7 @@ export function ScanScreen() {
   // Opened from a county parcel: the scan is saved with the device's GPS, and lands in whichever parcel that is inside.
   const parcelId = params.get("parcel");
   const parcelMode = parcelId !== null;
+  const rescan = params.get("rescan") === "1"; // the parcel already has a scan: this one is the after
   const [saving, setSaving] = useState(false);
 
   const { tracks } = session.tracker;
@@ -334,7 +336,7 @@ export function ScanScreen() {
                 disabled={(parcelMode ? saving : !block) || !decided}
                 className="inline-flex h-11 flex-1 items-center justify-center rounded-[var(--r)] bg-ink px-4 text-[15px] font-semibold text-paper transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
               >
-                {parcelMode ? (saving ? "Finding your location..." : "Save to parcel") : "Save to block"}
+                {parcelMode ? (saving ? "Finding your location..." : rescan ? SAVE_RESCAN : "Save to parcel") : "Save to block"}
               </button>
               <button
                 type="button"

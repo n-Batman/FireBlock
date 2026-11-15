@@ -126,18 +126,45 @@ export function scoreFromCells(unit: ParcelUnit, cells: RiskCell[]): ParcelScore
   };
 }
 
-/** The share of scanned areas flagged as a risk, from the newest scan saved inside the parcel. */
-export function scoreFromScans(unit: ParcelUnit, scans: ParcelScan[]): ParcelScore | null {
+/** The scans with something rated that were saved inside the parcel, newest first. */
+function scansInside(unit: ParcelUnit, scans: ParcelScan[]): ParcelScan[] {
   const geometry = toGeoJSON(unit);
-  const inside = scans
+  return scans
     .filter((s) => s.risks + s.clears > 0 && booleanPointInPolygon(point([s.lon, s.lat]), geometry))
     .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
-  const scan = inside[0];
+}
+
+const percent = (s: ParcelScan) => Math.round((100 * s.risks) / (s.risks + s.clears));
+
+/** The share of scanned areas flagged as a risk, from the newest scan saved inside the parcel. */
+export function scoreFromScans(unit: ParcelUnit, scans: ParcelScan[]): ParcelScore | null {
+  const scan = scansInside(unit, scans)[0];
   if (!scan) return null;
   return {
-    ...scoreOfValue(Math.round((100 * scan.risks) / (scan.risks + scan.clears))),
+    ...scoreOfValue(percent(scan)),
     source: { kind: "scan", at: scan.at, risks: scan.risks, clears: scan.clears },
   };
+}
+
+/** One end of a before/after: the scan's score and when it was saved. */
+export interface ScanPoint {
+  score: number;
+  at: string;
+}
+
+/**
+ * The first and the newest scan saved inside the parcel, from the same scans `scoreFromScans` reads. Scans at or before
+ * `since` (the parcel's reset marker) are ignored. Null until there are two. Scores are dry-fuel percents, and `improvement`
+ * is before minus after in points (positive = less dry fuel), the same convention as the backend archive's comparison
+ * (docs/parcel-scan-archive.md), which the browser cannot read: it needs the server's token.
+ */
+export function beforeAfter(unit: ParcelUnit, scans: ParcelScan[], since?: string | null): { before: ScanPoint; after: ScanPoint; improvement: number } | null {
+  const floor = since ? Date.parse(since) : -Infinity;
+  const inside = scansInside(unit, scans).filter((s) => Date.parse(s.at) > floor);
+  if (inside.length < 2) return null;
+  const point = (s: ParcelScan): ScanPoint => ({ score: percent(s), at: s.at });
+  const [before, after] = [point(inside[inside.length - 1]), point(inside[0])];
+  return { before, after, improvement: before.score - after.score };
 }
 
 /** A scan saved inside the parcel wins over the risk map. With neither, there is no score. */

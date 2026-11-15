@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { ScanScreen } from "./ScanScreen";
 
-vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ push: vi.fn() }) }));
+let query = "";
+vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(query), useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/lib/useDemoAvailable", () => ({ useDemoAvailable: () => false }));
 vi.mock("@/lib/samples", () => ({ SAMPLES: [{ id: "row", label: "Straw between the vines", src: "/demo/sample-row.jpg" }] }));
 
@@ -33,6 +34,29 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   session = { ...IDLE };
+  query = "";
+});
+
+describe("ScanScreen parcel save label", () => {
+  const rated = { ...IDLE, phase: "running", mode: "photo", photo: { src: "blob:x", image: "data:x" }, scanning: false, tracker: { tracks: [], status: "clear" }, fuel: { w: 1, h: 1, labels: new Uint8Array([2]), verdict: { risk: 1, clear: 1, share: 0.5, level: "high", text: "x" }, areas: [], colourOnly: false } };
+
+  it("says Save to parcel for a parcel's first scan and Save rescan when it already has one", () => {
+    query = "parcel=014-331-010";
+    session = rated;
+    const { unmount } = render(<ScanScreen />);
+    expect(screen.getByRole("button", { name: "Save to parcel" })).toBeInTheDocument();
+    unmount();
+    query = "parcel=014-331-010&rescan=1";
+    render(<ScanScreen />);
+    expect(screen.getByRole("button", { name: "Save rescan" })).toBeInTheDocument();
+  });
+
+  it("keeps Save to block for the sample blocks even with rescan in the URL", () => {
+    query = "rescan=1";
+    session = rated;
+    render(<ScanScreen />);
+    expect(screen.queryByRole("button", { name: "Save rescan" })).toBeNull();
+  });
 });
 
 describe("ScanScreen", () => {

@@ -12,6 +12,11 @@ export const PLANNING_ONLY = "County GIS outlines for planning, not a boundary s
 /** "~12.4 acres", computed from the parcel's geometry. */
 export const acresLabel = (acres: number) => `~${acres >= 100 ? Math.round(acres) : acres.toFixed(1)} acres`;
 
+/** "Before 62, after 48": the first and newest scan in a parcel. */
+export const BEFORE_AFTER_TITLE = "Before and after";
+export const BEFORE_AFTER_RESET = "Start over";
+export const SAVE_RESCAN = "Save rescan";
+
 /** Where a score came from, in a few words. */
 export function sourceLabel(source: ScoreSource): string {
   return source.kind === "scan"

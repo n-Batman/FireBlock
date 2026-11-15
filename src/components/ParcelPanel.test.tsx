@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ParcelUnit } from "@/data/types";
 import { scaleColor } from "@/lib/riskScale";
+import { PARCEL_RESET_KEY, PARCEL_SCAN_KEY } from "@/lib/parcelScanStore";
 import { ParcelPanel } from "./ParcelPanel";
 
 const ring: [number, number][] = [
@@ -18,6 +19,57 @@ const parcel = (over: Partial<ParcelUnit> = {}): ParcelUnit => ({
   center: [35.635, -120.855],
   score: null,
   ...over,
+});
+
+// This jsdom has no working localStorage, so the tests use a small in-memory one (as in useParcels.test.tsx).
+const store = new Map<string, string>();
+const memoryStorage = {
+  getItem: (k: string) => store.get(k) ?? null,
+  setItem: (k: string, v: string) => void store.set(k, v),
+  removeItem: (k: string) => void store.delete(k),
+  clear: () => store.clear(),
+};
+beforeEach(() => {
+  store.clear();
+  vi.stubGlobal("localStorage", memoryStorage);
+});
+
+describe("ParcelPanel before and after", () => {
+  // The ring above is a triangle; (35.632, -120.853) is inside it.
+  const scanAt = (risks: number, clears: number, at: string) => ({ lat: 35.632, lon: -120.853, risks, clears, at });
+  const save = (...scans: ReturnType<typeof scanAt>[]) => window.localStorage.setItem(PARCEL_SCAN_KEY, JSON.stringify(scans));
+  const scanned = { score: 25, level: "low" as const, source: { kind: "scan" as const, at: "2026-11-16T10:00:00Z", risks: 1, clears: 3 } };
+
+  it("shows no row with fewer than two scans in the parcel", () => {
+    save(scanAt(3, 1, "2026-11-14T10:00:00Z"));
+    render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
+    expect(screen.queryByTestId("before-after")).toBeNull();
+  });
+
+  it("shows the first and newest scan's scores, and links the rescan with rescan=1", () => {
+    save(scanAt(3, 1, "2026-11-14T10:00:00Z"), scanAt(1, 3, "2026-11-16T10:00:00Z"));
+    render(<ParcelPanel parcel={parcel({ score: scanned })} onClose={() => {}} />);
+    const row = screen.getByTestId("before-after");
+    expect(row).toHaveTextContent("Before 75");
+    expect(row).toHaveTextContent("After 25");
+    expect(screen.getByRole("link", { name: "Scan again" })).toHaveAttribute("href", "/scan?parcel=014-331-010&rescan=1");
+  });
+
+  it("Start over hides the row, keeps the scans and saves a marker for this parcel only", async () => {
+    save(scanAt(3, 1, "2026-11-14T10:00:00Z"), scanAt(1, 3, "2026-11-16T10:00:00Z"));
+    render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
+    await userEvent.click(screen.getByRole("button", { name: "Start over" }));
+    expect(screen.queryByTestId("before-after")).toBeNull();
+    expect(Object.keys(JSON.parse(window.localStorage.getItem(PARCEL_RESET_KEY)!))).toEqual(["014-331-010"]);
+    expect(JSON.parse(window.localStorage.getItem(PARCEL_SCAN_KEY)!)).toHaveLength(2);
+  });
+
+  it("stays hidden on a remount after a reset", () => {
+    save(scanAt(3, 1, "2026-11-14T10:00:00Z"), scanAt(1, 3, "2026-11-16T10:00:00Z"));
+    window.localStorage.setItem(PARCEL_RESET_KEY, JSON.stringify({ "014-331-010": "2026-11-17T00:00:00Z" }));
+    render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
+    expect(screen.queryByTestId("before-after")).toBeNull();
+  });
 });
 
 describe("ParcelPanel", () => {

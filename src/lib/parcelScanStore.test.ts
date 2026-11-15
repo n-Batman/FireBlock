@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ParcelScan } from "@/data/types";
-import { loadParcelScans, PARCEL_SCAN_KEY, saveParcelScan } from "./parcelScanStore";
+import { loadParcelReset, loadParcelScans, PARCEL_RESET_KEY, PARCEL_SCAN_KEY, saveParcelReset, saveParcelScan } from "./parcelScanStore";
 
 const memory = (initial?: string) => {
   let value = initial ?? null;
@@ -63,5 +63,30 @@ describe("parcel scan store", () => {
     expect(all).toHaveLength(200);
     expect(all[0].risks).toBe(6);
     expect(all.at(-1)!.risks).toBe(205);
+  });
+});
+
+describe("parcel reset marker", () => {
+  it("reads nothing, bad data and other parcels as never reset", () => {
+    expect(loadParcelReset(memory(), "a")).toBeNull();
+    expect(loadParcelReset(memory("not json"), "a")).toBeNull();
+    expect(loadParcelReset(memory(JSON.stringify({ b: "2026-11-15T00:00:00Z", a: 5 })), "a")).toBeNull();
+  });
+
+  it("saves one marker per parcel without touching the others or the scans", () => {
+    const store = memory();
+    saveParcelReset(store, "a", "2026-11-15T00:00:00Z");
+    saveParcelReset(store, "b", "2026-11-16T00:00:00Z");
+    saveParcelReset(store, "a", "2026-11-17T00:00:00Z");
+    expect(loadParcelReset(store, "a")).toBe("2026-11-17T00:00:00Z");
+    expect(loadParcelReset(store, "b")).toBe("2026-11-16T00:00:00Z");
+    expect(JSON.parse(store.peek()!)).toEqual({ a: "2026-11-17T00:00:00Z", b: "2026-11-16T00:00:00Z" });
+    expect(PARCEL_RESET_KEY).not.toBe(PARCEL_SCAN_KEY);
+  });
+
+  it("starts a fresh marker over unreadable data", () => {
+    const store = memory("{broken");
+    saveParcelReset(store, "a", "2026-11-15T00:00:00Z");
+    expect(loadParcelReset(store, "a")).toBe("2026-11-15T00:00:00Z");
   });
 });
