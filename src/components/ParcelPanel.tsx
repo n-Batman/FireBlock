@@ -5,10 +5,25 @@ import Link from "next/link";
 import { Camera, X } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import type { ParcelUnit } from "@/data/types";
-import { acresLabel, BEFORE_AFTER_RESET, BEFORE_AFTER_TITLE, NOT_SCORED, PLANNING_ONLY, sourceLabel } from "@/content/parcelCopy";
-import { formatAsOf } from "@/lib/format";
-import { loadParcelReset, saveParcelReset } from "@/lib/parcelScanStore";
-import { beforeAfter } from "@/lib/parcelScore";
+import {
+  acresLabel,
+  BEFORE_AFTER_RESET,
+  BEFORE_AFTER_TITLE,
+  MARK_MOWED,
+  markedMowed,
+  mowedBetween,
+  MOWED_NOTE_HINT,
+  MOWED_NOTE_LABEL,
+  NOT_SCORED,
+  PLANNING_ONLY,
+  RESCAN_TO_PROVE,
+  sourceLabel,
+  UNMARK_MOWED,
+} from "@/content/parcelCopy";
+import { formatAsOf, formatDay } from "@/lib/format";
+import { clearParcelFix, saveParcelFix, saveParcelReset, saveRescanSpot } from "@/lib/parcelScanStore";
+import { beforeAfter, hasScanAfter, scanSpots } from "@/lib/parcelScore";
+import { useParcelMarks } from "@/lib/useParcelMarks";
 import { useParcelScans } from "@/lib/useParcelScans";
 import { useWide } from "@/lib/useWide";
 import { RiskChip } from "./RiskChip";
@@ -21,24 +36,27 @@ export function ParcelPanel({ parcel, onClose }: { parcel: ParcelUnit; onClose: 
   const slide = wide ? { x: 24 } : { y: 24 };
   const { score } = parcel;
   const scans = useParcelScans();
-  const [resetAt, setResetAt] = useState<string | null>(() => {
-    try {
-      return loadParcelReset(window.localStorage, parcel.id);
-    } catch {
-      return null;
-    }
-  });
+  const { resetAt, fix } = useParcelMarks(parcel.id);
+  const [note, setNote] = useState("");
   const change = beforeAfter(parcel, scans, resetAt);
-  const restart = () => {
-    const at = new Date().toISOString();
+  // A mark that cannot be saved (storage blocked) leaves the panel as it was.
+  const attempt = (write: () => void) => {
     try {
-      saveParcelReset(window.localStorage, parcel.id, at);
+      write();
     } catch {
-      /* the marker could not be saved; the row stays */
-      return;
+      /* not saved */
     }
-    setResetAt(at);
   };
+  const restart = () => attempt(() => saveParcelReset(window.localStorage, parcel.id, new Date().toISOString()));
+  const markMowed = () => {
+    attempt(() => saveParcelFix(window.localStorage, { apn: parcel.id, at: new Date().toISOString(), note }));
+    setNote("");
+  };
+  const unmark = () => attempt(() => clearParcelFix(window.localStorage, parcel.id));
+  // The first scan's spot goes to the scanner for this tab only, so the address carries no coordinates.
+  const firstSpot = scanSpots(parcel, scans, resetAt)?.before ?? null;
+  const handOverSpot = () => attempt(() => firstSpot && saveRescanSpot(window.sessionStorage, parcel.id, firstSpot));
+  const fixBetween = fix && change && fix.at > change.before.at && fix.at <= change.after.at ? fix : null;
 
   return (
     <motion.section
@@ -99,6 +117,7 @@ export function ParcelPanel({ parcel, onClose }: { parcel: ParcelUnit; onClose: 
               Before <span className="num font-semibold">{change.before.score}</span>
               <span className="text-ink-2"> ({formatAsOf(change.before.at)})</span>
             </p>
+            {fixBetween && <p className="text-[15px] text-ink-2">{mowedBetween(formatDay(fixBetween.at))}</p>}
             <p className="text-[15px]">
               After <span className="num font-semibold">{change.after.score}</span>
               <span className="text-ink-2"> ({formatAsOf(change.after.at)})</span>
@@ -111,8 +130,42 @@ export function ParcelPanel({ parcel, onClose }: { parcel: ParcelUnit; onClose: 
       </div>
 
       <div className="space-y-3 border-t border-[var(--glass-border)] px-5 py-5">
+        {fix ? (
+          <div data-testid="mowed">
+            <p className="text-[15px] font-medium">
+              {markedMowed(formatDay(fix.at))}
+              {fix.note ? <span className="font-normal text-ink-2">: {fix.note}</span> : null}
+            </p>
+            {!hasScanAfter(parcel, scans, fix.at) && <p className="mt-1 text-[15px]">{RESCAN_TO_PROVE}</p>}
+            <button type="button" onClick={unmark} className="mt-1 h-11 text-xs font-medium text-ink-2 underline underline-offset-2 hover:text-ink">
+              {UNMARK_MOWED}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-end gap-2">
+            <label className="block flex-1 text-xs font-medium text-ink-2">
+              {MOWED_NOTE_LABEL}
+              <input
+                type="text"
+                value={note}
+                maxLength={80}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={MOWED_NOTE_HINT}
+                className="mt-1 h-11 w-full rounded-[var(--r)] border border-[var(--glass-border)] bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-2/60"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={markMowed}
+              className="inline-flex h-11 items-center rounded-[var(--r)] border border-[var(--glass-border)] px-3 text-[15px] font-medium text-ink transition-colors hover:bg-white/5 active:scale-[0.98]"
+            >
+              {MARK_MOWED}
+            </button>
+          </div>
+        )}
         <Link
           href={`/scan?parcel=${encodeURIComponent(parcel.id)}${score?.source.kind === "scan" ? "&rescan=1" : ""}`}
+          onClick={handOverSpot}
           className="inline-flex h-11 items-center gap-2 rounded-[var(--r)] border border-[var(--glass-border)] px-3 text-[15px] font-medium text-ink transition-colors hover:bg-white/5 active:scale-[0.98]"
         >
           <Camera size={18} aria-hidden="true" />

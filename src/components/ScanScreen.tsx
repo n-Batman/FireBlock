@@ -4,17 +4,18 @@ import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Camera, UploadSimple } from "@phosphor-icons/react";
-import { SAVE_RESCAN } from "@/content/parcelCopy";
+import { distanceFromFirst, MOVE_CLOSER, SAVE_RESCAN } from "@/content/parcelCopy";
 import { properties } from "@/data/properties";
 import { scanDelta, summarize, withScan } from "@/lib/scan";
 import { scoreOf } from "@/lib/score";
-import { currentPosition, LocationError } from "@/lib/geolocate";
-import { saveParcelScan } from "@/lib/parcelScanStore";
+import { currentPosition, LocationError, RESCAN_RADIUS_M } from "@/lib/geolocate";
+import { loadRescanSpot, saveParcelScan } from "@/lib/parcelScanStore";
 import { SAMPLES } from "@/lib/samples";
 import { saveScan, scanKey } from "@/lib/scanStore";
 import { headlineCertainty, headlineVerdict, shownTracks } from "@/lib/scanView";
 import { useScanSession } from "@/lib/useScanSession";
 import { useDemoAvailable } from "@/lib/useDemoAvailable";
+import { useDistanceTo } from "@/lib/useDistanceTo";
 import { AreaFindingsList, FindingsList } from "./FindingsList";
 import { FuelOverlay } from "./FuelOverlay";
 import { ScanOverlay } from "./ScanOverlay";
@@ -87,6 +88,23 @@ export function ScanScreen() {
   const parcelId = params.get("parcel");
   const parcelMode = parcelId !== null;
   const rescan = params.get("rescan") === "1"; // the parcel already has a scan: this one is the after
+  // The panel hands over where the first scan was saved (for this tab only). The distance to it is shown on the idle and result cards.
+  const [firstSpot] = useState(() => {
+    if (!rescan || !parcelId) return null;
+    try {
+      return loadRescanSpot(window.sessionStorage, parcelId);
+    } catch {
+      return null;
+    }
+  });
+  const fromFirst = useDistanceTo(firstSpot);
+  const spotNote =
+    fromFirst === null ? null : (
+      <>
+        <p className="mt-2 text-[15px]">{distanceFromFirst(fromFirst)}</p>
+        {fromFirst > RESCAN_RADIUS_M && <p role="alert" className="mt-1 text-xs font-medium text-med-ink">{MOVE_CLOSER}</p>}
+      </>
+    );
   const [saving, setSaving] = useState(false);
 
   const { tracks } = session.tracker;
@@ -224,6 +242,7 @@ export function ScanScreen() {
                   ? `Scanning ${block.name} at ${property.name}.`
                   : "Open a block on the map first to save what you find."}
             </p>
+            {spotNote}
             {session.error && (
               <p role="alert" className="mt-4 rounded-[var(--r)] bg-high-bg px-3 py-2 text-[15px] text-high-ink">
                 {session.error}
@@ -317,6 +336,7 @@ export function ScanScreen() {
                   : "Looking for risks..."}
               </p>
             )}
+            {parcelMode && spotNote}
             {block && from !== null && to !== null && (
               <p aria-live="polite" className="text-[15px]">
                 {decided ? (

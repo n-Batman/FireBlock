@@ -33,3 +33,15 @@ export function currentPosition(geo: Geo | undefined): Promise<{ lat: number; lo
     );
   });
 }
+
+/** A rescan more than this far from the first scan's spot will not match its view (metres). */
+export const RESCAN_RADIUS_M = 25;
+
+/** Great-circle distance in metres between two points (haversine). */
+export function metresBetween(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLon = (b.lon - a.lon) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
+  return 6_371_000 * 2 * Math.asin(Math.sqrt(Math.min(1, h)));
+}

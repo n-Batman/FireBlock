@@ -6,7 +6,7 @@ import intersect from "@turf/intersect";
 import { featureCollection, feature } from "@turf/helpers";
 import type { Parcels } from "./parcels";
 import type { ParcelScan, ParcelScore, ParcelUnit } from "@/data/types";
-import { beforeAfter, cellsFromRiskMap, scoreFromCells, scoreFromScans, scoreParcel, type RiskCell } from "./parcelScore";
+import { beforeAfter, cellsFromRiskMap, hasScanAfter, scanSpots, scoreFromCells, scoreFromScans, scoreParcel, type RiskCell } from "./parcelScore";
 import { toParcelUnits, toGeoJSON } from "./parcelUnits";
 import { levelOf } from "./score";
 import sloParcels from "./fixtures/sloParcels.json";
@@ -304,6 +304,12 @@ describe("beforeAfter: the first and newest scan inside a parcel", () => {
   const unit = unitOf({ type: "Polygon", coordinates: [square(-120.86, 35.63, 0.01)] });
   const inside = (over: Partial<ParcelScan>): ParcelScan => ({ lat: 35.635, lon: -120.855, risks: 3, clears: 1, at: "2026-11-14T10:00:00Z", ...over });
 
+  it("puts each end's location on the point, so the map can pin it", () => {
+    const out = beforeAfter(unit, [inside({ at: "2026-11-14T10:00:00Z" }), inside({ lat: 35.6352, lon: -120.8548, at: "2026-11-15T10:00:00Z" })])!;
+    expect(out.before).toMatchObject({ lat: 35.635, lon: -120.855 });
+    expect(out.after).toMatchObject({ lat: 35.6352, lon: -120.8548 });
+  });
+
   it("is null until two scans are inside the parcel", () => {
     expect(beforeAfter(unit, [])).toBeNull();
     expect(beforeAfter(unit, [inside({})])).toBeNull();
@@ -315,8 +321,8 @@ describe("beforeAfter: the first and newest scan inside a parcel", () => {
       inside({ risks: 3, clears: 1, at: "2026-11-14T10:00:00Z" }),
       inside({ risks: 2, clears: 2, at: "2026-11-15T10:00:00Z" }),
     ])!;
-    expect(out.before).toEqual({ score: 75, at: "2026-11-14T10:00:00Z" });
-    expect(out.after).toEqual({ score: 25, at: "2026-11-16T10:00:00Z" });
+    expect(out.before).toMatchObject({ score: 75, at: "2026-11-14T10:00:00Z" });
+    expect(out.after).toMatchObject({ score: 25, at: "2026-11-16T10:00:00Z" });
     expect(out.improvement).toBe(50);
   });
 
@@ -336,5 +342,32 @@ describe("beforeAfter: the first and newest scan inside a parcel", () => {
     expect(beforeAfter(unit, scans, "2026-11-16T00:00:00Z")).toBeNull(); // only one scan since the reset
     expect(beforeAfter(unit, [...scans, inside({ risks: 0, clears: 4, at: "2026-11-18T10:00:00Z" })], "2026-11-16T00:00:00Z")!.before.score).toBe(25);
     expect(beforeAfter(unit, scans, "2026-11-15T10:00:00Z")).toBeNull(); // a scan at the marker is before it
+  });
+});
+
+describe("scanSpots and hasScanAfter", () => {
+  const unit = unitOf({ type: "Polygon", coordinates: [square(-120.86, 35.63, 0.01)] });
+  const inside = (over: Partial<ParcelScan>): ParcelScan => ({ lat: 35.635, lon: -120.855, risks: 3, clears: 1, at: "2026-11-14T10:00:00Z", ...over });
+
+  it("has a before spot from the first scan, and an after spot only once there is a second", () => {
+    expect(scanSpots(unit, [])).toBeNull();
+    const one = scanSpots(unit, [inside({})])!;
+    expect(one.before).toMatchObject({ lat: 35.635, lon: -120.855 });
+    expect(one.after).toBeUndefined();
+    const two = scanSpots(unit, [inside({}), inside({ lat: 35.636, at: "2026-11-15T10:00:00Z" })])!;
+    expect(two.after).toMatchObject({ lat: 35.636 });
+  });
+
+  it("starts the before spot over after the reset marker", () => {
+    const scans = [inside({ at: "2026-11-14T10:00:00Z" }), inside({ lat: 35.636, at: "2026-11-17T10:00:00Z" })];
+    expect(scanSpots(unit, scans, "2026-11-16T00:00:00Z")!.before.lat).toBe(35.636);
+    expect(scanSpots(unit, scans, "2026-11-16T00:00:00Z")!.after).toBeUndefined();
+  });
+
+  it("is true only when a scan inside the parcel is later than the date", () => {
+    const scans = [inside({ at: "2026-11-14T10:00:00Z" }), inside({ lon: -120.5, at: "2026-11-20T10:00:00Z" })]; // the later one is outside the parcel
+    expect(hasScanAfter(unit, scans, "2026-11-15T00:00:00Z")).toBe(false);
+    expect(hasScanAfter(unit, [...scans, inside({ at: "2026-11-16T10:00:00Z" })], "2026-11-15T00:00:00Z")).toBe(true);
+    expect(hasScanAfter(unit, scans, "2026-11-14T10:00:00Z")).toBe(false); // a scan at the date is not after it
   });
 });
