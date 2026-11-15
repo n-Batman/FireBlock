@@ -55,6 +55,39 @@
         -120.71225918028274,
         35.32849955007824
       ]
+    },
+    {
+      "id": "20261115T064910Z-cccc198a68f4",
+      "path": "cloud-20261115T064910Z-cccc198a68f4/risk_map.geojson",
+      "sha256": "f228f7bb46d47d95808e22de4bdd7e57ebdacbc6a9bd75c3d9031fe49020a717",
+      "bbox": [
+        -120.69,
+        35.305,
+        -120.57,
+        35.37
+      ]
+    },
+    {
+      "id": "20261115T064948Z-ada53c12d013",
+      "path": "cloud-20261115T064948Z-ada53c12d013/risk_map.geojson",
+      "sha256": "adbab23a03e5a74e437fdddb755860707a4a6f1d8366ef8c4ada96fb78a8463f",
+      "bbox": [
+        -120.78,
+        35.305,
+        -120.69,
+        35.355
+      ]
+    },
+    {
+      "id": "20261115T065020Z-a82ef5c48909",
+      "path": "cloud-20261115T065020Z-a82ef5c48909/risk_map.geojson",
+      "sha256": "a4ac9c8e87fc223cc093053df83efa4c3df7188a4ad7f64e218945b8bef2a22e",
+      "bbox": [
+        -120.86,
+        35.33,
+        -120.78,
+        35.375
+      ]
     }
   ]
 }

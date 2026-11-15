@@ -1,0 +1,12 @@
+{
+  "run_id": "20261115T064910Z-cccc198a68f4",
+  "manifest_file_id": "4_za7bcbaab5245dd88a51a0c19_f104e81e57aafa7ad_d20261115_m064946_c004_v0402022_t0041_u01794725386003",
+  "manifest_sha256": "7bd465cca555efc496e3e0c93033b6e01c2f51c5a2545aa9dd3050a6dc1afa15",
+  "grid_file_id": "4_za7bcbaab5245dd88a51a0c19_f10665b515d3b01ed_d20261115_m064939_c004_v0402030_t0018_u01794725379025",
+  "grid_sha256": "f228f7bb46d47d95808e22de4bdd7e57ebdacbc6a9bd75c3d9031fe49020a717",
+  "new_scored_km2": 64.48746981935471,
+  "scored_cells": 1668,
+  "weather_cells": 1360,
+  "unknown_cells": 19,
+  "area_method": "Spherical rectangle area on WGS84 lon/lat using mean Earth radius 6371008.8m; prior positive overlaps excluded"
+}

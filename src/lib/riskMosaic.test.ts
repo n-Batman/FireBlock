@@ -2,6 +2,7 @@ import {describe,it,expect} from "vitest";
 import {mergeRiskGrids,riskBounds} from "./riskMosaic";
 import {parseRiskGrid,projectGridToParcels,type RiskGrid} from "./parcelRisk";
 import {publishedRiskGrid} from "./publishedRiskGrid";
+import {area} from "@turf/area";
 import type {Parcels} from "./parcels";
 const polygon=(w:number,e:number)=>({type:"Polygon" as const,coordinates:[[[w,0],[e,0],[e,1],[w,1],[w,0]]]});
 function grid(w:number,e:number,score:number|null,stamp="2026-11-14T12:00:00Z"):RiskGrid{
@@ -30,17 +31,25 @@ describe("location-based risk mosaic",()=>{
   });
   it("serves Madonna together with SLO and preserves separate Silver River coverage",async()=>{
     const slo=await publishedRiskGrid([-120.72,35.24,-120.61,35.31]);
-    expect(slo.features).toHaveLength(1536);
-    expect(slo.publication.runs).toHaveLength(2);
-    expect(parseRiskGrid(slo).features.filter(f=>f.properties.risk_score!==null)).toHaveLength(1526);
+    const original=new Set(["20261114T224834Z-781c21500411","20261114T225722Z-c696fb1ab1a0"]);
+    expect(slo.publication.runs).toEqual(expect.arrayContaining([...original]));
+    expect(parseRiskGrid(slo).features.filter(f=>original.has(f.properties.source_run_id??"")&&f.properties.risk_score!==null)).toHaveLength(1526);
     const silver=await publishedRiskGrid([-120.72,35.71,-120.62,35.78]);
     expect(silver.features).toHaveLength(1476);
     expect((await publishedRiskGrid([0,0,1,1])).features).toHaveLength(0);
   });
   it("serves the requested point's verified weather-aware analysis",async()=>{
     const result=await publishedRiskGrid([-120.72326930720696,35.31951643832833,-120.71225918028274,35.32849955007824]);
-    expect(result.publication.runs).toEqual(["20261115T055439Z-073c7c3e9013"]);
+    expect(result.publication.runs).toContain("20261115T055439Z-073c7c3e9013");
     expect(result.features).toHaveLength(25);
     expect(result.features.every(f=>f.properties.model_id==="fireblock-relative-risk-v2"&&f.properties.risk_score!==null)).toBe(true);
+  });
+  it("serves the 136.88 km2 expansion toward Santa Margarita and Morro Bay",async()=>{
+    const result=await publishedRiskGrid([-120.86,35.305,-120.57,35.375]);
+    const expansion=new Set(["20261115T064910Z-cccc198a68f4","20261115T064948Z-ada53c12d013","20261115T065020Z-a82ef5c48909"]);
+    expect(result.publication.runs).toEqual(expect.arrayContaining([...expansion]));
+    const scored=result.features.filter(f=>expansion.has(f.properties.source_run_id??"")&&f.properties.risk_score!==null);
+    expect(scored).toHaveLength(3534);
+    expect(scored.reduce((sum,cell)=>sum+area(cell)/1e6,0)).toBeCloseTo(136.879527,4);
   });
 });
