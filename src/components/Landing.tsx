@@ -10,18 +10,18 @@ export function Landing() {
 
       <div className="glass relative w-full max-w-xl p-6 sm:p-8">
         <p className="text-xs uppercase tracking-wide text-ink-2">FireBlock · San Luis Obispo County</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-5xl">Know which vineyard blocks to clear before fire season.</h1>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-5xl">Know which parts of your land to clear before fire season.</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-2 sm:text-base">
-          Satellite data scores every parcel. Your phone camera checks the ground. Mow only what's dry and keep a dated record.
+          For vineyards, ranches and rural property. Satellite data scores every parcel, your phone camera checks the ground, and you keep a dated record.
         </p>
         <ul className="mt-6 space-y-4 text-[15px] leading-snug">
           <li className="flex items-start gap-3">
             <MapTrifold size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-2" />
-            <div><strong className="font-semibold">Find the dry blocks.</strong><p className="text-ink-2">Risk from satellite moisture and NASA fire detections, on real county parcels.</p></div>
+            <div><strong className="font-semibold">Find the dry spots.</strong><p className="text-ink-2">Risk from satellite moisture and NASA fire detections, on real county parcels.</p></div>
           </li>
           <li className="flex items-start gap-3">
             <Scissors size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-2" />
-            <div><strong className="font-semibold">Mow 2 blocks, not 10.</strong><p className="text-ink-2">Clear only the risky blocks and see what you save.</p></div>
+            <div><strong className="font-semibold">Clear what's risky, not everything.</strong><p className="text-ink-2">Focus mowing and brush work on the riskiest areas and see what you save.</p></div>
           </li>
           <li className="flex items-start gap-3">
             <ClipboardText size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-2" />
@@ -34,15 +34,16 @@ export function Landing() {
             prefetch={false}
             className="inline-flex h-11 min-w-11 items-center justify-center rounded-[var(--r)] bg-ink px-4 text-[15px] font-semibold text-paper transition-opacity hover:opacity-90 active:scale-[0.98]"
           >
-            Check my vineyard
+            Check my land
           </Link>
           <Link
             href="/scan"
             className="inline-flex min-h-11 min-w-11 items-center text-[15px] text-ink-2 underline underline-offset-2"
           >
-            or scan a block with your phone
+            or scan your land with your phone
           </Link>
         </div>
+        <p className="mt-4 border-t border-[var(--glass-border)] pt-4 text-xs text-ink-2">Insurers and conservation districts: dated proof of cleared land, parcel by parcel.</p>
       </div>
     </main>
   );
