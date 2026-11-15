@@ -98,7 +98,7 @@ export function texture(rgba: ArrayLike<number>, w: number, h: number, r = 2): F
 }
 
 /**
- * Labels every pixel. Exclude masks win (neutral). Inside a dry mask the wide dry band decides. Inside a live
+ * Labels every pixel. Exclude masks win (neutral). Inside a dry mask the wide dry band decides, but a risk pixel there needs grassy texture (smooth soil stays neutral). Inside a live
  * mask the strict colour band decides. Outside every mask, green is clear and tan is risk only where the local
  * texture is grassy (smooth dirt stays neutral). Without masks (Roboflow failed) the strict colour band alone decides.
  */
@@ -111,7 +111,10 @@ export function classify(rgba: ArrayLike<number>, w: number, h: number, masks: M
     const b = rgba[i * 4 + 2];
     if (!masks) out[i] = colourOf(r, g, b);
     else if (masks.exclude[i]) out[i] = NEUTRAL;
-    else if (masks.dry[i]) out[i] = dryColourOf(r, g, b);
+    else if (masks.dry[i]) {
+      const l = dryColourOf(r, g, b);
+      out[i] = l === RISK ? (tex![i] >= TEXTURE_MIN ? RISK : NEUTRAL) : l;
+    }
     else if (masks.live[i]) out[i] = colourOf(r, g, b);
     else {
       const l = colourOf(r, g, b);

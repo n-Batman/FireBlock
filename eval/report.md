@@ -5,14 +5,14 @@ Pass = dry% within 15 pts of GPT's estimate; dirt buckets also need risk under 3
 
 | Bucket | n | Pass | Mean abs err (pts) |
 |---|---|---|---|
-| Chaparral | 3 | 67% | 14.7 |
-| Cover crops | 20 | 85% | 10.5 |
-| Dry grass | 22 | 64% | 12.0 |
-| Grasslands of California | 23 | 74% | 9.7 |
-| Lawns | 21 | 71% | 13.4 |
-| Vineyards in California | 18 | 56% | 26.9 |
-| own | 4 | 25% | 20.4 |
-| **all** | 111 | 68% | |
+| Chaparral | 3 | 67% | 12.8 |
+| Cover crops | 20 | 85% | 10.3 |
+| Dry grass | 22 | 64% | 11.8 |
+| Grasslands of California | 23 | 74% | 12.6 |
+| Lawns | 21 | 71% | 12.4 |
+| Vineyards in California | 18 | 61% | 26.0 |
+| own | 4 | 25% | 20.3 |
+| **all** | 111 | 69% | |
 
 - Dirt false positives (bare-soil + dirt-road buckets, risk over 3% of frame): 0/0
 - VegAnn background false positives: mean 0.0% of background pixels read as risk; 0/0 images over 5%
@@ -22,26 +22,26 @@ Pass = dry% within 15 pts of GPT's estimate; dirt buckets also need risk under 3
 
 | Image | Bucket | Ours | Expected | Why |
 |---|---|---|---|---|
+| [grasslands-of-california-24246124](https://commons.wikimedia.org/wiki/File:SantaRosaPlateaugrassland.JPG) | Grasslands of California | 0% | 95% | dry% off by 95 |
 | [vineyards-in-california-16895865](https://commons.wikimedia.org/wiki/File:BOB_MARTINEZ_SPRAYING_GRAPE_VINES_-_NARA_-_542533.jpg) | Vineyards in California | 100% | 10% | dry% off by 90 |
 | [vineyards-in-california-2553160](https://commons.wikimedia.org/wiki/File:Dorn_bay_clear_lake_state_park_ca.jpg) | Vineyards in California | 92% | 15% | dry% off by 77 |
 | [cover-crops-48210681](https://commons.wikimedia.org/wiki/File:Cover_crops_in_Northwestern_South_Dakota_2015_(20115558362).jpg) | Cover crops | 12% | 80% | dry% off by 68 |
 | [vineyards-in-california-132907263](https://commons.wikimedia.org/wiki/File:Bechthold_Vineyard_-_Cinsaut_-_planted_1886.jpg) | Vineyards in California | 70% | 10% | dry% off by 60 |
-| [vineyards-in-california-3752472](https://commons.wikimedia.org/wiki/File:CaliforniaVineyard.jpg) | Vineyards in California | 62% | 5% | dry% off by 57 |
 | [cover-crops-80580071](https://commons.wikimedia.org/wiki/File:Kremsm%C3%BCnster_Guntendorf-3849.jpg) | Cover crops | 0% | 55% | dry% off by 55 |
-| [lawns-10810140](https://commons.wikimedia.org/wiki/File:Blissfield_township_betz_airport.JPG) | Lawns | 86% | 35% | dry% off by 51 |
-| [vineyards-in-california-1190684](https://commons.wikimedia.org/wiki/File:California-grapesjpg.jpg) | Vineyards in California | 59% | 10% | dry% off by 49 |
+| [vineyards-in-california-3752472](https://commons.wikimedia.org/wiki/File:CaliforniaVineyard.jpg) | Vineyards in California | 59% | 5% | dry% off by 54 |
+| [lawns-10810140](https://commons.wikimedia.org/wiki/File:Blissfield_township_betz_airport.JPG) | Lawns | 83% | 35% | dry% off by 48 |
+| [vineyards-in-california-1190684](https://commons.wikimedia.org/wiki/File:California-grapesjpg.jpg) | Vineyards in California | 57% | 10% | dry% off by 47 |
 | [vineyards-in-california-61303863](https://commons.wikimedia.org/wiki/File:Bronco_Winery_Modesto_California.JPG) | Vineyards in California | 0% | 45% | dry% off by 45 |
 | [lawns-24908552](https://commons.wikimedia.org/wiki/File:Beautiful_nice_grass.jpg) | Lawns | 45% | 2% | dry% off by 43 |
 | [lawns-63333436](https://commons.wikimedia.org/wiki/File:Acceso_Camping.jpg) | Lawns | 51% | 10% | dry% off by 41 |
 | [lawns-17908180](https://commons.wikimedia.org/wiki/File:Baltimore_and_Ohio_Railroad_Company_Depot_site.jpg) | Lawns | 100% | 60% | dry% off by 40 |
-| [grasslands-of-california-55064873](https://commons.wikimedia.org/wiki/File:August_2012_-_panoramio_(48).jpg) | Grasslands of California | 62% | 25% | dry% off by 37 |
-| [lawns-8046355](https://commons.wikimedia.org/wiki/File:Bersarinplatz_14.JPG) | Lawns | 41% | 5% | dry% off by 36 |
 | [vineyards-in-california-132907264](https://commons.wikimedia.org/wiki/File:Brovelli_Ranch_-_Zinfandel_-_planted_1954.jpg) | Vineyards in California | 53% | 20% | dry% off by 33 |
 | [dry-grass-25124001](https://commons.wikimedia.org/wiki/File:Agropyron_dasystachyum_and_bull_snake_(4010792912).jpg) | Dry grass | 40% | 70% | dry% off by 30 |
-| [dry-grass-27443632](https://commons.wikimedia.org/wiki/File:Abra.jpg) | Dry grass | 75% | 45% | dry% off by 30 |
 | [dry-grass-29207309](https://commons.wikimedia.org/wiki/File:Blowing_in_the_breeze_(5822375129)_(2).jpg) | Dry grass | 93% | 65% | dry% off by 28 |
 | [own-srv1](local:test-photos) | own | 4% | 30% | dry% off by 26 |
 | [own-srv9](local:test-photos) | own | 51% | 25% | dry% off by 26 |
+| [dry-grass-11493848](https://commons.wikimedia.org/wiki/File:Buchloe_dactyloides.jpg) | Dry grass | 96% | 70% | dry% off by 26 |
+| [dry-grass-27443632](https://commons.wikimedia.org/wiki/File:Abra.jpg) | Dry grass | 71% | 45% | dry% off by 26 |
 
 ## Probable label errors (GPT estimate looks wrong; not tuned to)
 

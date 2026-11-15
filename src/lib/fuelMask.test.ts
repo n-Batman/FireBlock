@@ -31,6 +31,12 @@ describe("classify", () => {
     expect([...classify(px(PALE), 1, 1, masks([0], [1], [0]))]).toEqual([NEUTRAL]); // pale in a live mask is not fuel
   });
 
+  it("inside a dry mask a risk colour needs grassy texture; flat pale ground (smooth soil) stays neutral", () => {
+    const dry = masks([1, 1], [0, 0], [0, 0]);
+    expect([...classify(px(PALE, PALE), 2, 1, dry)]).toEqual([NEUTRAL, NEUTRAL]);
+    expect([...classify(px(PALE, [120, 100, 60]), 2, 1, dry)]).toEqual([RISK, RISK]);
+  });
+
   it("outside every mask green is clear, tan is risk only with grassy texture, and no masks means colour alone", () => {
     const none = masks([0, 0], [0, 0], [0, 0]);
     expect([...classify(px(STRAW, STRAW), 2, 1, none)]).toEqual([NEUTRAL, NEUTRAL]); // flat tan = smooth dirt

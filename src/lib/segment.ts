@@ -21,8 +21,8 @@ const groupOf = (text: string): Group | null => (Object.keys(GROUPS) as Group[])
 const RETRIES = 2;
 /** Sent to SAM3 low so dry masks keep their weaker hits; the client filters per group below. */
 export const PROB_THRESH = 0.3;
-/** Minimum confidence to keep a mask: dry fuel is kept from 0.3, everything else from 0.4. */
-export const MIN_CONFIDENCE: Record<Group, number> = { dry: 0.3, live: 0.4, exclude: 0.4 };
+/** Minimum confidence to keep a mask: dry fuel and exclude masks are kept from 0.3, live plants from 0.4. */
+export const MIN_CONFIDENCE: Record<Group, number> = { dry: 0.3, live: 0.4, exclude: 0.3 };
 
 /**
  * Every mask in the reply with the group of the prompt that found it. The prompt comes from the echoed text, else
