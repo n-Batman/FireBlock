@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, CLEAR, colourOf, liveColourOf, NEUTRAL, RISK, riskAreas, smooth, verdict } from "./fuelMask";
+import { classify, CLEAR, colourOf, liveColourOf, NEUTRAL, RISK, riskAreas, smooth, verdict, whiteBalance } from "./fuelMask";
 
 const px = (...rgb: [number, number, number][]) => Uint8ClampedArray.from(rgb.flatMap(([r, g, b]) => [r, g, b, 255]));
 const STRAW: [number, number, number] = [200, 170, 110]; // cured grass
@@ -17,6 +17,38 @@ describe("colourOf", () => {
 
   it("keeps sky, posts, dark trunks and reddish dirt neutral", () => {
     expect([SKY, POST, TRUNK, DIRT].map((c) => colourOf(...c))).toEqual([NEUTRAL, NEUTRAL, NEUTRAL, NEUTRAL]);
+  });
+});
+
+describe("whiteBalance", () => {
+  // Six 4x4 patches in a row: straw, green, grey post, dirt, blue sky, shade.
+  const PATCHES: [number, number, number][] = [[200, 176, 112], GREEN, POST, DIRT, [120, 160, 215], [60, 60, 60]];
+  const scene = (cast: [number, number, number]) => {
+    const rgba = new Uint8ClampedArray(24 * 4 * 4).fill(255);
+    for (let i = 0; i < 24 * 4; i++) for (let c = 0; c < 3; c++) rgba[i * 4 + c] = PATCHES[(i % 24) >> 2][c] * cast[c];
+    return rgba;
+  };
+  const at = (rgba: Uint8ClampedArray, patch: number) => colourOf(rgba[patch * 16], rgba[patch * 16 + 1], rgba[patch * 16 + 2]);
+
+  it("leaves a neutral scene nearly unchanged", () => {
+    const raw = scene([1, 1, 1]);
+    const out = whiteBalance(raw, 24, 4);
+    expect(Math.max(...[...raw].map((v, i) => Math.abs(v - out[i])))).toBeLessThanOrEqual(4);
+  });
+
+  it("classifies straw under a sunset cast the same as under neutral light", () => {
+    const cast = scene([1.2, 0.9, 0.65]);
+    expect(at(cast, 0)).toBe(NEUTRAL); // the raw cast pushes straw out of the risk band
+    const out = whiteBalance(cast, 24, 4);
+    expect(at(out, 0)).toBe(RISK);
+    expect(at(out, 0)).toBe(at(whiteBalance(scene([1, 1, 1]), 24, 4), 0));
+    expect(at(out, 3)).toBe(NEUTRAL); // dirt does not come along
+  });
+
+  it("does not grey out a frame that is all golden grass", () => {
+    const field = new Uint8ClampedArray(16 * 4).fill(255);
+    for (let i = 0; i < 16; i++) [field[i * 4], field[i * 4 + 1], field[i * 4 + 2]] = STRAW;
+    expect(at(whiteBalance(field, 4, 4), 0)).toBe(RISK);
   });
 });
 

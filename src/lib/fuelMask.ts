@@ -45,6 +45,65 @@ export function hsv(r: number, g: number, b: number): [number, number, number] {
   return [h, max === 0 ? 0 : d / max, max / 255];
 }
 
+/** Pixels brighter than this (sky, glare) or darker than WB_DARK (shade) say little about the light and are left out of the estimate. */
+const WB_BRIGHT = 0.92;
+const WB_DARK = 0.15;
+/** Minkowski norm of Shades-of-Grey; 6 is the value Finlayson & Trezzi (2004) found best. */
+const WB_P = 6;
+/** Per-channel gain limits. */
+const WB_GAIN: [number, number] = [0.6, 1.6];
+/**
+ * How much of the correction is applied (gain ** WB_STRENGTH). At 1 a frame that really is all golden grass or all lawn
+ * turns grey; 0.5 was the best of 0, 0.35, 0.5, 0.65 and 1 on the v2 eval's training split.
+ */
+const WB_STRENGTH = 0.5;
+
+/**
+ * A white-balanced copy of the frame: the scene illuminant is estimated with Shades-of-Grey (Finlayson & Trezzi 2004,
+ * p = 6) from pixels that are not sky-bright, dark or clipped, and each channel is scaled part of the way to making
+ * that illuminant grey (WB_STRENGTH).
+ * Only classify and reconcile read the copy; the overlay is still drawn on the real photo.
+ */
+export function whiteBalance(rgba: ArrayLike<number>, w: number, h: number): Uint8ClampedArray {
+  const sum = [0, 0, 0];
+  let n = 0;
+  for (let i = 0; i < w * h; i++) {
+    const r = rgba[i * 4];
+    const g = rgba[i * 4 + 1];
+    const b = rgba[i * 4 + 2];
+    const max = Math.max(r, g, b);
+    if (max > WB_BRIGHT * 255 || max < WB_DARK * 255 || Math.min(r, g, b) === 0) continue;
+    sum[0] += r ** WB_P;
+    sum[1] += g ** WB_P;
+    sum[2] += b ** WB_P;
+    n++;
+  }
+  const out = Uint8ClampedArray.from(rgba);
+  if (n === 0) return out;
+  const e = sum.map((v) => (v / n) ** (1 / WB_P));
+  const grey = (e[0] + e[1] + e[2]) / 3;
+  const gain = e.map((v) => Math.min(WB_GAIN[1], Math.max(WB_GAIN[0], grey / v)) ** WB_STRENGTH);
+  for (let i = 0; i < w * h; i++) for (let c = 0; c < 3; c++) out[i * 4 + c] = rgba[i * 4 + c] * gain[c];
+  return out;
+}
+
+const lin = (c: number) => (c <= 10.31475 ? c / 3294.6 : ((c / 255 + 0.055) / 1.055) ** 2.4);
+const labF = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+
+/** CIE Lab (D65) of an sRGB pixel as [L*, chroma, hue angle in degrees 0..360]: straw sits near 85-95, red-brown soil lower. */
+export function lch(r: number, g: number, b: number): [number, number, number] {
+  const R = lin(r);
+  const G = lin(g);
+  const B = lin(b);
+  const fx = labF((0.4124 * R + 0.3576 * G + 0.1805 * B) / 0.95047);
+  const fy = labF(0.2126 * R + 0.7152 * G + 0.0722 * B);
+  const fz = labF((0.0193 * R + 0.1192 * G + 0.9505 * B) / 1.08883);
+  const a = 500 * (fx - fy);
+  const bb = 200 * (fy - fz);
+  const hue = (Math.atan2(bb, a) * 180) / Math.PI;
+  return [116 * fy - 16, Math.hypot(a, bb), hue < 0 ? hue + 360 : hue];
+}
+
 /**
  * One pixel's colour class. ponytail: fixed HSV bands tuned on SRV1/3/6/9; a per-camera white balance would
  * tighten them. Dark pixels (shade, trunks) and greys (posts, wire, sky haze) stay neutral.
@@ -376,14 +435,15 @@ export function reconcile(labels: Uint8Array, rgba: ArrayLike<number>, w: number
 }
 
 /**
- * The whole analysis on a small RGBA frame (w x h): rasterise masks, classify, then with the estimate's grid either gate
+ * The whole analysis on a small RGBA frame (w x h): rasterise masks, white-balance a copy, classify it, then with the estimate's grid either gate
  * (grid only) or reconcile toward its dryPct (grid and dryPct), smooth, drop specks, group. Pure, so the app and the eval
  * share it. No grid gives the same map as before; a grid without dryPct gives the PR 20 gate.
  */
 export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, masks: Mask[] | null, grid?: EstimateGrid | null, dryPct?: number | null): FuelMap {
   const raster = masks ? rasterise(masks, srcW, w, h) : null;
-  const classified = classify(rgba, w, h, raster);
-  const gated = !(grid?.length && grid[0]?.length) ? classified : dryPct == null ? gateByGrid(classified, w, h, grid) : reconcile(classified, rgba, w, h, grid, dryPct, raster);
+  const balanced = whiteBalance(rgba, w, h);
+  const classified = classify(balanced, w, h, raster);
+  const gated = !(grid?.length && grid[0]?.length) ? classified : dryPct == null ? gateByGrid(classified, w, h, grid) : reconcile(classified, balanced, w, h, grid, dryPct, raster);
   const labels = dropSpecks(smooth(gated, w, h), w, h);
   return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h), colourOnly: !masks };
 }
