@@ -8,7 +8,7 @@ unit tests but has no active rendering caller. The API reports
 `X-FireBlock-Parcel-Display: individual-parcels` without a screen threshold.
 
 Small parcels are now skipped using fixed acreage tiers: all sizes at zoom 17+,
-1 acre at 16, 4 at 15, 16 at 14, 64 at 13, and 256 below 13. Viewport requests
+0.25 acre at 16, 1 at 15, 4 at 14, 16 at 13, and 64 below 13. Viewport requests
 send `min_acres`; the county's square-foot area field filters before geometry is
 downloaded. Retained parcels use their existing acreage for immediate filtering
 on zoom-out. Point/radius searches are unaffected. Bounds are memoized per scored

@@ -83,7 +83,9 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P42 | Disable parcel combining and raise lookup capacity to 500 | DONE (Codex; individual-only pass-through skips camera/grouping math, shared 500-parcel service/cache/projection limit and 512-entry score/center caches; 456 tests and TypeScript pass) |
 | P43 | Skip small parcels efficiently when zooming out | DONE (Codex; fixed zoom/acreage tiers, verified provider area predicate, cached bounds and exact filtered-query cache keys; immediate retained-parcel filtering; 477 tests and TypeScript pass; no combining) |
 | P44 | Replace per-cell Turf scoring intersections with rectangular clipping | DONE (Codex; consistent planar shoelace area, 40-unit real SLO fixture with hole/multipart, 68 requested tests and TypeScript pass; median Turf 16.82 ms vs clipping 1.09 ms; partner/parcel-rectangle-scoring) |
+| P45 | Soften zoom-dependent parcel size filtering | DONE (Codex; quartered acreage cutoffs with unchanged efficient filtering and all-size detail at zoom 17+; combined Canvas/zoom branch passes 562 tests and TypeScript; included with partner/canvas-parcels) |
 | P46 | Reuse padded risk-grid coverage and remove periodic refresh | DONE (Codex; 50%-per-side bbox padding, containment-gated movement, forced manual reload and stale request cancellation; 17 overlay tests and TypeScript pass; no parcel scoring/loading changes) |
+| P47 | Canvas parcel rendering and APN-based response reuse | DONE (Codex; shared parcel-only Canvas with SVG glow, retained raw/scored references for unchanged APNs and identical result arrays; click/tooltip and diff regressions; integrated with latest main and softer zoom tiers, 562 tests and TypeScript pass; no scoring or pill changes; partner/canvas-parcels) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

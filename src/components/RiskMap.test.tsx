@@ -1,11 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import L from "leaflet";
 import { useEffect } from "react";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MapContainer, useMap } from "react-leaflet";
 import type { ParcelUnit } from "@/data/types";
 import { scaleColor } from "@/lib/riskScale";
 import { ParcelPolygons, ViewWatcher } from "./RiskMap";
+
+beforeEach(() => {
+  // jsdom has no drawing context; keep real Leaflet Canvas layers and hit testing.
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    translate: vi.fn(), scale: vi.fn(), clearRect: vi.fn(), save: vi.fn(), restore: vi.fn(),
+    setTransform: vi.fn(), beginPath: vi.fn(), rect: vi.fn(), clip: vi.fn(), moveTo: vi.fn(),
+    lineTo: vi.fn(), closePath: vi.fn(), fill: vi.fn(), stroke: vi.fn(), setLineDash: vi.fn(),
+  } as unknown as CanvasRenderingContext2D);
+  vi.spyOn(L.Map.prototype, "getSize").mockReturnValue(L.point(400, 400));
+});
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
 const SQUARE = (lat: number, lng: number, d: number): [number, number][] => [
   [lat, lng],
@@ -26,10 +37,11 @@ const high = { score: 78, level: "high" as const, source: { kind: "scan" as cons
 
 /** Collects the polygons and markers on the map, so the test can look at the real Leaflet layers. */
 function mount(parcels: ParcelUnit[], selectedId: string | null = null, onSelect: (id: string) => void = () => {}) {
-  const seen = { polygons: [] as L.Polygon[], markers: [] as L.Marker[] };
+  const seen = { polygons: [] as L.Polygon[], markers: [] as L.Marker[], map: null as L.Map | null };
   // react-leaflet adds layers in effects, so the probe reads them in its own effect, which runs after.
   function Probe() {
     const map = useMap();
+    seen.map = map;
     useEffect(() => {
       map.eachLayer((layer) => {
         if (layer instanceof L.Polygon) seen.polygons.push(layer);
@@ -38,13 +50,13 @@ function mount(parcels: ParcelUnit[], selectedId: string | null = null, onSelect
     }, [map]);
     return null;
   }
-  render(
+  const mounted = render(
     <MapContainer center={[35.63, -120.86]} zoom={17} style={{ height: 400, width: 400 }}>
       <ParcelPolygons parcels={parcels} selectedId={selectedId} onSelect={onSelect} />
       <Probe />
     </MapContainer>,
   );
-  return seen;
+  return { ...seen, ...mounted };
 }
 const interactive = (polys: L.Polygon[]) => polys.filter((p) => p.options.interactive !== false);
 const color = (p: L.Polygon) => p.options.color;
@@ -89,6 +101,45 @@ describe("ViewWatcher", () => {
 });
 
 describe("ParcelPolygons", () => {
+  it("shares one padded Canvas renderer across parcels and leaves the glow on SVG", () => {
+    const seen = mount([unit("a"), unit("b")], "a");
+    const [a, b] = interactive(seen.polygons);
+    expect(a.options.renderer).toBeInstanceOf(L.Canvas);
+    expect(b.options.renderer).toBe(a.options.renderer);
+    expect(a.options.renderer!.options.padding).toBe(0.5);
+    expect(seen.polygons.find(p => p.options.weight === 14)!.options.renderer).toBeUndefined();
+    expect(seen.map!.options.preferCanvas).not.toBe(true);
+    expect(seen.container.querySelectorAll("canvas")).toHaveLength(1);
+    expect(seen.container.querySelector("svg")).not.toBeNull();
+  });
+
+  it("keeps Canvas parcel clicks and sticky tooltips working through hit testing", () => {
+    const onSelect = vi.fn();
+    const parcel = unit("canvas-click", { parts: [[SQUARE(35.629, -120.861, 0.002)]], center: [35.63, -120.86] });
+    const seen = mount([parcel], null, onSelect);
+    const canvas = seen.container.querySelector("canvas")!;
+    const point = seen.map!.latLngToContainerPoint(parcel.center);
+    fireEvent.mouseMove(canvas, { clientX: point.x, clientY: point.y });
+    expect(interactive(seen.polygons)[0].getTooltip()!.options.sticky).toBe(true);
+    expect(screen.getByText("Parcel canvas-click")).toBeInTheDocument();
+    fireEvent.click(canvas, { clientX: point.x, clientY: point.y });
+    expect(onSelect).toHaveBeenCalledWith("canvas-click");
+  });
+
+  it("keeps the Canvas renderer and parcel layer when unchanged positions are rerendered", () => {
+    const parcels = [unit("a"), unit("b")], onSelect = vi.fn();
+    const seen = mount(parcels, null, onSelect);
+    const [first] = interactive(seen.polygons);
+    const positions = vi.spyOn(first, "setLatLngs");
+    const canvas = seen.container.querySelector("canvas");
+    seen.rerender(<MapContainer center={[35.63, -120.86]} zoom={17} style={{height:400,width:400}}>
+      <ParcelPolygons parcels={[...parcels]} selectedId="a" onSelect={onSelect}/>
+    </MapContainer>);
+    expect(seen.container.querySelector("canvas")).toBe(canvas);
+    expect(seen.map!.hasLayer(first)).toBe(true);
+    expect(positions).not.toHaveBeenCalled();
+    expect(first.options.weight).toBe(4);
+  });
   it("draws one clickable polygon per parcel", () => {
     const seen = mount([unit("a"), unit("b", { parts: [[SQUARE(35.64, -120.86, 0.004)]] })]);
     expect(interactive(seen.polygons)).toHaveLength(2);
