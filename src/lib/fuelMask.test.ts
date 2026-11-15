@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, CLEAR, colourOf, NEUTRAL, RISK, riskAreas, smooth, verdict } from "./fuelMask";
+import { classify, CLEAR, colourOf, liveColourOf, NEUTRAL, RISK, riskAreas, smooth, verdict } from "./fuelMask";
 
 const px = (...rgb: [number, number, number][]) => Uint8ClampedArray.from(rgb.flatMap(([r, g, b]) => [r, g, b, 255]));
 const STRAW: [number, number, number] = [200, 170, 110]; // cured grass
@@ -20,6 +20,17 @@ describe("colourOf", () => {
   });
 });
 
+const LAWN: [number, number, number] = [190, 180, 90]; // sunlit yellow-green grass, hue 54
+
+describe("liveColourOf", () => {
+  it("rates sunlit yellow-green lawn as clear and straw as risk", () => {
+    expect(colourOf(...LAWN)).toBe(RISK); // the strict band alone would call it fuel
+    expect(liveColourOf(...LAWN)).toBe(CLEAR);
+    expect(liveColourOf(...STRAW)).toBe(RISK);
+    expect([...classify(px(LAWN, STRAW), 2, 1, masks([0, 0], [1, 1], [0, 0]))]).toEqual([CLEAR, RISK]);
+  });
+});
+
 const PALE: [number, number, number] = [205, 185, 180]; // pinkish dead grass
 const masks = (dry: number[], live: number[], exclude: number[]) => ({ dry: Uint8Array.from(dry), live: Uint8Array.from(live), exclude: Uint8Array.from(exclude) });
 
@@ -29,6 +40,12 @@ describe("classify", () => {
     const m = masks([1, 1, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]);
     expect([...classify(rgba, 4, 1, m)]).toEqual([RISK, NEUTRAL, RISK, CLEAR]);
     expect([...classify(px(PALE), 1, 1, masks([0], [1], [0]))]).toEqual([NEUTRAL]); // pale in a live mask is not fuel
+  });
+
+  it("inside a dry mask a risk colour needs grassy texture; flat pale ground (smooth soil) stays neutral", () => {
+    const dry = masks([1, 1], [0, 0], [0, 0]);
+    expect([...classify(px(PALE, PALE), 2, 1, dry)]).toEqual([NEUTRAL, NEUTRAL]);
+    expect([...classify(px(PALE, [120, 100, 60]), 2, 1, dry)]).toEqual([RISK, RISK]);
   });
 
   it("outside every mask green is clear, tan is risk only with grassy texture, and no masks means colour alone", () => {
