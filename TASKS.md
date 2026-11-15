@@ -74,6 +74,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P32 | Restore parcel visibility and group by visible screen area | DONE (Codex; removed zoom cutoff, retained loaded geometry, union outlines below 10% of viewport area, zoom/resize restoration; 432 website tests, TypeScript and production build pass) |
 | P33 | Lower parcel grouping to 5% and identify deployed behavior | DONE (Codex; dynamic neighborhood count and deployed-rule headers; 433 tests and production build pass; live demo still serves old square overview, Vercel deployment access required) |
 | P34 | Fix browser parcel requests failing before HTTP | DONE (Codex; native fetch called with global receiver; reproduced failure before fix, receiver-sensitive cache and hook regressions pass; 437 tests and production build pass) |
+| P35 | Analyze confirmed added Santa Margarita collection | DONE (Codex; 50 completed boxes, 1,440/1,440 scored cells at nominal 200 m; satellite reused, FIRMS parsed with stale detections excluded, verified B2 publication/catalog and website fallback) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

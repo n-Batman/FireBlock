@@ -1,0 +1,33 @@
+{
+  "region": "Santa Margarita, California",
+  "run_id": "20261115T004425Z-1690688fe0ba",
+  "as_of": "2026-11-15T00:44:22.754009+00:00",
+  "bbox": [
+    -120.65633226461878,
+    35.358440764557756,
+    -120.56808023120442,
+    35.42139323544224
+  ],
+  "collection_boxes": 50,
+  "completed_manifest_file_id": "4_za7bcbaab5245dd88a51a0c19_f10792ec5cf32b8dc_d20261115_m004451_c004_v0402033_t0011_u01794703491123",
+  "manifest_key": "risk/santa-margarita/20261115T004425Z-1690688fe0ba/manifest.json",
+  "manifest_sha256": "570c96d286b3ded3f2eb7ec45e80ba639651c55fe190fddf4080a4be88583716",
+  "artifact_sha256": {
+    "risk_map.geojson": "a16fadb4f18f03d08a55c4a62edc28429b7a502d1f7763e39e8370b857bf2a6e"
+  },
+  "satellite_acquired_at": [
+    "2026-11-11T18:46:19.024000Z"
+  ],
+  "known_cells": 1440,
+  "total_cells": 1440,
+  "nominal_cell_m": 200,
+  "recent_detections": 0,
+  "stale_detections_ignored": 2,
+  "model_id": "fireblock-relative-risk-v1",
+  "limitations": [
+    "No weather, wind, terrain, dead-fuel measurements or exposure model",
+    "Missing detections do not establish absence of fire",
+    "Coverage is sampled; cell sizes are approximate kilometres",
+    "NDVI and NDMI are spectral proxies; no local validation or calibrated probability"
+  ]
+}
