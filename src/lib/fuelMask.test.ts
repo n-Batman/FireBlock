@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, CLEAR, colourOf, dryColourOf, liveColourOf, NEUTRAL, RISK, riskAreas, smooth, verdict, whiteBalance } from "./fuelMask";
+import { classify, CLEAR, colourOf, dryColourOf, liveColourOf, NEUTRAL, refine, RISK, riskAreas, smooth, verdict, whiteBalance } from "./fuelMask";
 
 const px = (...rgb: [number, number, number][]) => Uint8ClampedArray.from(rgb.flatMap(([r, g, b]) => [r, g, b, 255]));
 const STRAW: [number, number, number] = [200, 170, 110]; // cured grass
@@ -270,5 +270,34 @@ describe("rasterise / scan", () => {
       const r = scan(rgba, w, w, w, null, [["soil"]], 0, 0.5); // soil tiles lose their green, then half the frame of it comes back
       expect(Math.abs(r.labels.reduce((n, l) => n + (l === CLEAR ? 1 : 0), 0) / (w * w) - 0.5)).toBeLessThanOrEqual(0.05);
     });
+  });
+});
+
+describe("refine", () => {
+  // Bright straw on the left of x = 20, dark ground on the right.
+  const w = 40;
+  const rgba = new Uint8ClampedArray(w * w * 4).fill(255);
+  for (let i = 0; i < w * w; i++) [rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]] = i % w < 20 ? STRAW : TRUNK;
+  const label = (edge: (y: number) => number) => Uint8Array.from({ length: w * w }, (_, i) => (i % w < edge(Math.floor(i / w)) ? RISK : NEUTRAL));
+  const edges = (labels: Uint8Array) => Array.from({ length: w }, (_, y) => [...labels.slice(y * w, (y + 1) * w)].filter((l) => l === RISK).length);
+
+  it("keeps a straight strip edge within 1 px", () => {
+    for (const e of edges(refine(label(() => 20), rgba, w, w))) expect(Math.abs(e - 20)).toBeLessThanOrEqual(1);
+  });
+
+  it("straightens a blocky edge onto the edge in the photo", () => {
+    const blocky = label((y) => (Math.floor(y / 4) % 2 ? 18 : 22)); // steps of 4 rows, 2 px either side of the real edge
+    for (const e of edges(refine(blocky, rgba, w, w)).slice(4, -4)) expect(Math.abs(e - 20)).toBeLessThanOrEqual(1);
+  });
+
+  it("leaves green and exclude pixels alone", () => {
+    const labels = label(() => 20);
+    labels[5 * w + 10] = CLEAR;
+    const exclude = new Uint8Array(w * w);
+    exclude[6 * w + 10] = 1;
+    labels[6 * w + 10] = NEUTRAL;
+    const out = refine(labels, rgba, w, w, exclude);
+    expect(out[5 * w + 10]).toBe(CLEAR);
+    expect(out[6 * w + 10]).toBe(NEUTRAL);
   });
 });

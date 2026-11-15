@@ -256,6 +256,66 @@ export function smooth(labels: Uint8Array, w: number, h: number, r = 1): Uint8Ar
   return out;
 }
 
+/** Radius (px at MAP_WIDTH) and regularisation (luminance 0..1, squared) of the guided filter in `refine`. Radius 4 cost 0.4 pts of area agreement on the v2 eval; 2 is flat. */
+const GUIDE_R = 2;
+const GUIDE_EPS = 1e-3;
+
+/** Mean of `src` in a (2r+1)² window around every pixel (summed-area table). */
+function boxMean(src: Float32Array, w: number, h: number, r: number): Float32Array {
+  const W = w + 1;
+  const sat = new Float64Array(W * (h + 1));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) sat[(y + 1) * W + x + 1] = src[y * w + x] + sat[(y + 1) * W + x] + sat[y * W + x + 1] - sat[y * W + x];
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.max(0, x - r);
+      const y0 = Math.max(0, y - r);
+      const x1 = Math.min(w, x + r + 1);
+      const y1 = Math.min(h, y + r + 1);
+      out[y * w + x] = (sat[y1 * W + x1] - sat[y0 * W + x1] - sat[y1 * W + x0] + sat[y0 * W + x0]) / ((x1 - x0) * (y1 - y0));
+    }
+  }
+  return out;
+}
+
+/**
+ * Edge-aware refinement with a guided filter (He, Sun & Tang 2010): the RISK indicator is filtered with the frame's
+ * luminance as the guide and cut again at 0.5, so the edge of a RISK shape follows the strip or road edge in the photo
+ * and not the blocky tiles it was grown in. Only RISK and neutral pixels change; green and `exclude` pixels stay.
+ */
+export function refine(labels: Uint8Array, rgba: ArrayLike<number>, w: number, h: number, exclude?: Uint8Array | null): Uint8Array {
+  const n = w * h;
+  const r = GUIDE_R;
+  const I = new Float32Array(n);
+  const p = new Float32Array(n);
+  const II = new Float32Array(n);
+  const Ip = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    I[i] = (0.299 * rgba[i * 4] + 0.587 * rgba[i * 4 + 1] + 0.114 * rgba[i * 4 + 2]) / 255;
+    p[i] = labels[i] === RISK ? 1 : 0;
+    II[i] = I[i] * I[i];
+    Ip[i] = I[i] * p[i];
+  }
+  const mI = boxMean(I, w, h, r);
+  const mp = boxMean(p, w, h, r);
+  const mII = boxMean(II, w, h, r);
+  const mIp = boxMean(Ip, w, h, r);
+  const a = new Float32Array(n);
+  const b = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    a[i] = (mIp[i] - mI[i] * mp[i]) / (mII[i] - mI[i] * mI[i] + GUIDE_EPS);
+    b[i] = mp[i] - a[i] * mI[i];
+  }
+  const ma = boxMean(a, w, h, r);
+  const mb = boxMean(b, w, h, r);
+  const out = labels.slice();
+  for (let i = 0; i < n; i++) {
+    if (labels[i] === CLEAR || exclude?.[i]) continue;
+    out[i] = ma[i] * I[i] + mb[i] >= 0.5 ? RISK : NEUTRAL;
+  }
+  return out;
+}
+
 export interface Verdict {
   risk: number;
   clear: number;
@@ -601,7 +661,8 @@ export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number
   const balanced = whiteBalance(rgba, w, h);
   const classified = classify(balanced, w, h, raster);
   const gated = !(grid?.length && grid[0]?.length) ? classified : dryPct == null || vegFrac == null ? gateByGrid(classified, w, h, grid) : reconcile(classified, balanced, w, h, grid, dryPct, vegFrac, raster);
-  const labels = dropSpecks(smooth(gated, w, h), w, h);
+  const smoothed = smooth(gated, w, h);
+  const labels = dropSpecks(refine(smoothed, balanced, w, h, raster?.exclude), w, h);
   return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h), colourOnly: !masks };
 }
 
