@@ -23,7 +23,7 @@ const routes = (url: string) =>
   Promise.resolve({
     ok: true,
     status: 200,
-    json: async () => (url === "/api/segment" ? { polygons: [[[0, 0], [10, 0], [10, 10]]] } : { notes: [NOTE] }),
+    json: async () => (url === "/api/segment" ? { masks: [{ group: "dry", polys: [[[0, 0], [10, 0], [10, 10]]] }] } : { notes: [NOTE] }),
   });
 
 const IMAGE = "data:image/jpeg;base64,AAAA";
@@ -196,7 +196,7 @@ describe("useScanSession", () => {
     expect(jpegQuality[0]).toBe(0.85);
     expect(hook.result.current.mode).toBe("photo");
     expect(hook.result.current.fuel?.verdict.share).toBe(0.25);
-    expect(analyse.mock.calls.at(-1)?.[3]).toEqual([[[0, 0], [10, 0], [10, 10]]]); // the masks went in
+    expect(analyse.mock.calls.at(-1)?.[3]).toEqual([{ group: "dry", polys: [[[0, 0], [10, 0], [10, 10]]] }]); // the masks went in
     expect(hook.result.current.notes).toEqual([NOTE]);
     const urls = fetchMock.mock.calls.map((c) => c[0]);
     expect(urls).toEqual(["/api/segment", "/api/findings"]);

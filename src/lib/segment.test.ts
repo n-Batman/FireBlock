@@ -4,16 +4,19 @@ import { parseSegments, PROMPTS, segmentFrame } from "./segment";
 const IMAGE = "data:image/jpeg;base64,QUJD";
 
 describe("parseSegments", () => {
-  it("flattens every polygon of every prompt and drops broken points and slivers", () => {
+  const dry = PROMPTS.indexOf("dry grass");
+  const sky = PROMPTS.indexOf("sky");
+  it("keeps each mask's group, drops broken points and slivers, and filters by group confidence", () => {
     const reply = {
       prompt_results: [
-        { prompt_index: 0, echo: {}, predictions: [{ confidence: 0.9, masks: [[[0, 0], [10, 0], [10, 10]], [[1, 1], [2, 2]]] }] },
-        { prompt_index: 1, echo: {}, predictions: [{ confidence: 0.5, masks: [[[0, 0], ["x", 1], [5, 5], [0, 5]]] }] },
+        { prompt_index: dry, echo: {}, predictions: [{ confidence: 0.35, masks: [[[0, 0], [10, 0], [10, 10]], [[1, 1], [2, 2]]] }] },
+        { prompt_index: sky, echo: {}, predictions: [{ confidence: 0.35, masks: [[[0, 0], [5, 5], [0, 5]]] }, { confidence: 0.5, masks: [[[0, 0], ["x", 1], [5, 5], [0, 5]]] }] },
       ],
     };
+    // dry is kept from 0.3; the 0.35 sky is dropped (others need 0.4); the 0.5 sky loses its bad point.
     expect(parseSegments(reply)).toEqual([
-      [[0, 0], [10, 0], [10, 10]],
-      [[0, 0], [5, 5], [0, 5]],
+      { group: "dry", polys: [[[0, 0], [10, 0], [10, 10]]] },
+      { group: "exclude", polys: [[[0, 0], [5, 5], [0, 5]]] },
     ]);
   });
 
@@ -43,7 +46,7 @@ describe("segmentFrame", () => {
     const body = JSON.parse(init.body);
     expect(body.image).toEqual({ type: "base64", value: "QUJD" });
     expect(body.prompts.map((p: { text: string }) => p.text)).toEqual(PROMPTS);
-    expect(body).toMatchObject({ format: "polygon", output_prob_thresh: 0.4 });
+    expect(body).toMatchObject({ format: "polygon", output_prob_thresh: 0.3 });
   });
 
   it("answers 503 without a key and 502 on an upstream error, never echoing the body", async () => {

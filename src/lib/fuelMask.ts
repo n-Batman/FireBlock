@@ -4,6 +4,22 @@
  * everything else (sky, posts, shadows, and dirt when there are masks) = neutral and out of the score.
  */
 
+/** Which kind of thing a segmentation mask says it is. Dry = fuel, live = living plants, exclude = never fuel (soil, trunks, posts, sky, snow, autumn leaves). */
+export type Group = "dry" | "live" | "exclude";
+/** Polygons in pixels of the sent frame. */
+export type Polygon = [number, number][];
+/** One segmentation result: its rings are filled even-odd together, so a ring inside another is a hole. */
+export interface Mask {
+  group: Group;
+  polys: Polygon[];
+}
+/** Per-group 0/1 pixel masks at working size. */
+export interface Masks {
+  dry: Uint8Array;
+  live: Uint8Array;
+  exclude: Uint8Array;
+}
+
 export const NEUTRAL = 0;
 export const CLEAR = 1;
 export const RISK = 2;
@@ -11,8 +27,8 @@ export type Label = typeof NEUTRAL | typeof CLEAR | typeof RISK;
 
 /** Width of the working map. The overlay is this map scaled up and softened, so it reads as smooth shapes. */
 export const MAP_WIDTH = 384;
-/** Under this share of rated pixels the frame may be called all clear. */
-export const CLEAR_BELOW = 0.03;
+/** Luminance spread (0..255, 5x5 window) above which an unmasked tan pixel looks like grass, not smooth dirt. ponytail: tuned on the eval set. */
+export const TEXTURE_MIN = 7;
 
 /** Hue 0..360, saturation and value 0..1. */
 export function hsv(r: number, g: number, b: number): [number, number, number] {
@@ -43,22 +59,70 @@ export function colourOf(r: number, g: number, b: number): Label {
   return NEUTRAL;
 }
 
+/** Inside a dry mask the risk band is wider: pale, pinkish and shaded dead grass counts. Clearly green is clear. */
+export function dryColourOf(r: number, g: number, b: number): Label {
+  const [h, s, v] = hsv(r, g, b);
+  if (v < 0.25) return NEUTRAL;
+  if (h >= 62 && h <= 170) return s >= 0.14 && v >= 0.3 ? CLEAR : NEUTRAL;
+  return s >= 0.08 && (h >= 345 || h < 62) ? RISK : NEUTRAL;
+}
+
+/** Luminance standard deviation in a (2r+1)² window around every pixel (summed-area tables). */
+export function texture(rgba: ArrayLike<number>, w: number, h: number, r = 2): Float32Array {
+  const W = w + 1;
+  const s1 = new Float64Array(W * (h + 1));
+  const s2 = new Float64Array(W * (h + 1));
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i4 = (y * w + x) * 4;
+      const l = 0.299 * rgba[i4] + 0.587 * rgba[i4 + 1] + 0.114 * rgba[i4 + 2];
+      const i = (y + 1) * W + x + 1;
+      s1[i] = l + s1[i - 1] + s1[i - W] - s1[i - W - 1];
+      s2[i] = l * l + s2[i - 1] + s2[i - W] - s2[i - W - 1];
+    }
+  }
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.max(0, x - r);
+      const y0 = Math.max(0, y - r);
+      const x1 = Math.min(w, x + r + 1);
+      const y1 = Math.min(h, y + r + 1);
+      const n = (x1 - x0) * (y1 - y0);
+      const a = s1[y1 * W + x1] - s1[y0 * W + x1] - s1[y1 * W + x0] + s1[y0 * W + x0];
+      const q = s2[y1 * W + x1] - s2[y0 * W + x1] - s2[y1 * W + x0] + s2[y0 * W + x0];
+      out[y * w + x] = Math.sqrt(Math.max(0, q / n - (a / n) ** 2));
+    }
+  }
+  return out;
+}
+
 /**
- * Labels every pixel. With a vegetation mask, a pixel inside it is rated by its colour; outside it, only a
- * clearly green pixel counts (as clear: SAM3 often misses vine canopy, and nothing green is sky or dirt), so
- * risk always needs a mask and bare dirt never counts. Without masks (Roboflow failed) colour alone decides.
+ * Labels every pixel. Exclude masks win (neutral). Inside a dry mask the wide dry band decides. Inside a live
+ * mask the strict colour band decides. Outside every mask, green is clear and tan is risk only where the local
+ * texture is grassy (smooth dirt stays neutral). Without masks (Roboflow failed) the strict colour band alone decides.
  */
-export function classify(rgba: ArrayLike<number>, w: number, h: number, mask: ArrayLike<number> | null): Uint8Array {
+export function classify(rgba: ArrayLike<number>, w: number, h: number, masks: Masks | null): Uint8Array {
   const out = new Uint8Array(w * h);
+  const tex = masks ? texture(rgba, w, h) : null;
   for (let i = 0; i < w * h; i++) {
-    const label = colourOf(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]);
-    out[i] = !mask || mask[i] ? label : label === CLEAR ? CLEAR : NEUTRAL;
+    const r = rgba[i * 4];
+    const g = rgba[i * 4 + 1];
+    const b = rgba[i * 4 + 2];
+    if (!masks) out[i] = colourOf(r, g, b);
+    else if (masks.exclude[i]) out[i] = NEUTRAL;
+    else if (masks.dry[i]) out[i] = dryColourOf(r, g, b);
+    else if (masks.live[i]) out[i] = colourOf(r, g, b);
+    else {
+      const l = colourOf(r, g, b);
+      out[i] = l === RISK ? (tex![i] >= TEXTURE_MIN ? RISK : NEUTRAL) : l;
+    }
   }
   return out;
 }
 
 /** Majority vote in a (2r+1)² window: removes speckle so regions read as clean shapes. Neutral wins ties. */
-export function smooth(labels: Uint8Array, w: number, h: number, r = 2): Uint8Array {
+export function smooth(labels: Uint8Array, w: number, h: number, r = 1): Uint8Array {
   // Summed-area tables for clear and risk counts.
   const W = w + 1;
   const sc = new Int32Array(W * (h + 1));
@@ -98,7 +162,7 @@ export interface Verdict {
   text: string;
 }
 
-/** Score = risk pixels / (risk + clear pixels). "All clear" only at 3% or less. */
+/** Score = risk pixels / (risk + clear pixels). "All clear" only when no risk pixel is left; tiny shares read "<1%". */
 export function verdict(labels: ArrayLike<number>): Verdict {
   let risk = 0;
   let clear = 0;
@@ -108,11 +172,11 @@ export function verdict(labels: ArrayLike<number>): Verdict {
   }
   if (risk + clear === 0) return { risk, clear, share: null, level: "none", text: "No vegetation to rate in this frame." };
   const share = risk / (risk + clear);
-  const pct = Math.round(share * 100);
-  if (share <= CLEAR_BELOW) return { risk, clear, share, level: "clear", text: `All clear: ${pct}% of the vegetation looks dry.` };
+  if (risk === 0) return { risk, clear, share, level: "clear", text: "All clear: no dry vegetation found." };
+  const pct = share < 0.01 ? "<1%" : `${Math.round(share * 100)}%`;
   const level = share >= 0.4 ? "high" : share >= 0.15 ? "moderate" : "low";
   const word = { high: "High risk", moderate: "Moderate risk", low: "Some risk" }[level];
-  return { risk, clear, share, level, text: `${word}: ${pct}% of the vegetation looks dry.` };
+  return { risk, clear, share, level, text: `${word}: ${pct} of the vegetation looks dry.` };
 }
 
 export interface RiskArea {
@@ -136,34 +200,39 @@ export function whereOf(cx: number, cy: number): string {
   return `${v} ${h}`;
 }
 
-/** Touching risk pixels grouped into areas, the biggest first; specks under 0.15% of the frame are left out. */
-export function riskAreas(labels: Uint8Array, w: number, h: number): RiskArea[] {
+interface Blob {
+  n: number;
+  sx: number;
+  sy: number;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  pixels: number[];
+}
+
+/** Touching (8-way) risk pixels grouped into blobs. */
+function blobs(labels: Uint8Array, w: number, h: number): Blob[] {
   const seen = new Uint8Array(w * h);
-  const total = labels.reduce((n, l) => n + (l === RISK ? 1 : 0), 0);
-  const found: (RiskArea & { n: number })[] = [];
+  const out: Blob[] = [];
   const stack: number[] = [];
   for (let start = 0; start < w * h; start++) {
     if (labels[start] !== RISK || seen[start]) continue;
-    let n = 0;
-    let sx = 0;
-    let sy = 0;
-    let x0 = w;
-    let y0 = h;
-    let x1 = 0;
-    let y1 = 0;
+    const b: Blob = { n: 0, sx: 0, sy: 0, x0: w, y0: h, x1: 0, y1: 0, pixels: [] };
     stack.push(start);
     seen[start] = 1;
     while (stack.length) {
       const i = stack.pop()!;
       const x = i % w;
       const y = (i - x) / w;
-      n++;
-      sx += x;
-      sy += y;
-      x0 = Math.min(x0, x);
-      y0 = Math.min(y0, y);
-      x1 = Math.max(x1, x);
-      y1 = Math.max(y1, y);
+      b.n++;
+      b.sx += x;
+      b.sy += y;
+      b.x0 = Math.min(b.x0, x);
+      b.y0 = Math.min(b.y0, y);
+      b.x1 = Math.max(b.x1, x);
+      b.y1 = Math.max(b.y1, y);
+      b.pixels.push(i);
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           const nx = x + dx;
@@ -177,24 +246,33 @@ export function riskAreas(labels: Uint8Array, w: number, h: number): RiskArea[] 
         }
       }
     }
-    if (n / (w * h) < MIN_AREA) continue;
-    found.push({
-      id: 0,
-      n,
-      box: [x0 / w, y0 / h, (x1 + 1) / w, (y1 + 1) / h],
-      pctOfRisk: Math.round((n / total) * 100),
-      pctOfFrame: Math.round((n / (w * h)) * 1000) / 10,
-      where: whereOf(sx / n / w, sy / n / h),
-    });
+    out.push(b);
   }
-  return found
-    .sort((a, b) => b.n - a.n)
-    .slice(0, MAX_AREAS)
-    .map((a, i) => ({ id: i + 1, box: a.box, pctOfRisk: a.pctOfRisk, pctOfFrame: a.pctOfFrame, where: a.where }));
+  return out;
 }
 
-/** Polygons in pixels of a `srcW` wide frame. */
-export type Polygon = [number, number][];
+/** Turns risk specks under 0.15% of the frame neutral, so verdict, overlay and areas all see the same map. */
+export function dropSpecks(labels: Uint8Array, w: number, h: number): Uint8Array {
+  const out = labels.slice();
+  for (const b of blobs(labels, w, h)) if (b.n / (w * h) < MIN_AREA) for (const i of b.pixels) out[i] = NEUTRAL;
+  return out;
+}
+
+/** Touching risk pixels grouped into areas, the biggest first. Call on a map that went through `dropSpecks`. */
+export function riskAreas(labels: Uint8Array, w: number, h: number): RiskArea[] {
+  const total = labels.reduce((n, l) => n + (l === RISK ? 1 : 0), 0);
+  return blobs(labels, w, h)
+    .filter((b) => b.n / (w * h) >= MIN_AREA)
+    .sort((a, b) => b.n - a.n)
+    .slice(0, MAX_AREAS)
+    .map((b, i) => ({
+      id: i + 1,
+      box: [b.x0 / w, b.y0 / h, (b.x1 + 1) / w, (b.y1 + 1) / h] as [number, number, number, number],
+      pctOfRisk: Math.round((b.n / total) * 100),
+      pctOfFrame: Math.round((b.n / (w * h)) * 1000) / 10,
+      where: whereOf(b.sx / b.n / w, b.sy / b.n / h),
+    }));
+}
 
 export interface FuelMap {
   w: number;
@@ -206,41 +284,46 @@ export interface FuelMap {
   colourOnly: boolean;
 }
 
-/** Fills polygons (pixels of a `srcW` wide frame) into a w x h 0/1 mask. Even-odd scanline fill, same result as a canvas fill for simple shapes. */
-export function rasterise(polygons: Polygon[], srcW: number, w: number, h: number): Uint8Array {
-  const mask = new Uint8Array(w * h);
+/**
+ * Fills each group's masks into a w x h 0/1 map. A mask's rings are filled even-odd together (holes stay holes);
+ * masks of the same group are unioned.
+ */
+export function rasterise(masks: Mask[], srcW: number, w: number, h: number): Masks {
+  const out: Masks = { dry: new Uint8Array(w * h), live: new Uint8Array(w * h), exclude: new Uint8Array(w * h) };
   const k = w / srcW;
-  for (const poly of polygons) {
-    if (poly.length < 3) continue;
-    const pts = poly.map(([x, y]) => [x * k, y * k]);
+  for (const m of masks) {
+    const target = out[m.group];
+    const rings = m.polys.filter((p) => p.length >= 3);
     for (let y = 0; y < h; y++) {
       const yc = y + 0.5;
       const xs: number[] = [];
-      for (let i = 0; i < pts.length; i++) {
-        const [ax, ay] = pts[i];
-        const [bx, by] = pts[(i + 1) % pts.length];
-        if (ay > yc !== by > yc) xs.push(ax + ((yc - ay) / (by - ay)) * (bx - ax));
+      for (const ring of rings) {
+        for (let i = 0; i < ring.length; i++) {
+          const [ax, ay] = ring[i];
+          const [bx, by] = ring[(i + 1) % ring.length];
+          if (ay * k > yc !== by * k > yc) xs.push(ax * k + ((yc - ay * k) / ((by - ay) * k)) * ((bx - ax) * k));
+        }
       }
       xs.sort((a, b) => a - b);
       for (let i = 0; i + 1 < xs.length; i += 2) {
         const from = Math.max(0, Math.round(xs[i]));
         const to = Math.min(w, Math.round(xs[i + 1]));
-        for (let x = from; x < to; x++) mask[y * w + x] = 1;
+        for (let x = from; x < to; x++) target[y * w + x] = 1;
       }
     }
   }
-  return mask;
+  return out;
 }
 
-/** The whole analysis on a small RGBA frame (w x h): rasterise masks, classify, smooth, group. Pure, so the app and the eval share it. */
-export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, polygons: Polygon[] | null): FuelMap {
-  const mask = polygons ? rasterise(polygons, srcW, w, h) : null;
-  const labels = smooth(classify(rgba, w, h, mask), w, h);
-  return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h), colourOnly: !polygons };
+/** The whole analysis on a small RGBA frame (w x h): rasterise masks, classify, smooth, drop specks, group. Pure, so the app and the eval share it. */
+export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, masks: Mask[] | null): FuelMap {
+  const raster = masks ? rasterise(masks, srcW, w, h) : null;
+  const labels = dropSpecks(smooth(classify(rgba, w, h, raster), w, h), w, h);
+  return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h), colourOnly: !masks };
 }
 
 /** Browser wrapper: draws the frame at MAP_WIDTH and hands the pixels to `scan`. */
-export function analyse(source: CanvasImageSource, srcW: number, srcH: number, polygons: Polygon[] | null): FuelMap | null {
+export function analyse(source: CanvasImageSource, srcW: number, srcH: number, masks: Mask[] | null): FuelMap | null {
   const w = MAP_WIDTH;
   const h = Math.max(1, Math.round((srcH / srcW) * MAP_WIDTH));
   const canvas = document.createElement("canvas");
@@ -249,7 +332,7 @@ export function analyse(source: CanvasImageSource, srcW: number, srcH: number, p
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
   ctx.drawImage(source, 0, 0, w, h);
-  return scan(ctx.getImageData(0, 0, w, h).data, w, h, srcW, polygons);
+  return scan(ctx.getImageData(0, 0, w, h).data, w, h, srcW, masks);
 }
 
 /** Decodes an encoded frame (data URL) so it can be drawn. */
