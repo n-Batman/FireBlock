@@ -33,17 +33,33 @@ export class CloudStorage {
     const bucket=result.buckets?.find((b:{bucketName:string})=>b.bucketName===name);
     if(!bucket)throw new Error("Configured cloud bucket unavailable");return bucket.bucketId as string;
   }
+  /** Private API access is insufficient if the underlying bucket is public. */
+  async requirePrivateBucket(){
+    const a=await this.authorize(),id=await this.bucket();
+    const result=await this.api("b2_list_buckets",{accountId:a.accountId,bucketName:process.env.B2_BUCKET_NAME});
+    if(result.buckets?.find((b:{bucketId:string})=>b.bucketId===id)?.bucketType!=="allPrivate")throw new Error("Grant reports require a private B2 bucket");
+  }
   async uploadJson(key:string,value:unknown){
     const bytes=Buffer.from(JSON.stringify(value));
     if(bytes.length>25*1024*1024)throw new Error("Cloud JSON exceeds 25 MiB");
+    return this.uploadBytes(key,bytes,"application/json");
+  }
+  /** Private report/media objects use the same checksum-verified upload path. */
+  async uploadBytes(key:string,bytes:Buffer,contentType:string){
+    if(!bytes.length||bytes.length>25*1024*1024)throw new Error("Cloud object must be 1 byte to 25 MiB");
+    if(!["application/json","application/pdf","image/jpeg","image/png"].includes(contentType))throw new Error("Unsupported cloud content type");
     const hash=createHash("sha1").update(bytes).digest("hex");
     const destination=await this.api("b2_get_upload_url",{bucketId:await this.bucket()});
     const result=await this.json(destination.uploadUrl,{method:"POST",headers:{Authorization:destination.authorizationToken,
-      "X-Bz-File-Name":encodeURIComponent(key),"X-Bz-Content-Sha1":hash,"Content-Type":"application/json"},body:bytes});
+      "X-Bz-File-Name":encodeURIComponent(key),"X-Bz-Content-Sha1":hash,"Content-Type":contentType},body:new Uint8Array(bytes)});
     if(result.contentSha1!==hash||result.contentLength!==bytes.length||!result.fileId)throw new Error("Cloud upload verification failed");
     return {key,file_id:String(result.fileId),bytes:bytes.length,sha256:createHash("sha256").update(bytes).digest("hex")};
   }
   async readVersion(fileId:string,maxBytes=25*1024*1024){
+    const result=await this.readBytes(fileId,maxBytes);
+    return {value:JSON.parse(result.bytes.toString("utf8")),bytes:result.bytes};
+  }
+  async readBytes(fileId:string,maxBytes=25*1024*1024){
     if(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>25*1024*1024)throw new Error("Invalid cloud object size limit");
     const info=await this.api("b2_get_file_info",{fileId});
     if(!Number.isSafeInteger(info.contentLength)||info.contentLength<0||info.contentLength>maxBytes||!/^[0-9a-f]{40}$/.test(info.contentSha1))throw new Error("Invalid cloud object metadata");
@@ -55,7 +71,7 @@ export class CloudStorage {
     for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>info.contentLength){await reader.cancel();throw new Error("Cloud object size mismatch");}chunks.push(Buffer.from(value));}
     const bytes=Buffer.concat(chunks);
     if(bytes.length!==info.contentLength||createHash("sha1").update(bytes).digest("hex")!==info.contentSha1)throw new Error("Cloud object checksum mismatch");
-    return {value:JSON.parse(bytes.toString("utf8")),bytes};
+    return {bytes};
   }
   async readKey(key:string){
     const result=await this.api("b2_list_file_names",{bucketId:await this.bucket(),prefix:key,maxFileCount:1});
