@@ -11,7 +11,7 @@ import { currentPosition, LocationError } from "@/lib/geolocate";
 import { saveParcelScan } from "@/lib/parcelScanStore";
 import { SAMPLES } from "@/lib/samples";
 import { saveScan, scanKey } from "@/lib/scanStore";
-import { headlineVerdict, shownTracks } from "@/lib/scanView";
+import { headlineCertainty, headlineVerdict, shownTracks } from "@/lib/scanView";
 import { useScanSession } from "@/lib/useScanSession";
 import { useDemoAvailable } from "@/lib/useDemoAvailable";
 import { AreaFindingsList, FindingsList } from "./FindingsList";
@@ -291,6 +291,9 @@ export function ScanScreen() {
               <p aria-live="polite" className="text-[15px] font-semibold">
                 {call.text}
               </p>
+            )}
+            {call && headlineCertainty(fuel, session.estimate) === "uncertain" && (
+              <p className="text-xs text-ink-2">Try another angle or a sharper photo for a firmer number.</p>
             )}
             {fuel?.colourOnly && (
               <p className="text-xs text-ink-2">Colour-only estimate: the vegetation outlines did not load, so bare dirt may show as dry.</p>
