@@ -64,6 +64,16 @@ const detail:View={west:-120.87,south:35.62,east:-120.84,north:35.64,zoom:17};
 const useParcels=(place:Parameters<typeof useViewportParcels>[0],view:View|null=detail)=>useViewportParcels(place,view);
 
 describe("useParcels", () => {
+  it('loads real parcel units through the browser cache with a native-style fetch receiver check',async()=>{
+    fetchMock.mockImplementation(function(this:unknown,url:string){
+      if(this!==undefined&&this!==globalThis)throw new TypeError('Illegal invocation');
+      return Promise.resolve(url.includes('/api/parcels')?reply(parcelsBody):reply({},404));
+    });
+    const hook=renderHook(()=>useParcels(at(1)));
+    await waitFor(()=>expect(hook.result.current.phase).toBe('ready'));
+    expect(hook.result.current.units.map(u=>u.id)).toEqual(['A-1','B-2']);
+    expect(hook.result.current.message).toBeNull();
+  });
   it('loads parcels at every zoom and restores them after zoom-out and zoom-in',async()=>{
     routes({risk:riskMap});
     const hook=renderHook(({view}:{view:View|null})=>useViewportParcels(at(1),view),{initialProps:{view:null as View|null}});

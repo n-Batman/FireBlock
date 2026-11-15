@@ -122,7 +122,9 @@ export class ParcelSessionCache {
       const current:Flight={controller,users:0,promise:Promise.resolve({body:"",status:200})};
       const loading=(async()=>{
         const init={signal:controller.signal,cache:"no-store" as const,credentials:"same-origin" as const};
-        const res=await this.fetcher(`/api/parcels?${key}`,init);
+        // Native browser fetch checks its receiver. Calling it as this.fetcher()
+        // binds the cache instance and can throw "Illegal invocation" before HTTP.
+        const res=await this.fetcher.call(globalThis,`/api/parcels?${key}`,init);
         const value=await res.json();
         const payload=res.ok?boundaryPayload(value):null;
         const wire={body:JSON.stringify(payload??value),status:res.status};

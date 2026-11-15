@@ -34,3 +34,9 @@ Regression checks cover the 5% boundary, visible-area clipping, holes,
 aspect-ratio changes, nonrectangular unions, multipart gaps, selected parcels,
 score weighting, real Leaflet zoom/resize events and data retention through
 zoom-out/zoom-in.
+
+Browser requests preserve the native `fetch` global receiver. Calling a stored
+native fetch function as a cache-instance method can throw `Illegal invocation`
+before any HTTP request, which previously appeared as an unreachable parcel
+service despite a healthy `/api/parcels` endpoint. Receiver-sensitive cache and
+hook tests exercise this path; generic fetch mocks alone do not reproduce it.

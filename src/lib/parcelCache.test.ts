@@ -12,6 +12,15 @@ const reply=(value=body(),status=200)=>new Response(JSON.stringify(value),{statu
 afterEach(()=>{for(const c of caches)c.clear();caches.length=0;clearParcelCache();vi.unstubAllGlobals();vi.useRealTimers();});
 
 describe("bounded parcel session cache",()=>{
+  it("calls browser-native fetch with the global receiver",async()=>{
+    const fetcher=vi.fn(function(this:unknown){
+      if(this!==globalThis)throw new TypeError("Illegal invocation");
+      return Promise.resolve(reply());
+    });
+    const c=cache(fetcher);
+    expect((await (await c.request(query())).json()).features).toHaveLength(1);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('clears browser-session results on pagehide without writing persistent storage',async()=>{
     const fetcher=vi.fn().mockImplementation(async()=>reply());vi.stubGlobal('fetch',fetcher);
     const storage={setItem:vi.fn()};vi.stubGlobal('localStorage',storage);vi.stubGlobal('sessionStorage',storage);
