@@ -1,5 +1,8 @@
 export interface LiveWeather {
   kind: "forecast";
+  basis: "observed" | "forecast";
+  station: string | null;
+  observedAt: string | null;
   windMph: number | null;
   windDir: string | null;
   humidityPct: number | null;

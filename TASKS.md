@@ -131,6 +131,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | M31 | Before/after on a parcel from the saved parcel scans: `beforeAfter`, per-parcel Start over marker, "Save rescan", Before and after row in ParcelPanel | DOING (Milo; PR open. Reuses `parcelScanStore` and `scoreFromScans`; no new store, API route or database) |
 | M32 | Parcel marks: "Mark as mowed" with a note and "Rescan to prove it", scan-spot pins on the map, distance to the first scan and a 25 m warning on rescan | DOING (Milo; PR open, stacked on PR 31. No new store, API route or database) |
 | M33 | Scanner: automatic object excludes (second SAM3 call: road, path, dog, person, post, building, vehicle), agreement shading on the overlay and a reasons line per area | DOING (Milo; PR open. Scanner files only; no new key, route or store) |
+| M34 | Follow the map center in the weather strip and use recent NWS station readings with an hourly forecast fallback | DONE |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
