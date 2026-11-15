@@ -5,10 +5,9 @@ import type { AreaNote, ScanResponse } from "@/data/types";
 import { DEMO_CLIP_URL } from "./demoClip";
 import { encodeFrame, MIN_SHARPNESS } from "./frame";
 import { analyse, loadImage, type FuelMap, type Mask } from "./fuelMask";
-import type { ScanEstimate } from "./scanView";
 import { getCached, hashImage, putCached } from "./scanCache";
 import { createTracker, updateTracker, type TrackerState } from "./scan";
-import { selectFindings } from "./scanView";
+import { headlineVerdict, selectFindings, type ScanEstimate } from "./scanView";
 
 export type Phase = "idle" | "starting" | "running" | "error";
 export type Mode = "camera" | "demo" | "photo";
@@ -79,17 +78,17 @@ async function segment(image: string, hash: string, signal: AbortSignal): Promis
   }
 }
 
-/** The model's words for the measured risk areas, cached by image hash. */
-async function fetchNotes(image: string, hash: string, map: FuelMap, signal: AbortSignal): Promise<AreaNote[]> {
-  if (map.areas.length === 0 || map.verdict.share === null) return [];
-  const key = `notes:v2:${map.colourOnly ? "c" : "s"}:${hash}`;
+/**
+ * The model's words for the measured risk areas, given the headline dry `share`. Cached by image
+ * hash, share (to the percent) and area boxes, so a different headline or different areas ask again.
+ */
+async function fetchNotes(image: string, hash: string, map: FuelMap, share: number | null, signal: AbortSignal): Promise<AreaNote[]> {
+  if (map.areas.length === 0 || share === null) return [];
+  const boxes = map.areas.map((a) => a.box.map((v) => v.toFixed(3)).join(",")).join(";");
+  const key = `notes:v2:${map.colourOnly ? "c" : "s"}:${Math.round(share * 100)}:${boxes}:${hash}`;
   const hit = getCached<AreaNote[]>(key, storage());
   if (hit) return hit;
-  const { notes } = await postJson<{ notes: AreaNote[] }>(
-    "/api/findings",
-    { image, areas: map.areas, share: map.verdict.share },
-    signal,
-  );
+  const { notes } = await postJson<{ notes: AreaNote[] }>("/api/findings", { image, areas: map.areas, share }, signal);
   putCached(key, notes, storage());
   return notes;
 }
@@ -296,7 +295,8 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
             return;
           }
           setNotes(null);
-          setNotes(await fetchNotes(image, hash, map, signal));
+          // The estimate has already come back (or failed) by now: rateFrame waits for both.
+          setNotes(await fetchNotes(image, hash, map, est ? (headlineVerdict(map, est)?.share ?? null) : map.verdict.share, signal));
         })
         .catch(() => {
           if (!signal.aborted) setNotes((n) => n ?? []);

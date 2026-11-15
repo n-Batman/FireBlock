@@ -4,10 +4,12 @@ interface StatusChipProps {
   status: ScanStatus;
   risks: number;
   problem: boolean;
+  /** Dry areas on a fuel map. When set, "risks" counts these instead of `risks` (the demo clip's boxes). */
+  areas?: number;
 }
 
 /** The pill at the top of the camera. Announced politely to screen readers. */
-export function StatusChip({ status, risks, problem }: StatusChipProps) {
+export function StatusChip({ status, risks, problem, areas }: StatusChipProps) {
   let text = "Scanning";
   let tone = "";
   if (problem) {
@@ -16,7 +18,10 @@ export function StatusChip({ status, risks, problem }: StatusChipProps) {
     text = "All clear";
     tone = "border-low! text-low-ink";
   } else if (status === "risks") {
-    text = `${risks} ${risks === 1 ? "risk" : "risks"} found`;
+    text =
+      areas !== undefined
+        ? `${areas} dry ${areas === 1 ? "area" : "areas"}`
+        : `${risks} ${risks === 1 ? "risk" : "risks"} found`;
     tone = "border-high! text-high-ink";
   }
   return (

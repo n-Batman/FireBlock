@@ -174,7 +174,7 @@ export function ScanScreen() {
       </Link>
       {running && (
         <div className="absolute left-1/2 top-[max(1rem,env(safe-area-inset-top))] z-10 -translate-x-1/2">
-          <StatusChip status={status} risks={risks} problem={session.problem} />
+          <StatusChip status={status} risks={risks} problem={session.problem} areas={fuel?.areas.length} />
         </div>
       )}
 
