@@ -47,6 +47,25 @@ async function sheet(rs: Result[], name: string) {
     .toFile(`eval/sheets/${V2 ? "v2-" : ""}${name}.jpg`);
 }
 
+const GAP_PTS = 15;
+
+/** Headline (ours) vs SAM overlay consistency. Frames with a null gap (SAM not run or failed) are counted as skipped. */
+export function gapSummary(rs: Result[]): string[] {
+  const rated = rs.filter((r) => r.gap != null);
+  if (rated.length === 0) return [];
+  const gaps = rated.map((r) => r.gap as number);
+  const lines = [
+    `- Headline vs overlay gap >${GAP_PTS} pts: ${gaps.filter((g) => g > GAP_PTS).length}/${rated.length} (target 0); mean |gap| ${(gaps.reduce((a, b) => a + b, 0) / gaps.length).toFixed(1)} pts; skipped (a side failed): ${rs.length - rated.length}`,
+    "",
+    "## Headline vs overlay, worst 10",
+    "",
+    "| Image | Bucket | Headline | Overlay | Gap |",
+    "|---|---|---|---|---|",
+  ];
+  for (const r of [...rated].sort((a, b) => (b.gap as number) - (a.gap as number)).slice(0, 10)) lines.push(`| ${r.item.id} | ${r.item.category} | ${r.ours.toFixed(0)}% | ${(r.overlay as number).toFixed(0)}% | ${(r.gap as number).toFixed(0)} |`);
+  return lines;
+}
+
 export async function report(all: Result[], meta: { total: number; dropped: number; failed: string[] }) {
   mk("eval/sheets");
   const flagged = all.filter((r) => r.suspect);
@@ -77,6 +96,7 @@ export async function report(all: Result[], meta: { total: number; dropped: numb
     `- Dirt false positives (frames scored with the dirt rule, risk over 3% of frame): ${dirt.filter((r) => r.riskFrame > 0.03).length}/${dirt.length}`,
     `- VegAnn background false positives: mean ${(meanBg * 100).toFixed(1)}% of background pixels read as risk; ${veg.filter((r) => (r.bgFp ?? 0) > 0.05).length}/${veg.length} images over 5%`,
     `- "All clear" while risk is drawn (must be 0): **${acr.length}**${acr.length ? " — " + acr.slice(0, 10).map((r) => r.item.id).join(", ") : ""}`,
+    ...gapSummary(results),
     "",
     "## Worst 20",
     "",
@@ -96,5 +116,5 @@ export async function report(all: Result[], meta: { total: number; dropped: numb
     const rs = results.filter((r) => r.item.category === c);
     for (let i = 0; i * ROWS < rs.length && i < 2; i++) await sheet(rs.slice(i * ROWS, (i + 1) * ROWS), `${c.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${i + 1}`);
   }
-  console.log(lines.slice(0, 40).join("\n"));
+  console.log(lines.slice(0, 60).join("\n"));
 }
