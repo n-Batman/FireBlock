@@ -17,7 +17,9 @@
     "hotspot_half_life_hours": 24,
     "hotspot_radius_km": 10,
     "dryness_weight": 0.7,
-    "hotspot_weight": 0.3
+    "hotspot_weight": 0.3,
+    "weather_weight": 0.3,
+    "weather_max_age_hours": 6
   },
   "storage": {
     "executable": "build/native/fireblock.exe",

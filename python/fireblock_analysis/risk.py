@@ -33,7 +33,8 @@ def validate_risk(options, bbox):
     utc(options["as_of"])
     for key, default, low, high in (("cell_km", .2, .1, 50), ("hotspot_radius_km", 10, .1, 100),
             ("hotspot_half_life_hours", 24, 1, 168), ("hotspot_max_age_hours", 72, 1, 720),
-            ("scene_max_age_days", 30, 1, 365), ("min_valid_fraction", .6, .01, 1)):
+            ("scene_max_age_days", 30, 1, 365), ("min_valid_fraction", .6, .01, 1),
+            ("weather_weight", .3, 0, 1), ("weather_max_age_hours", 6, .1, 24)):
         value = options.get(key, default)
         if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
             raise ValueError(f"Invalid risk.{key}")
@@ -242,7 +243,11 @@ def build_risk(manifest, root, options, bbox, model=None):
                 detections.append({"type": "Feature", "geometry": feature["geometry"], "properties": {
                     "layer": "thermal_detection", "acquired_at": p["acquired_at"], "age_hours": age,
                     "frp_mw": p.get("frp_mw"), "confidence": confidence, "source_id": source["id"]}})
-    score = evaluate_model(model, {"ndvi":ndvi,"ndmi":ndmi,"hotspot_pressure":pressure}, options)
+    from .weather import weather_features
+    weather, weather_records = weather_features(manifest.get("weather_snapshot"), lon, lat, dx, dy,
+        as_of, options.get("weather_max_age_hours", 6))
+    score = evaluate_model(model, {"ndvi":ndvi,"ndmi":ndmi,"hotspot_pressure":pressure,
+        "weather_pressure":weather}, options)
     excluded = np.zeros((rows, cols), dtype=bool)
     exclusion_hash = None
     if options.get("exclude_grid"):
@@ -284,7 +289,10 @@ def build_risk(manifest, root, options, bbox, model=None):
                     "vegetation_proxy": float(vegetation[r, c]) if known else None,
                     "dryness_proxy": float(dryness[r, c]) if known else None,
                     "hotspot_pressure": float(pressure[r, c]), "sampled_valid_fraction": float(coverage[r, c]),
-                    "scene_id": scene_ids[r, c], "scene_acquired_at": scene_times[r, c]}
+                    "scene_id": scene_ids[r, c], "scene_acquired_at": scene_times[r, c],
+                    "weather_pressure": float(weather[r, c]) if np.isfinite(weather[r, c]) else None,
+                    "weather_status": "available" if np.isfinite(weather[r, c]) else "unavailable",
+                    "weather": weather_records[r, c]}
                 feature = {"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[x, top], [x + dx, top],
                     [x + dx, top - dy], [x, top - dy], [x, top]]]}, "properties": props}
                 out.write(json.dumps(feature, allow_nan=False) + "\n")
@@ -294,11 +302,14 @@ def build_risk(manifest, root, options, bbox, model=None):
         "recent_detections": len(detections), "ignored_detections": ignored, "scenes": scene_diagnostics,
         "parameters": options, "prediction_available": False, "data_label": options.get("data_label", "Parsed satellite observations"),
         "interpretation": "Experimental relative susceptibility index, not ignition probability or operational fire danger",
-        "formula": "100 * vegetation_proxy * (dryness_weight * dryness_proxy + hotspot_weight * hotspot_pressure) / sum(weights)" if isinstance(model, MathematicalRiskModel) else "Defined by supplied model; see model_id",
+        "weather_cells": int((np.isfinite(weather) & np.isfinite(score)).sum()),
+        "formula": "B=(dryness_weight*dryness_proxy+hotspot_weight*hotspot_pressure)/sum(base_weights); R=100*vegetation_proxy*((1-weather_weight)*B+weather_weight*W) when weather available, else 100*vegetation_proxy*B" if isinstance(model, MathematicalRiskModel) else "Defined by supplied model; see model_id",
         "feature_transforms": {"vegetation_proxy": "clip((NDVI-0.2)/0.6,0,1)",
             "dryness_proxy": "clip((0.4-NDMI)/0.8,0,1)",
+            "weather_pressure": "0.5*clip(wind_mph/30,0,1)+0.3*clip((60-humidity_pct)/50,0,1)+0.2*clip((temperature_c-15)/25,0,1)",
             "hotspot_pressure": "max(exp(-distance_km/radius_km) * 2^(-age_hours/half_life_hours)) within radius"},
-        "limitations": ["No weather, wind, terrain, dead-fuel measurements or exposure model",
+        "limitations": ["Weather blend is an uncalibrated heuristic, not an official fire weather index; unavailable weather retains baseline",
+            "No terrain, precipitation history, dead-fuel measurements or exposure model",
             "Missing detections do not establish absence of fire", "Coverage is sampled; cell sizes are approximate kilometres",
             "NDVI and NDMI are spectral proxies; no local validation or calibrated probability"]}
     collection = {"type": "FeatureCollection", "bbox": bbox, "features": features + detections}

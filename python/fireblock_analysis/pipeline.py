@@ -69,6 +69,10 @@ def validate(config):
     if "risk" in config:
         from .risk import validate_risk
         validate_risk(config["risk"], bbox)
+    if "weather" in config:
+        asset = config["weather"]
+        if not isinstance(asset, dict) or len(asset) != 1 or not (set(asset) <= {"key", "local", "file_id"}) or not isinstance(next(iter(asset.values())), str) or not next(iter(asset.values())):
+            raise ValueError("weather must contain one nonempty key, file_id, or local path")
     if config["storage"].get("local_retention", "manifest_only") not in ("manifest_only", "keep"):
         raise ValueError("storage.local_retention must be manifest_only or keep")
     if config["storage"].get("publish_frontend", False):
@@ -148,6 +152,8 @@ def run(config, backend=None, risk_model=None):
             manifest["firms"].append(summary)
         if config.get("risk", {}).get("enabled", False):
             from .risk import build_risk
+            if "weather" in config:
+                manifest["weather_snapshot"] = str(materialize(config["weather"], ".json"))
             manifest["risk"] = build_risk(manifest, root, config["risk"], config["bbox"], model=risk_model)
         # Publish only after ALL parsing/map generation succeeds; manifest is the commit marker.
         artifacts = sorted(p for p in root.rglob("*") if p.is_file() and cache not in p.parents and p.name != "manifest.json")

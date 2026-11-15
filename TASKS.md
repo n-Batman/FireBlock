@@ -89,6 +89,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P48 | Keep parcel pill icons and polygon styles stable across renders | DONE (Codex; memoized parcel polygon/pill/glow components and stable Leaflet props; zero icon/style updates on unchanged rerenders, selective score/selection updates and current click handlers; 18 map tests and TypeScript pass; local branch partner/stable-parcel-presentation) |
 | P49 | Share location-based backend risk data between parcel scoring and overlay | DONE (Codex; shared padded regional API response replaces static-map download; score invalidation on reload/failure, unknown coverage and scan overrides preserved; integration regressions, 573 tests and TypeScript pass; partner/stable-parcel-presentation) |
 | P50 | Isolate parcel pills during movement and share DivIcons | DONE (Codex; one parcel-pills pane at zIndex 600, hide/show on movement/zoom, blur removed and module DivIcon cache keyed by presentation; sample markers/controls/polygons stay visible; 22 map tests and TypeScript pass; partner/parcel-pill-pane) |
+| P51 | Include weather in backend mathematical risk model | DONE (Codex; versioned weather snapshot ingestion, wind/humidity/temperature blend, full-cell coverage and issue/validity checks, explicit unavailable fallback and per-cell provenance; 54 Python tests pass; partner/weather-risk-model) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

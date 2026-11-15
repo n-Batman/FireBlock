@@ -15,7 +15,7 @@ class RiskModel(Protocol):
 
 
 class MathematicalRiskModel:
-    model_id = "fireblock-relative-risk-v1"
+    model_id = "fireblock-relative-risk-v2"
     feature_schema = FEATURE_SCHEMA
 
     def score(self, features, parameters):
@@ -25,7 +25,14 @@ class MathematicalRiskModel:
         heat = parameters.get("hotspot_weight", .3)
         if not np.isfinite(dry) or not np.isfinite(heat) or min(dry, heat) < 0 or dry + heat <= 0:
             raise ValueError("Mathematical model needs finite nonnegative weights with positive sum")
-        return 100 * vegetation * (dry * dryness + heat * features["hotspot_pressure"]) / (dry + heat)
+        baseline = (dry * dryness + heat * features["hotspot_pressure"]) / (dry + heat)
+        weight = parameters.get("weather_weight", .3)
+        if type(weight) not in (int, float) or not np.isfinite(weight) or not 0 <= weight <= 1:
+            raise ValueError("weather_weight must be finite and within 0..1")
+        weather = features.get("weather_pressure", np.full_like(baseline, np.nan))
+        # Missing weather retains the satellite-only baseline, never a fabricated calm day.
+        combined = np.where(np.isfinite(weather), (1 - weight) * baseline + weight * weather, baseline)
+        return 100 * vegetation * combined
 
 
 def evaluate_model(model, features, parameters):

@@ -91,6 +91,22 @@ class RiskTests(unittest.TestCase):
             known = [json.loads(line)["properties"] for line in (root / "risk/features.ndjson").read_text().splitlines()]
             self.assertEqual({p["scene_id"] for p in known if p["risk_score"] is not None}, {"newer"})
 
+    def test_weather_changes_scored_grid_and_preserves_unknown_cells(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            weather = root / "weather.json"
+            weather.write_text(json.dumps({"schema": "fireblock.weather.v1", "records": [{
+                "bbox": self.bbox, "source": "test forecast", "issued_at": "2026-11-13T11:00:00Z",
+                "valid_from": "2026-11-13T12:00:00Z", "valid_to": "2026-11-13T13:00:00Z",
+                "wind_mph": 30, "humidity_pct": 10, "temperature_c": 40}]}))
+            summary = build_risk({"scenes": [self.scene(root)], "weather_snapshot": str(weather)},
+                root, self.options, self.bbox)
+            cells = [json.loads(line)["properties"] for line in (root / "risk/features.ndjson").read_text().splitlines()]
+            np.testing.assert_allclose([cells[i]["risk_score"] for i in (0, 2, 3)], [79, 30, 30], atol=1e-5)
+            self.assertIsNone(cells[1]["risk_score"])
+            self.assertEqual(summary["weather_cells"], 3)
+            self.assertTrue(all(cell["weather_status"] == "available" for cell in cells))
+
     def test_existing_scored_cells_are_excluded_but_unknown_cells_remain(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -113,7 +129,8 @@ class RiskTests(unittest.TestCase):
 
     def test_config_rejects_resource_and_time_errors(self):
         for changes in ({"as_of": "2026-11-13"}, {"cell_km": 0}, {"max_cells": 1},
-                {"dryness_weight": 0, "hotspot_weight": 0}, {"samples_per_cell": 100}):
+                {"dryness_weight": 0, "hotspot_weight": 0}, {"samples_per_cell": 100},
+                {"weather_weight": -1}, {"weather_weight": float("nan")}, {"weather_max_age_hours": 25}):
             with self.assertRaises((ValueError, KeyError)):
                 validate_risk({**self.options, **changes}, self.bbox)
         self.assertEqual(grid(self.bbox, self.options), (2, 2))

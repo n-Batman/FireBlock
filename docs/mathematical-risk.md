@@ -1,34 +1,81 @@
 # Mathematical cloud risk pipeline
 
-The current pipeline now connects immutable B2 raw inputs → ParserController →
-calibrated/quality-masked Sentinel-2 NDVI/NDMI and normalized FIRMS detections →
-mathematical scores on nominal 200 m cells → verified cloud outputs → frontend.
+The pipeline connects versioned satellite, FIRMS and optional weather inputs to
+backend mathematical scores on nominal 200 m cells, verified cloud outputs and
+the frontend. Weather math runs once per generated grid, never per parcel render.
 
-## Formula
+## Formula (fireblock-relative-risk-v2)
 
 ```text
-V = clamp((NDVI − 0.2) / 0.6, 0, 1)
-D = clamp((0.4 − NDMI) / 0.8, 0, 1)
-H = max(exp(−distance/radius) × 2^(−age/half_life))
-R = 100 × V × (0.7 × D + 0.3 × H)
+V = clamp((NDVI - 0.2) / 0.6, 0, 1)
+D = clamp((0.4 - NDMI) / 0.8, 0, 1)
+H = max(exp(-distance/radius) * 2^(-age/half_life))
+B = (dryness_weight * D + hotspot_weight * H) / (dryness_weight + hotspot_weight)
+W = 0.5 * clamp(wind_mph/30, 0, 1)
+  + 0.3 * clamp((60-humidity_pct)/50, 0, 1)
+  + 0.2 * clamp((temperature_c-15)/25, 0, 1)
+R = 100 * V * ((1-weather_weight) * B + weather_weight * W)
 ```
 
-V is a vegetation proxy, D is a dryness proxy, and H is recent hotspot pressure
-within the configured radius/time window. Configurable weights are normalized
-by their sum. Maximal dry vegetation scores 70 without hotspots and 100 with
-maximal hotspot pressure. These are transparent design choices requiring local
-validation, not calibrated ignition probabilities or assurances of safety.
+Defaults: dryness_weight=0.7, hotspot_weight=0.3, weather_weight=0.3.
+For fully vegetated, maximally dry fuel with no nearby hotspots, the old
+satellite-only score is 70. With weather, W=0 gives 49 and W=1 gives 79.
+These weights and normalization endpoints are provisional design choices,
+not calibrated ignition probabilities, official FWI or assurances of safety.
+Precipitation history, terrain, dead-fuel measurements and exposure are not modeled.
 
-Only sufficiently covered scenes acquired at or before the issue time are used.
-Stale/future imagery is excluded. Cells missing either index remain unknown even
-if a replacement model emits a score. Features and manifests preserve timestamps,
-source versions, model ID, inputs, formula and parameters. Duplicate observations
-are not added together to inflate H. FIRMS-only input cannot manufacture missing
-vegetation/moisture evidence.
+Without valid weather the score remains `100 * V * B`, with
+`weather_status: unavailable`, `weather_pressure: null` and `weather: null`.
+Missing weather is never treated as calm/humid weather. Setting weather_weight=0
+disables its influence. Cells missing fresh NDVI or NDMI remain unknown regardless
+of weather. Satellite freshness, coverage and hotspot deduplication are unchanged.
 
-This is a provisional spectral/hotspot susceptibility model. It does not implement
-the planned complete weather/fuel/slope/hazard/history score: weather, terrain,
-dead-fuel and exposure inputs must be added before those factors can be modeled.
+## Weather inputs
+
+Add a top-level asset to the job, just like satellite/FIRMS assets:
+`"weather": {"file_id": "ACTUAL_IMMUTABLE_WEATHER_SNAPSHOT_ID"}`.
+A `key` or `local` path is also accepted instead of `file_id`. The pipeline hashes
+and records that input and uploads local inputs before publishing. Prefer pinned
+file IDs for reproducible cloud runs. Without this asset, runs retain baseline scores;
+this change does not automatically fetch live weather or rewrite published grids.
+
+The snapshot contract is `fireblock.weather.v1`, up to 10,000 records / 8 MiB.
+This illustrative record is not a real forecast:
+
+```json
+{
+  "schema": "fireblock.weather.v1",
+  "records": [{
+    "source": "Provider name and forecast identifier",
+    "bbox": [-120.67, 35.275, -120.655, 35.285],
+    "issued_at": "2026-11-13T11:00:00Z",
+    "valid_from": "2026-11-13T12:00:00Z",
+    "valid_to": "2026-11-13T13:00:00Z",
+    "wind_mph": 15,
+    "humidity_pct": 30,
+    "temperature_c": 28
+  }]
+}
+```
+
+Use the provider's actual spatial coverage, issue time and validity interval;
+never assign a point forecast to an arbitrary regional box. All timestamps need
+timezones. A record must cover the entire risk cell and satisfy
+`issued_at <= risk.as_of`, `valid_from <= risk.as_of < valid_to`, and the issue-age
+limit `risk.weather_max_age_hours` (default 6, configurable 0.1 to 24).
+The newest eligible issue wins; equal-time overlaps keep the first record.
+Any missing measurement makes that record unavailable. Invalid numeric values,
+physical ranges, timestamps or boxes fail the run instead of being invented.
+Each output cell carries the chosen raw record for source/time/unit provenance.
+
+A collector can normalize [NWS hourly forecasts](https://www.weather.gov/documentation/services-web-api)
+or another timestamped provider to this contract; the browser's point-weather
+response is not silently reused as regional weather. This model update includes
+the snapshot ingestion/scoring path, not a new weather collection service.
+The additive weather fields preserve the `fireblock.risk-features.v1` contract
+for existing custom models; the mathematical model ID advances to v2.
+Custom models receive weather_pressure arrays (NaN means unavailable) and can
+choose whether to use them. Existing published v1 maps change only after regeneration.
 
 ## Run and publish
 
