@@ -10,12 +10,13 @@ describe("parseSegments", () => {
     const reply = {
       prompt_results: [
         { prompt_index: dry, echo: {}, predictions: [{ confidence: 0.35, masks: [[[0, 0], [10, 0], [10, 10]], [[1, 1], [2, 2]]] }] },
-        { prompt_index: sky, echo: {}, predictions: [{ confidence: 0.35, masks: [[[0, 0], [5, 5], [0, 5]]] }, { confidence: 0.5, masks: [[[0, 0], ["x", 1], [5, 5], [0, 5]]] }] },
+        { prompt_index: sky, echo: {}, predictions: [{ confidence: 0.25, masks: [[[0, 0], [5, 5], [0, 5]]] }, { confidence: 0.3, masks: [[[0, 0], [4, 4], [0, 4]]] }, { confidence: 0.5, masks: [[[0, 0], ["x", 1], [5, 5], [0, 5]]] }] },
       ],
     };
-    // dry is kept from 0.3; the 0.35 sky is dropped (others need 0.4); the 0.5 sky loses its bad point.
+    // dry and exclude are kept from 0.3 (the 0.25 sky is dropped); the 0.5 sky loses its bad point.
     expect(parseSegments(reply)).toEqual([
       { group: "dry", polys: [[[0, 0], [10, 0], [10, 10]]] },
+      { group: "exclude", polys: [[[0, 0], [4, 4], [0, 4]]] },
       { group: "exclude", polys: [[[0, 0], [5, 5], [0, 5]]] },
     ]);
   });
