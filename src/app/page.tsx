@@ -9,6 +9,7 @@ import { ListBullets, MapPinLine } from "@phosphor-icons/react";
 import { properties } from "@/data/properties";
 import { FINDING_PARCELS, TRUNCATED, ZOOM_IN } from "@/content/parcelCopy";
 import { NO_BLOCKS_MESSAGE, OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
+import { LayerToggles } from "@/components/LayerToggles";
 import { AddressSearch } from "@/components/AddressSearch";
 import { BlockRail } from "@/components/BlockRail";
 import { DataLimitsPanel } from "@/components/DataLimitsPanel";
@@ -62,6 +63,8 @@ function LiveMap({ params }: { params: URLSearchParams }) {
   const [place, setPlace] = useState<PickedPlace>(() => placeFromParams(params) ?? DOWNTOWN_SLO);
   // Phones can switch between the parcel list and map lookup tools.
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [showParcels, setShowParcels] = useState(true);
+  const [showGrid, setShowGrid] = useState(false);
   // The map's visible area, reported 400 ms after it stops moving. The parcels follow it.
   const [view, setView] = useState<View | null>(null);
   const [cells, setCells] = useState<RiskCell[]>([]);
@@ -110,7 +113,9 @@ function LiveMap({ params }: { params: URLSearchParams }) {
   const noneScored = parcelState.phase === "ready" && units.every((u) => u.score === null);
   // Under the search box. When the rail is on screen it already shows the status, so it is not said twice.
   const railVisible = wide || (!hasSelection && !toolsOpen);
-  const notice = (railVisible ? null : status) ?? (noneScored ? NO_BLOCKS_MESSAGE : null);
+  const notice = parcelState.phase === "loading" && units.length > 0
+    ? null
+    : (railVisible ? null : status) ?? (noneScored ? NO_BLOCKS_MESSAGE : null);
 
   const startAt = (point: { lat: number; lon: number }, label: string) => {
     setPlace({ ...point, label, id: ++picks.current });
@@ -141,6 +146,8 @@ function LiveMap({ params }: { params: URLSearchParams }) {
           panelOpen={hasSelection}
           place={place}
           parcels={units}
+          showParcels={showParcels}
+          showGrid={showGrid}
           onPoint={onPoint}
           onView={setView}
           onGridChange={onGridChange}
@@ -150,7 +157,7 @@ function LiveMap({ params }: { params: URLSearchParams }) {
 
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col gap-2 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
         <TopBar placeLabel={place.label} onOpenLimits={openLimits} scanHref={scanHref}>
-          <WeatherStrip lat={view ? Number(((view.south + view.north) / 2).toFixed(2)) : place.lat} lon={view ? Number(((view.west + view.east) / 2).toFixed(2)) : place.lon} />
+          <WeatherStrip lat={view ? Number(((view.south + view.north) / 2).toFixed(1)) : place.lat} lon={view ? Number(((view.west + view.east) / 2).toFixed(1)) : place.lon} />
         </TopBar>
 
         <div className="pointer-events-auto w-full lg:w-[360px]">
@@ -165,6 +172,9 @@ function LiveMap({ params }: { params: URLSearchParams }) {
             >
               {toolsOpen ? <ListBullets size={20} aria-hidden="true" /> : <MapPinLine size={20} aria-hidden="true" />}
             </button>
+          </div>
+          <div className="mt-2">
+            <LayerToggles showParcels={showParcels} showGrid={showGrid} onParcels={() => setShowParcels(value => !value)} onGrid={() => setShowGrid(value => !value)} />
           </div>
           {notice && (
             <p role="status" className="glass mt-2 px-3 py-2 text-[15px] leading-snug">
