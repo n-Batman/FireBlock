@@ -111,6 +111,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | M22 | Real county parcels as the clickable units (radius 300 m around a chosen place), scored only from a saved scan's GPS or a risk_map.geojson, otherwise "Not scored yet"; sample properties kept as "Demo" | DONE |
 | M21 | Address search on the map ("Search an address or vineyard", ArcGIS, SLO County only) that flies there and runs the parcel lookup; honest notices when nothing is scored or the place is outside the county | DONE |
 | M23 | Remove demo property navigation and default to Downtown SLO while keeping address search | DONE (Codex; 18 focused tests and TypeScript pass; full suite: 395 pass, 2 failures in unchanged useScanSession tests) |
+| M24 | Eval: headline-vs-overlay gap metric (VLM mode also runs SAM; report line plus worst-10 table) | DONE |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
