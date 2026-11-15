@@ -21,7 +21,7 @@ vi.mock("@/components/ParcelPanel", () => ({ ParcelPanel: () => null }));
 it("shows the landing screen without map parameters", () => {
   state.params = new URLSearchParams();
   render(<Home />);
-  expect(screen.getByRole("heading", { name: "FireBlock" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Know which vineyard blocks to clear before fire season." })).toBeInTheDocument();
   expect(screen.queryByTestId("map")).not.toBeInTheDocument();
 });
 
