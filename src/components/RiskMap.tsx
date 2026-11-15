@@ -47,17 +47,24 @@ const PILL_TONE: Record<Level | "habitat", string> = {
   habitat: "text-ink-2 border-[var(--glass-border)]",
 };
 
+const pillIcons = new Map<string, L.DivIcon>();
+
 /** A small score pill, centred on its point, for any block shape. */
 function pillIcon(text: string, tone: string, selected: boolean, dim: boolean, color?: string) {
+  const key = `${text}|${tone}|${selected}|${dim}|${color}`;
+  const cached = pillIcons.get(key);
+  if (cached) return cached;
   // `color` is for parcels: the colour of the score on Nick's scale, in place of the level's tone classes.
   const style = color ? ` style="color:${color};border-color:${color}"` : "";
-  return L.divIcon({
+  const icon = L.divIcon({
     className: "",
     iconSize: [0, 0],
-    html: `<span${style} class="num inline-flex h-6 min-w-9 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center whitespace-nowrap rounded-full border bg-[var(--glass-bg)] px-2 text-xs font-semibold backdrop-blur-md transition-opacity ${tone} ${
+    html: `<span${style} class="num inline-flex h-6 min-w-9 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center whitespace-nowrap rounded-full border bg-[var(--glass-bg)] px-2 text-xs font-semibold transition-opacity ${tone} ${
       selected ? "ring-2 ring-ink" : ""
     } ${dim ? "opacity-50" : ""}">${text}</span>`,
   });
+  pillIcons.set(key, icon);
+  return icon;
 }
 
 function propertyBounds(property: Property): LatLngBoundsExpression {
@@ -188,7 +195,7 @@ const ParcelPill = memo(function ParcelPill({ id, center, score, isSelected, dim
   const icon = useMemo(() => pillIcon(String(score), "", isSelected, dim, scaleColor(score)), [score, isSelected, dim]);
   const eventHandlers = useMemo(() => ({ click: () => onSelect(id) }), [id, onSelect]);
   const label = `Parcel ${id}, score ${score}`;
-  return <Marker position={center} icon={icon} title={label} alt={label} zIndexOffset={isSelected ? 1000 : 0} eventHandlers={eventHandlers} />;
+  return <Marker pane="parcel-pills" position={center} icon={icon} title={label} alt={label} zIndexOffset={isSelected ? 1000 : 0} eventHandlers={eventHandlers} />;
 });
 
 const ParcelGlow = memo(function ParcelGlow({ parts, color }: { parts: ParcelUnit["parts"]; color: string }) {
@@ -210,6 +217,23 @@ export function ParcelPolygons({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const map = useMap();
+  const [pillPane] = useState(() => {
+    const pane = map.getPane("parcel-pills") ?? map.createPane("parcel-pills");
+    pane.style.zIndex = "600";
+    return pane;
+  });
+  useEffect(() => {
+    const hide = () => { pillPane.style.visibility = "hidden"; };
+    const show = () => { pillPane.style.visibility = "visible"; };
+    map.on("movestart zoomstart", hide);
+    map.on("moveend zoomend", show);
+    return () => {
+      map.off("movestart zoomstart", hide);
+      map.off("moveend zoomend", show);
+      show();
+    };
+  }, [map, pillPane]);
   const { individuals, areas } = useParcelDisplay(parcels, selectedId);
   const [renderer] = useState(() => L.canvas({ padding: 0.5 }));
   const selected = parcels.find((p) => p.id === selectedId) ?? null;

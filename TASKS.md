@@ -88,6 +88,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P47 | Canvas parcel rendering and APN-based response reuse | DONE (Codex; shared parcel-only Canvas with SVG glow, retained raw/scored references for unchanged APNs and identical result arrays; click/tooltip and diff regressions; integrated with latest main and softer zoom tiers, 562 tests and TypeScript pass; no scoring or pill changes; partner/canvas-parcels) |
 | P48 | Keep parcel pill icons and polygon styles stable across renders | DONE (Codex; memoized parcel polygon/pill/glow components and stable Leaflet props; zero icon/style updates on unchanged rerenders, selective score/selection updates and current click handlers; 18 map tests and TypeScript pass; local branch partner/stable-parcel-presentation) |
 | P49 | Share location-based backend risk data between parcel scoring and overlay | DONE (Codex; shared padded regional API response replaces static-map download; score invalidation on reload/failure, unknown coverage and scan overrides preserved; integration regressions, 573 tests and TypeScript pass; partner/stable-parcel-presentation) |
+| P50 | Isolate parcel pills during movement and share DivIcons | DONE (Codex; one parcel-pills pane at zIndex 600, hide/show on movement/zoom, blur removed and module DivIcon cache keyed by presentation; sample markers/controls/polygons stay visible; 22 map tests and TypeScript pass; partner/parcel-pill-pane) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

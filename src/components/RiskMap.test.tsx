@@ -7,6 +7,14 @@ import type { ParcelUnit } from "@/data/types";
 import { scaleColor } from "@/lib/riskScale";
 import { ParcelPolygons, ViewWatcher } from "./RiskMap";
 
+vi.hoisted(() => {
+  // Canvas pixels are mocked below. Avoid queued painting callbacks surviving
+  // map teardown; projection, DOM events and Leaflet hit testing still run.
+  let frame = 0;
+  vi.stubGlobal("requestAnimationFrame", () => ++frame);
+  vi.stubGlobal("cancelAnimationFrame", () => {});
+});
+
 beforeEach(() => {
   // jsdom has no drawing context; keep real Leaflet Canvas layers and hit testing.
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
@@ -105,6 +113,71 @@ describe("ViewWatcher", () => {
 });
 
 describe("ParcelPolygons", () => {
+  it("creates one parcel-pills pane at zIndex 600 and reuses it on remount", () => {
+    const createPane = vi.spyOn(L.Map.prototype, "createPane");
+    const parcels = [unit("a", {score: high}), unit("b", {score: high})], onSelect = vi.fn();
+    const seen = mount(parcels, null, onSelect);
+    const pane = seen.map!.getPane("parcel-pills")!;
+    expect(pane.style.zIndex).toBe("600");
+    seen.markers.forEach(marker => {
+      expect(marker.options.pane).toBe("parcel-pills");
+      expect(marker.getElement()!.parentElement).toBe(pane);
+    });
+    seen.rerender(<MapContainer center={[35.63,-120.86]} zoom={17}/>);
+    redraw(seen, parcels, null, onSelect);
+    expect(seen.map!.getPane("parcel-pills")).toBe(pane);
+    expect(createPane.mock.calls.filter(([name]) => name === "parcel-pills")).toHaveLength(1);
+  });
+
+  it("hides only parcel pills during movement and restores them after pan and zoom", () => {
+    const seen = mount([unit("a", {score: high})]);
+    const map = seen.map!, pane = map.getPane("parcel-pills")!;
+    const overlay = map.getPane("overlayPane")!, markerPane = map.getPane("markerPane")!;
+    const sample = L.marker([35.63,-120.86], {icon: L.divIcon({html:"Sample block pill"})}).addTo(map);
+    const controls = seen.container.querySelector<HTMLElement>(".leaflet-control-container")!;
+    const overlayVisibility = overlay.style.visibility, controlsVisibility = controls.style.visibility;
+    const markerElement = seen.markers[0].getElement();
+    for (const [start, end] of [["movestart","moveend"],["zoomstart","zoomend"]]) {
+      act(() => { map.fire(start); });
+      expect(pane.style.visibility).toBe("hidden");
+      expect(overlay.style.visibility).toBe(overlayVisibility);
+      expect(controls.style.visibility).toBe(controlsVisibility);
+      expect(sample.getElement()!.parentElement).toBe(markerPane);
+      expect(markerPane.style.visibility).not.toBe("hidden");
+      expect(getComputedStyle(sample.getElement()!).visibility).not.toBe("hidden");
+      act(() => { map.fire(end); });
+      expect(pane.style.visibility).toBe("visible");
+      expect(seen.markers[0].getElement()).toBe(markerElement);
+    }
+  });
+
+  it("removes pill movement listeners and restores visibility when parcel rendering unmounts", () => {
+    const seen = mount([unit("a", {score: high})]);
+    const map = seen.map!, pane = map.getPane("parcel-pills")!;
+    const off = vi.spyOn(map, "off");
+    act(() => { map.fire("movestart"); });
+    expect(pane.style.visibility).toBe("hidden");
+    seen.rerender(<MapContainer center={[35.63,-120.86]} zoom={17}/>);
+    expect(pane.style.visibility).toBe("visible");
+    expect(off).toHaveBeenCalledWith("movestart zoomstart", expect.any(Function));
+    expect(off).toHaveBeenCalledWith("moveend zoomend", expect.any(Function));
+    act(() => { map.fire("zoomstart"); });
+    expect(pane.style.visibility).toBe("visible");
+  });
+
+  it("shares DivIcons across identical pills and reuses them after a selection round trip", () => {
+    const parcels = [unit("a", {score: high}), unit("b", {score: high})], onSelect = vi.fn();
+    const seen = mount(parcels, null, onSelect);
+    const original = seen.markers[0].options.icon;
+    expect(seen.markers[1].options.icon).toBe(original);
+    redraw(seen, parcels, "a", onSelect);
+    expect(seen.markers[0].options.icon).not.toBe(original);
+    expect(seen.markers[1].options.icon).not.toBe(original);
+    expect(seen.markers[0].options.icon).not.toBe(seen.markers[1].options.icon);
+    redraw(seen, parcels, null, onSelect);
+    expect(seen.markers[0].options.icon).toBe(original);
+    expect(seen.markers[1].options.icon).toBe(original);
+  });
   it("keeps pill DOM and polygon styles stable across identical parcel rerenders", () => {
     const parcels = [unit("a", {score: high}), unit("b", {score: high})], onSelect = vi.fn();
     const seen = mount(parcels, "a", onSelect);
@@ -277,6 +350,8 @@ describe("ParcelPolygons", () => {
     expect(html).toContain(`color:${scaleColor(12)}`);
     expect(html).toContain(`border-color:${scaleColor(12)}`);
     expect(html).toContain(">12<");
+    expect(html).toContain("bg-[var(--glass-bg)]");
+    expect(html).not.toContain("backdrop-blur-md");
   });
 
   it("puts a score pill only on a scored parcel", () => {
