@@ -15,6 +15,15 @@ describe("StatusChip", () => {
     expect(screen.getByRole("status")).toHaveTextContent("1 risk found");
   });
 
+  it("counts dry areas on a fuel map instead of risks", () => {
+    const { rerender } = render(<StatusChip status="risks" risks={600} problem={false} areas={3} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/^3 dry areas$/);
+    rerender(<StatusChip status="risks" risks={600} problem={false} areas={1} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/^1 dry area$/);
+    rerender(<StatusChip status="risks" risks={2} problem={false} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/^2 risks found$/);
+  });
+
   it("says All clear when nothing is wrong", () => {
     render(<StatusChip status="clear" risks={0} problem={false} />);
     expect(screen.getByRole("status")).toHaveTextContent(/^All clear$/);

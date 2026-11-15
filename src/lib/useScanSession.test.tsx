@@ -331,6 +331,32 @@ describe("useScanSession", () => {
       expect(headline(hook)?.text).toBe("High risk: 60% of the vegetation looks dry.");
     });
 
+    const findingsBodies = () =>
+      fetchMock.mock.calls.filter((c) => c[0] === "/api/findings").map((c) => JSON.parse(c[1].body));
+
+    it("sends the headline share (the estimate's dry_pct) to /api/findings, not the SAM share", async () => {
+      fetchMock.mockImplementation(routes);
+      const hook = await photo();
+      await advance(1);
+      expect(findingsBodies()).toHaveLength(1);
+      expect(findingsBodies()[0].share).toBe(0.6);
+      expect(hook.result.current.notes).toEqual([NOTE]);
+    });
+
+    it("asks for the words again when the same frame gets a different headline share", async () => {
+      fetchMock.mockImplementation((url: string) => (url === "/api/estimate" ? Promise.resolve(failing) : routes(url)));
+      const first = await photo();
+      await advance(1);
+      expect(findingsBodies().map((b) => b.share)).toEqual([0.25]);
+      first.unmount();
+
+      fetchMock.mockImplementation(routes); // same image, now the estimate answers 60%
+      const second = await photo();
+      await advance(1);
+      expect(findingsBodies().map((b) => b.share)).toEqual([0.25, 0.6]); // a cache miss, not the 25% words
+      expect(second.result.current.notes).toEqual([NOTE]);
+    });
+
     it("aborts the estimate when a new scan starts", async () => {
       fetchMock.mockImplementation(() => new Promise(() => {}));
       const hook = await photo();
