@@ -140,7 +140,7 @@ function MapShell() {
 
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col gap-2 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
         <TopBar placeLabel={place.label} onOpenLimits={openLimits} scanHref={scanHref}>
-          <WeatherStrip lat={place.lat} lon={place.lon} />
+          <WeatherStrip lat={view ? Number(((view.south + view.north) / 2).toFixed(2)) : place.lat} lon={view ? Number(((view.west + view.east) / 2).toFixed(2)) : place.lon} />
         </TopBar>
 
         <div className="pointer-events-auto w-full lg:w-[360px]">
