@@ -123,7 +123,7 @@ export function ScanScreen() {
   const status = call ? (call.level === "none" ? "scanning" : call.level === "clear" ? "clear" : "risks") : session.tracker.status;
   const running = session.phase === "running";
   const decided = status !== "scanning";
-  const mapHref = property && block ? `/?property=${property.id}&block=${block.id}` : "/";
+  const mapHref = property && block ? `/?property=${property.id}&block=${block.id}` : "/?map=1";
 
   const from = block ? scoreOf(block) : null;
   const to = block ? scoreOf(withScan(block, scanDelta(risks, clears), "")) : null;

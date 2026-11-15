@@ -12,6 +12,7 @@ import { NO_BLOCKS_MESSAGE, OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessag
 import { AddressSearch } from "@/components/AddressSearch";
 import { BlockRail } from "@/components/BlockRail";
 import { DataLimitsPanel } from "@/components/DataLimitsPanel";
+import { Landing } from "@/components/Landing";
 import { Legend } from "@/components/Legend";
 import { ParcelPanel } from "@/components/ParcelPanel";
 import { TopBar } from "@/components/TopBar";
@@ -47,6 +48,14 @@ function placeFromParams(params: URLSearchParams): PickedPlace | null {
 
 function MapShell() {
   const params = useSearchParams();
+  if (!["lat", "lon", "property", "block", "map"].some((key) => params.has(key))) {
+    return <Landing />;
+  }
+
+  return <LiveMap params={params} />;
+}
+
+function LiveMap({ params }: { params: URLSearchParams }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [limitsOpen, setLimitsOpen] = useState(false);
   const [place, setPlace] = useState<PickedPlace>(() => placeFromParams(params) ?? DOWNTOWN_SLO);
