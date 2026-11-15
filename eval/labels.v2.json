@@ -1,0 +1,1871 @@
+[
+ {
+  "id": "v2-autumn-vines-130018375",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "autumn",
+   "canopy-dominant",
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Orange and yellow autumn vineyard with green grass"
+ },
+ {
+  "id": "v2-autumn-vines-132914953",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "none",
+  "flags": [
+   "autumn",
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Red autumn vine over green grass"
+ },
+ {
+  "id": "v2-autumn-vines-132914969",
+  "labelSource": "human-ground",
+  "dry_pct": 15,
+  "green_pct": 85,
+  "bare_soil": "none",
+  "flags": [
+   "autumn"
+  ],
+  "confidence": "medium",
+  "notes": "Orange autumn vines over mostly green grass"
+ },
+ {
+  "id": "v2-autumn-vines-177534468",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "autumn",
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Red autumn vines with green grass"
+ },
+ {
+  "id": "v2-autumn-vines-2476211",
+  "labelSource": "human-ground",
+  "dry_pct": 30,
+  "green_pct": 70,
+  "bare_soil": "none",
+  "flags": [
+   "autumn"
+  ],
+  "confidence": "medium",
+  "notes": "Yellow autumn vines over green grass and fallen leaves"
+ },
+ {
+  "id": "v2-autumn-vines-5816942",
+  "labelSource": "human-ground",
+  "dry_pct": 60,
+  "green_pct": 40,
+  "bare_soil": "some",
+  "flags": [
+   "autumn",
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Autumn vine rows with dirt and fallen leaves in the aisle"
+ },
+ {
+  "id": "v2-autumn-vines-78806962",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "autumn",
+   "canopy-dominant"
+  ],
+  "confidence": "high",
+  "notes": "Yellow autumn vines over green grass"
+ },
+ {
+  "id": "v2-autumn-vines-8445635",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "autumn",
+   "canopy-dominant",
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Autumn vines over green grass"
+ },
+ {
+  "id": "v2-autumn-vines-8627697",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "autumn",
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Orange autumn vineyard over green grass"
+ },
+ {
+  "id": "v2-autumn-vines-8677995",
+  "labelSource": "human-ground",
+  "dry_pct": 15,
+  "green_pct": 85,
+  "bare_soil": "none",
+  "flags": [
+   "autumn",
+   "canopy-dominant"
+  ],
+  "confidence": "high",
+  "notes": "Red autumn vines over green grass with some leaf litter"
+ },
+ {
+  "id": "v2-autumn-vines-88066381",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "autumn",
+   "canopy-dominant"
+  ],
+  "confidence": "high",
+  "notes": "Yellow autumn vines with green grass aisles"
+ },
+ {
+  "id": "v2-autumn-vines-95358694",
+  "labelSource": "human-ground",
+  "dry_pct": 20,
+  "green_pct": 80,
+  "bare_soil": "lots",
+  "flags": [
+   "autumn",
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Yellow autumn vines over soil and grass"
+ },
+ {
+  "id": "v2-bare-soil-119850546",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Tilled field below a silo"
+ },
+ {
+  "id": "v2-bare-soil-128994156",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Tan drilled field"
+ },
+ {
+  "id": "v2-bare-soil-134977959",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Tan tilled field"
+ },
+ {
+  "id": "v2-bare-soil-142164729",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "high",
+  "notes": "Reddish tilled field, wide view"
+ },
+ {
+  "id": "v2-bare-soil-143979585",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Plowed field at low sun"
+ },
+ {
+  "id": "v2-bare-soil-153297206",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Plowed field with green weeds at the edge"
+ },
+ {
+  "id": "v2-bare-soil-153416020",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Red-brown bare field with tree shadows"
+ },
+ {
+  "id": "v2-bare-soil-153416039",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Red bare field with shadow"
+ },
+ {
+  "id": "v2-bare-soil-153450695",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "high",
+  "notes": "Pale chalky bare fields on a hillside"
+ },
+ {
+  "id": "v2-bare-soil-159586594",
+  "labelSource": "human-ground",
+  "dry_pct": 80,
+  "green_pct": 20,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Tilled tan field with sparse dry stubble (little vegetation)"
+ },
+ {
+  "id": "v2-bare-soil-190925574",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Tilled field with a footpath and sparse green sprouts"
+ },
+ {
+  "id": "v2-bare-soil-19574144",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Pale tilled field"
+ },
+ {
+  "id": "v2-bare-soil-202936909",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Plowed brown field, golden field in the distance"
+ },
+ {
+  "id": "v2-bare-soil-28038273",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Plowed field at low sun"
+ },
+ {
+  "id": "v2-bare-soil-53901779",
+  "labelSource": "human-ground",
+  "dry_pct": 80,
+  "green_pct": 20,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dark plowed field with dry grass and reeds at the edge"
+ },
+ {
+  "id": "v2-bare-soil-67688574",
+  "labelSource": "human-ground",
+  "dry_pct": 90,
+  "green_pct": 10,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dry gravelly field with a strip of dry grass stubble"
+ },
+ {
+  "id": "v2-bare-soil-71047822",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Plowed clods with some green grass and a tiller"
+ },
+ {
+  "id": "v2-bare-soil-88721152",
+  "labelSource": "human-ground",
+  "dry_pct": 25,
+  "green_pct": 75,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Plowed field with a green and dry grassy ditch bank"
+ },
+ {
+  "id": "v2-bare-soil-93312734",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Dark bare soil behind bare branches"
+ },
+ {
+  "id": "v2-bare-soil-99402913",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Red rocky bare ground at low sun"
+ },
+ {
+  "id": "v2-bare-soil-99402919",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Bare dirt lot with dead trees, no ground vegetation"
+ },
+ {
+  "id": "v2-chaparral-145707079",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Green coastal scrub by the water"
+ },
+ {
+  "id": "v2-chaparral-145794281",
+  "labelSource": "human-ground",
+  "dry_pct": 30,
+  "green_pct": 70,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Sage scrub with some dry stems, mountains behind"
+ },
+ {
+  "id": "v2-chaparral-145794282",
+  "labelSource": "human-ground",
+  "dry_pct": 25,
+  "green_pct": 75,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Grey-green coastal sage scrub"
+ },
+ {
+  "id": "v2-chaparral-145794291",
+  "labelSource": "human-ground",
+  "dry_pct": 15,
+  "green_pct": 85,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Chaparral with a dirt trail"
+ },
+ {
+  "id": "v2-chaparral-145794294",
+  "labelSource": "human-ground",
+  "dry_pct": 15,
+  "green_pct": 85,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dirt trail into chaparral"
+ },
+ {
+  "id": "v2-chaparral-145794297",
+  "labelSource": "human-ground",
+  "dry_pct": 25,
+  "green_pct": 75,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Grey-green sage scrub with white flowers"
+ },
+ {
+  "id": "v2-chaparral-145794316",
+  "labelSource": "human-ground",
+  "dry_pct": 25,
+  "green_pct": 75,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Grey-green sage scrub hillside"
+ },
+ {
+  "id": "v2-chaparral-146363365",
+  "labelSource": "human-ground",
+  "dry_pct": 45,
+  "green_pct": 55,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Chaparral shrubs behind dry grass"
+ },
+ {
+  "id": "v2-chaparral-146582632",
+  "labelSource": "human-ground",
+  "dry_pct": 20,
+  "green_pct": 80,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Grey-green sage scrub between boulders (live)"
+ },
+ {
+  "id": "v2-chaparral-159512162",
+  "labelSource": "human-ground",
+  "dry_pct": 15,
+  "green_pct": 85,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Green coastal sage with yellow flowers, hills behind"
+ },
+ {
+  "id": "v2-chaparral-184134876",
+  "labelSource": "human-ground",
+  "dry_pct": 20,
+  "green_pct": 80,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Shrubland fuel break, mostly green brush"
+ },
+ {
+  "id": "v2-chaparral-52340249",
+  "labelSource": "human-ground",
+  "dry_pct": 20,
+  "green_pct": 80,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Coastal scrub with red iceplant, green and yellow shrubs"
+ },
+ {
+  "id": "v2-chaparral-68988004",
+  "labelSource": "human-ground",
+  "dry_pct": 20,
+  "green_pct": 80,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dark green chaparral hills with some dry patches"
+ },
+ {
+  "id": "v2-chaparral-69153724",
+  "labelSource": "human-ground",
+  "dry_pct": 15,
+  "green_pct": 85,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Green chaparral hills"
+ },
+ {
+  "id": "v2-defensible-space-119520571",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Cleared cutline with green regrowth"
+ },
+ {
+  "id": "v2-defensible-space-145527616",
+  "labelSource": "human-ground",
+  "dry_pct": 40,
+  "green_pct": 60,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Sandy firebreak with dry shrubs at edges"
+ },
+ {
+  "id": "v2-defensible-space-47113732",
+  "labelSource": "human-ground",
+  "dry_pct": 50,
+  "green_pct": 50,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dirt firebreak road in pines with dry grass edges"
+ },
+ {
+  "id": "v2-defensible-space-84005185",
+  "labelSource": "human-ground",
+  "dry_pct": 35,
+  "green_pct": 65,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Mowed green track with tall dry grass edges"
+ },
+ {
+  "id": "v2-defensible-space-84005187",
+  "labelSource": "human-ground",
+  "dry_pct": 25,
+  "green_pct": 75,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Green grass trail between conifers, dry grass margins"
+ },
+ {
+  "id": "v2-dirt-road-104931934",
+  "labelSource": "human-ground",
+  "dry_pct": 80,
+  "green_pct": 20,
+  "bare_soil": "lots",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Gravel road with dry shrubs on both sides"
+ },
+ {
+  "id": "v2-dirt-road-136507538",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Dirt farm track with green grass verges by a plowed field"
+ },
+ {
+  "id": "v2-dirt-road-146571422",
+  "labelSource": "human-ground",
+  "dry_pct": 30,
+  "green_pct": 70,
+  "bare_soil": "some",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Dirt road through green and dry scrub"
+ },
+ {
+  "id": "v2-dirt-road-148831179",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Gravel road beside green grass and trees"
+ },
+ {
+  "id": "v2-dirt-road-1547652",
+  "labelSource": "human-ground",
+  "dry_pct": 70,
+  "green_pct": 30,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Desert dirt road with sparse dry shrubs"
+ },
+ {
+  "id": "v2-dirt-road-159397268",
+  "labelSource": "human-ground",
+  "dry_pct": 30,
+  "green_pct": 70,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dirt road between green shrubs with yellow flowers"
+ },
+ {
+  "id": "v2-dirt-road-16191173",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "some",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Forest dirt path with green ferns"
+ },
+ {
+  "id": "v2-dirt-road-167678447",
+  "labelSource": "human-ground",
+  "dry_pct": 70,
+  "green_pct": 30,
+  "bare_soil": "lots",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Dirt road and lot with dry roadside grass, dry hills behind"
+ },
+ {
+  "id": "v2-dirt-road-17576878",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dirt track beside green grass under trees"
+ },
+ {
+  "id": "v2-dirt-road-201910543",
+  "labelSource": "human-ground",
+  "dry_pct": 95,
+  "green_pct": 5,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Red dirt trail through dry golden grass"
+ },
+ {
+  "id": "v2-dirt-road-42058974",
+  "labelSource": "human-ground",
+  "dry_pct": 30,
+  "green_pct": 70,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Coastal dirt trail through green and dry scrub"
+ },
+ {
+  "id": "v2-dirt-road-52214356",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dirt road beside a bare earth bank"
+ },
+ {
+  "id": "v2-dirt-road-57058154",
+  "labelSource": "human-ground",
+  "dry_pct": 85,
+  "green_pct": 15,
+  "bare_soil": "lots",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Long dirt road with dry grass edges between vineyards"
+ },
+ {
+  "id": "v2-dirt-road-57059052",
+  "labelSource": "human-ground",
+  "dry_pct": 70,
+  "green_pct": 30,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Ranch dirt road through mostly dry grass, hills behind"
+ },
+ {
+  "id": "v2-dirt-road-57061051",
+  "labelSource": "human-ground",
+  "dry_pct": 85,
+  "green_pct": 15,
+  "bare_soil": "some",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Gravel road through dry golden grass, low sun"
+ },
+ {
+  "id": "v2-dirt-road-65434198",
+  "labelSource": "human-ground",
+  "dry_pct": 50,
+  "green_pct": 50,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dirt trail between oaks with dry grass edges"
+ },
+ {
+  "id": "v2-dirt-road-66732160",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "lots",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Gravel road by a barn, green field, overcast"
+ },
+ {
+  "id": "v2-dirt-road-68911202",
+  "labelSource": "human-ground",
+  "dry_pct": 85,
+  "green_pct": 15,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Red dirt road through dry grass"
+ },
+ {
+  "id": "v2-dirt-road-68987509",
+  "labelSource": "human-ground",
+  "dry_pct": 95,
+  "green_pct": 5,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Dirt road through dry brown grass with oaks"
+ },
+ {
+  "id": "v2-distant-hillside-17576903",
+  "labelSource": "human-ground",
+  "dry_pct": 15,
+  "green_pct": 85,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Distant green vineyard rows below hills"
+ },
+ {
+  "id": "v2-lawn-dormant-brown-115445322",
+  "labelSource": "human-ground",
+  "dry_pct": 80,
+  "green_pct": 20,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Close-up of a dormant tan lawn with some green"
+ },
+ {
+  "id": "v2-lawn-dormant-brown-115445334",
+  "labelSource": "human-ground",
+  "dry_pct": 100,
+  "green_pct": 0,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Completely brown dead lawn"
+ },
+ {
+  "id": "v2-lawn-dormant-brown-115629042",
+  "labelSource": "human-ground",
+  "dry_pct": 95,
+  "green_pct": 5,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Dormant brown grass lawn with trees"
+ },
+ {
+  "id": "v2-lawn-dormant-brown-121647583",
+  "labelSource": "human-ground",
+  "dry_pct": 90,
+  "green_pct": 10,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dry brown park ground under trees"
+ },
+ {
+  "id": "v2-lawn-dormant-brown-122120231",
+  "labelSource": "human-ground",
+  "dry_pct": 45,
+  "green_pct": 55,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Close-up of turf half green, half browning"
+ },
+ {
+  "id": "v2-lawn-green-113566560",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Green lawn with a dirt pile"
+ },
+ {
+  "id": "v2-lawn-green-122120243",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Close-up of green turf"
+ },
+ {
+  "id": "v2-lawn-green-135331728",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Green park lawn with trees behind"
+ },
+ {
+  "id": "v2-lawn-green-136828562",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Sunlit yellow-green mowed lawn"
+ },
+ {
+  "id": "v2-lawn-green-139186342",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Green park lawn with palms"
+ },
+ {
+  "id": "v2-lawn-green-15028653",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Green park lawn in front of a building"
+ },
+ {
+  "id": "v2-lawn-green-86739112",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Green turf with a faint fairy ring"
+ },
+ {
+  "id": "v2-lawn-green-86739153",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Putting-green turf"
+ },
+ {
+  "id": "v2-oak-grassland-golden-107394390",
+  "labelSource": "human-ground",
+  "dry_pct": 60,
+  "green_pct": 40,
+  "bare_soil": "none",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Golden grass field with old farm machinery at dusk"
+ },
+ {
+  "id": "v2-oak-grassland-golden-122629797",
+  "labelSource": "human-ground",
+  "dry_pct": 85,
+  "green_pct": 15,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Tall dry grass around a concrete bunker"
+ },
+ {
+  "id": "v2-oak-grassland-golden-127626717",
+  "labelSource": "human-ground",
+  "dry_pct": 85,
+  "green_pct": 15,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Flat of dry grass with a few green shrubs"
+ },
+ {
+  "id": "v2-oak-grassland-golden-140910531",
+  "labelSource": "human-ground",
+  "dry_pct": 95,
+  "green_pct": 5,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Golden dry grass in front of dry hills"
+ },
+ {
+  "id": "v2-oak-grassland-golden-142100303",
+  "labelSource": "human-ground",
+  "dry_pct": 85,
+  "green_pct": 15,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Field of tall dried-out grass"
+ },
+ {
+  "id": "v2-oak-grassland-golden-142761337",
+  "labelSource": "human-ground",
+  "dry_pct": 75,
+  "green_pct": 25,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Pasture of dry grass behind a fence"
+ },
+ {
+  "id": "v2-oak-grassland-golden-159412962",
+  "labelSource": "human-ground",
+  "dry_pct": 90,
+  "green_pct": 10,
+  "bare_soil": "none",
+  "flags": [
+   "low-light",
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Golden grass hills at sunset"
+ },
+ {
+  "id": "v2-oak-grassland-golden-56818640",
+  "labelSource": "human-ground",
+  "dry_pct": 95,
+  "green_pct": 5,
+  "bare_soil": "some",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "high",
+  "notes": "Dry golden flat with a dirt road"
+ },
+ {
+  "id": "v2-oak-grassland-golden-57457052",
+  "labelSource": "human-ground",
+  "dry_pct": 70,
+  "green_pct": 30,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dry grass in front of chaparral hills"
+ },
+ {
+  "id": "v2-oak-grassland-golden-61776027",
+  "labelSource": "human-ground",
+  "dry_pct": 95,
+  "green_pct": 5,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Dry orange-golden grass field with trees"
+ },
+ {
+  "id": "v2-oak-grassland-golden-79293294",
+  "labelSource": "human-ground",
+  "dry_pct": 60,
+  "green_pct": 40,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dry grass and green shrubs in front of distant vineyard and oak"
+ },
+ {
+  "id": "v2-oak-grassland-golden-97402533",
+  "labelSource": "human-ground",
+  "dry_pct": 55,
+  "green_pct": 45,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Grassland of mixed tan and green grass below green hills"
+ },
+ {
+  "id": "v2-oak-grassland-green-110713823",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Green meadow full of purple lupine"
+ },
+ {
+  "id": "v2-oak-grassland-green-123759280",
+  "labelSource": "human-ground",
+  "dry_pct": 30,
+  "green_pct": 70,
+  "bare_soil": "none",
+  "flags": [
+   "fog",
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Foggy meadow, green grass with dry tops"
+ },
+ {
+  "id": "v2-oak-grassland-green-130763625",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Green hills with trees"
+ },
+ {
+  "id": "v2-oak-grassland-green-159413574",
+  "labelSource": "human-ground",
+  "dry_pct": 15,
+  "green_pct": 85,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Green hills with a little yellowing grass"
+ },
+ {
+  "id": "v2-oak-grassland-green-159413863",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "high",
+  "notes": "Green rolling hills in spring"
+ },
+ {
+  "id": "v2-oak-grassland-green-16374381",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Green field with mustard, white bluffs behind"
+ },
+ {
+  "id": "v2-oak-grassland-green-22419559",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Flowering yellow-green mustard field (live)"
+ },
+ {
+  "id": "v2-oak-grassland-green-2413940",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Green meadow below a vineyard wall"
+ },
+ {
+  "id": "v2-oak-grassland-green-41106644",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Green grass along a hedge path"
+ },
+ {
+  "id": "v2-oak-grassland-green-57059220",
+  "labelSource": "human-ground",
+  "dry_pct": 35,
+  "green_pct": 65,
+  "bare_soil": "none",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Green hills with yellowing grass patches and shrubs"
+ },
+ {
+  "id": "v2-oak-grassland-green-68989955",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Green meadow by a forest"
+ },
+ {
+  "id": "v2-oak-grassland-green-7570371",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Green field in front of a distant village"
+ },
+ {
+  "id": "v2-oak-grassland-green-82780239",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "none",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Field of yellow wildflowers over green grass at dusk"
+ },
+ {
+  "id": "v2-oak-grassland-green-98622844",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Green crop field in rows under clouds"
+ },
+ {
+  "id": "v2-snow-fog-negative-118877054",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "none",
+  "flags": [
+   "fog",
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Green field in fog with palms"
+ },
+ {
+  "id": "v2-snow-fog-negative-121283790",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [
+   "snow"
+  ],
+  "confidence": "medium",
+  "notes": "Snowy vineyard rows, footprints"
+ },
+ {
+  "id": "v2-snow-fog-negative-127396713",
+  "labelSource": "human-ground",
+  "dry_pct": 30,
+  "green_pct": 70,
+  "bare_soil": "none",
+  "flags": [
+   "fog",
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Vineyard posts in thick fog, mostly green grass"
+ },
+ {
+  "id": "v2-snow-fog-negative-129465446",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [
+   "snow"
+  ],
+  "confidence": "high",
+  "notes": "Snow-covered dormant vineyard"
+ },
+ {
+  "id": "v2-snow-fog-negative-141943431",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "some",
+  "flags": [
+   "fog"
+  ],
+  "confidence": "high",
+  "notes": "Green grass slope in fog with small bare patch"
+ },
+ {
+  "id": "v2-snow-fog-negative-165020756",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "fog"
+  ],
+  "confidence": "high",
+  "notes": "Green field edge in fog"
+ },
+ {
+  "id": "v2-snow-fog-negative-182329342",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [
+   "snow"
+  ],
+  "confidence": "high",
+  "notes": "Snow-covered field, no vegetation visible"
+ },
+ {
+  "id": "v2-snow-fog-negative-38151925",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [
+   "snow"
+  ],
+  "confidence": "high",
+  "notes": "Snow-covered vineyard rows, no ground vegetation visible"
+ },
+ {
+  "id": "v2-snow-fog-negative-51811321",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "snow"
+  ],
+  "confidence": "medium",
+  "notes": "Red dirt road with snow patches, no vegetation"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-106591954",
+  "labelSource": "human-ground",
+  "dry_pct": 60,
+  "green_pct": 40,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Young vines in tubes on bare soil with dry stubble"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-116740433",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Vine canopy rows over a bare soil aisle"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-12274021",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Vine tubes on bare tilled soil"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-132914891",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "fog",
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Old vine on bare soil in fog"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-132914918",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Young leafed vines on bare tilled soil"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-132914931",
+  "labelSource": "human-ground",
+  "dry_pct": 70,
+  "green_pct": 30,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dormant old vines over bare soil with sparse dry stubble"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-132914933",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "lots",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Old vine over mostly bare soil with green patches"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-132914946",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Old dormant vine on bare tan sandy soil, no vegetation"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-141290405",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "fog"
+  ],
+  "confidence": "high",
+  "notes": "Dormant vines on bare tilled soil, misty"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-199100566",
+  "labelSource": "human-ground",
+  "dry_pct": 60,
+  "green_pct": 40,
+  "bare_soil": "lots",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Vines over dry bare soil with dry plant litter"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-24767340",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Terraced bare soil rows with thin green grass strips"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-34558529",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Vineyard with alternating green grass aisles and bare soil strips"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-35480578",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Bare tilled vineyard rows with tiny young vines"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-35480612",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [
+   "distant"
+  ],
+  "confidence": "high",
+  "notes": "Young vineyard on bare tilled soil, wide view"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-52642242",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "some",
+  "flags": [
+   "canopy-dominant",
+   "distant"
+  ],
+  "confidence": "medium",
+  "notes": "Vineyard rows with soil strips between canopy"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-7008402",
+  "labelSource": "human-ground",
+  "dry_pct": 20,
+  "green_pct": 80,
+  "bare_soil": "some",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Dense vine canopy with bare soil visible below"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-9182063",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Young vine on gravelly bare soil"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-9184549",
+  "labelSource": "human-ground",
+  "dry_pct": 30,
+  "green_pct": 70,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dormant young vineyard on pale sandy soil with sparse weeds"
+ },
+ {
+  "id": "v2-vineyard-bare-tilled-rows-9187391",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Young vines on bare tilled soil"
+ },
+ {
+  "id": "v2-vineyard-dry-cover-11524809",
+  "labelSource": "human-ground",
+  "dry_pct": 85,
+  "green_pct": 15,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Dry golden grass strip in front of a green vineyard and barn"
+ },
+ {
+  "id": "v2-vineyard-dry-cover-115309631",
+  "labelSource": "human-ground",
+  "dry_pct": 70,
+  "green_pct": 30,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dormant winter vineyard on slope with dry cured grass"
+ },
+ {
+  "id": "v2-vineyard-dry-cover-115596610",
+  "labelSource": "human-ground",
+  "dry_pct": 70,
+  "green_pct": 30,
+  "bare_soil": "none",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Dormant vineyard with dry grass between rows, low sun"
+ },
+ {
+  "id": "v2-vineyard-dry-cover-132914916",
+  "labelSource": "human-ground",
+  "dry_pct": 80,
+  "green_pct": 20,
+  "bare_soil": "some",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Old head-trained vines over dry grass and soil"
+ },
+ {
+  "id": "v2-vineyard-dry-cover-132914962",
+  "labelSource": "human-ground",
+  "dry_pct": 70,
+  "green_pct": 30,
+  "bare_soil": "none",
+  "flags": [
+   "fog"
+  ],
+  "confidence": "medium",
+  "notes": "Vine trunk over leaf litter and dry grass in fog"
+ },
+ {
+  "id": "v2-vineyard-dry-cover-20108136",
+  "labelSource": "human-ground",
+  "dry_pct": 75,
+  "green_pct": 25,
+  "bare_soil": "some",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Vine rows with dry grass between"
+ },
+ {
+  "id": "v2-vineyard-dry-cover-20653433",
+  "labelSource": "human-ground",
+  "dry_pct": 70,
+  "green_pct": 30,
+  "bare_soil": "none",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Vineyard canopy with dry grass strips under the vines"
+ },
+ {
+  "id": "v2-vineyard-dry-cover-20653434",
+  "labelSource": "human-ground",
+  "dry_pct": 80,
+  "green_pct": 20,
+  "bare_soil": "none",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Hillside vineyard with tan dry grass under the vines"
+ },
+ {
+  "id": "v2-vineyard-dry-cover-2763819",
+  "labelSource": "human-ground",
+  "dry_pct": 85,
+  "green_pct": 15,
+  "bare_soil": "none",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Vineyard canopy with a yellow dry-grass aisle"
+ },
+ {
+  "id": "v2-vineyard-green-cover-106592945",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Vineyard with green grass, oaks behind"
+ },
+ {
+  "id": "v2-vineyard-green-cover-118859255",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Young vines over green grass"
+ },
+ {
+  "id": "v2-vineyard-green-cover-12720365",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "high",
+  "notes": "Dormant vines, green cover crop with mustard in the aisle"
+ },
+ {
+  "id": "v2-vineyard-green-cover-132914901",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Dormant vines with green cover rows and soil strips"
+ },
+ {
+  "id": "v2-vineyard-green-cover-132914960",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "lots",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Dormant vines, green strip down the aisle with bare soil each side"
+ },
+ {
+  "id": "v2-vineyard-green-cover-132914961",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Dormant old vines over green grass"
+ },
+ {
+  "id": "v2-vineyard-green-cover-143775072",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Green grass vineyard with white vine tubes"
+ },
+ {
+  "id": "v2-vineyard-green-cover-154376829",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "high",
+  "notes": "Dormant vines over green cover crop, overcast"
+ },
+ {
+  "id": "v2-vineyard-green-cover-17576688",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Dormant vineyard below green oak hills"
+ },
+ {
+  "id": "v2-vineyard-green-cover-177857322",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "canopy-dominant",
+   "autumn"
+  ],
+  "confidence": "high",
+  "notes": "Vines with yellowing leaves over lush green grass"
+ },
+ {
+  "id": "v2-vineyard-green-cover-20654455",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "some",
+  "flags": [
+   "fog"
+  ],
+  "confidence": "medium",
+  "notes": "Young vines in fog over green grass, some soil"
+ },
+ {
+  "id": "v2-vineyard-green-cover-24767351",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "some",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Hillside vineyard with green grass alleys and soil under vines"
+ },
+ {
+  "id": "v2-vineyard-green-cover-62119805",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Young vines over green grass at dusk"
+ },
+ {
+  "id": "v2-vineyard-green-cover-71327343",
+  "labelSource": "human-ground",
+  "dry_pct": 15,
+  "green_pct": 85,
+  "bare_soil": "none",
+  "flags": [
+   "canopy-dominant"
+  ],
+  "confidence": "medium",
+  "notes": "Vine rows with mostly green grass aisle"
+ },
+ {
+  "id": "v2-vineyard-green-cover-8911221",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Green grass strip beside vines, golden hills far"
+ },
+ {
+  "id": "v2-vineyard-green-cover-9184334",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Green cover crop between dormant rows, road in front"
+ },
+ {
+  "id": "v2-weeds-close-up-118030394",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Green grass with timothy seed heads"
+ },
+ {
+  "id": "v2-weeds-close-up-165032879",
+  "labelSource": "human-ground",
+  "dry_pct": 10,
+  "green_pct": 90,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Tall green grass with pale seed heads"
+ },
+ {
+  "id": "v2-weeds-close-up-171773567",
+  "labelSource": "human-ground",
+  "dry_pct": 0,
+  "green_pct": 100,
+  "bare_soil": "some",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Green crabgrass on bare soil, close up"
+ },
+ {
+  "id": "v2-weeds-close-up-176024625",
+  "labelSource": "human-ground",
+  "dry_pct": 5,
+  "green_pct": 95,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Close-up of green grass with daisies"
+ },
+ {
+  "id": "v2-weeds-close-up-75598820",
+  "labelSource": "human-ground",
+  "dry_pct": 60,
+  "green_pct": 40,
+  "bare_soil": "none",
+  "flags": [],
+  "confidence": "medium",
+  "notes": "Close-up of dry foxtail heads mixed with green"
+ },
+ {
+  "id": "v2-weeds-close-up-75774483",
+  "labelSource": "human-ground",
+  "dry_pct": 95,
+  "green_pct": 5,
+  "bare_soil": "none",
+  "flags": [
+   "low-light"
+  ],
+  "confidence": "medium",
+  "notes": "Dry grass stems backlit at sunset"
+ }
+]

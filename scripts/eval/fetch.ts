@@ -1,6 +1,6 @@
 /* Pulls the eval images into eval/data (gitignored) and writes eval/manifest.json. Run: npm run eval:fetch */
 import { copyFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { CACHE, DATA, MANIFEST, UA, mk, pool, sleep, type Item } from "./common";
+import { CACHE, DATA, MANIFEST, UA, V2, mk, pool, sleep, type Item } from "./common";
 
 const PER_BUCKET = 25;
 const CATEGORIES = ["Dry grass", "Grasslands of California", "Vineyards in California", "Cover crops", "Lawns", "Chaparral", "Firebreaks", "Wildfire prevention"];
@@ -79,8 +79,21 @@ async function vegann(): Promise<Item[]> {
   return out.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 }
 
+/** EVAL_SET=v2: the manifest is committed; just download its images (resumable). */
+async function fetchV2() {
+  const items: Item[] = JSON.parse(readFileSync(MANIFEST, "utf8"));
+  let ok = 0;
+  await pool(items, 2, async (it) => {
+    await sleep(300);
+    if (await download(it.thumb!, it.file)) ok++;
+    else console.warn("failed", it.id);
+  });
+  console.log(`${ok}/${items.length} v2 images in ${DATA}/v2`);
+}
+
 async function main() {
   mk(DATA);
+  if (V2) return fetchV2();
   mk(CACHE);
   const items: (Item & { _thumb?: string })[] = [];
   const old: Item[] = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : [];
