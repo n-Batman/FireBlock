@@ -67,6 +67,14 @@ export function dryColourOf(r: number, g: number, b: number): Label {
   return s >= 0.08 && (h >= 345 || h < 62) ? RISK : NEUTRAL;
 }
 
+/** Inside a live mask sunlit yellow-green grass (hue 50-62) is clear; only truly tan/straw pixels (hue 31-50) are risk. */
+export function liveColourOf(r: number, g: number, b: number): Label {
+  const [h, s, v] = hsv(r, g, b);
+  if (h >= 50 && h <= 170 && s >= 0.14 && v >= 0.3) return CLEAR;
+  if (h >= 31 && h < 50 && s >= 0.25 && s <= 0.75 && v >= 0.48) return RISK;
+  return NEUTRAL;
+}
+
 /** Luminance standard deviation in a (2r+1)² window around every pixel (summed-area tables). */
 export function texture(rgba: ArrayLike<number>, w: number, h: number, r = 2): Float32Array {
   const W = w + 1;
@@ -115,7 +123,7 @@ export function classify(rgba: ArrayLike<number>, w: number, h: number, masks: M
       const l = dryColourOf(r, g, b);
       out[i] = l === RISK ? (tex![i] >= TEXTURE_MIN ? RISK : NEUTRAL) : l;
     }
-    else if (masks.live[i]) out[i] = colourOf(r, g, b);
+    else if (masks.live[i]) out[i] = liveColourOf(r, g, b);
     else {
       const l = colourOf(r, g, b);
       out[i] = l === RISK ? (tex![i] >= TEXTURE_MIN ? RISK : NEUTRAL) : l;
