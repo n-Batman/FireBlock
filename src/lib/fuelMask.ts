@@ -12,12 +12,16 @@ export type Polygon = [number, number][];
 export interface Mask {
   group: Group;
   polys: Polygon[];
+  /** Exclude masks only: an object (road, dog, person, post, building, vehicle) that no colour or estimate tile overrides. */
+  hard?: boolean;
 }
 /** Per-group 0/1 pixel masks at working size. */
 export interface Masks {
   dry: Uint8Array;
   live: Uint8Array;
   exclude: Uint8Array;
+  /** The part of `exclude` that came from object masks (`Mask.hard`). */
+  hard?: Uint8Array;
 }
 
 export const NEUTRAL = 0;
@@ -291,6 +295,8 @@ export interface RiskArea {
   /** This area's share of the whole frame, 0 to 100. */
   pctOfFrame: number;
   where: string;
+  /** What fired in this area, in plain words ("SAM: dry grass", "colour: straw", "GPT: dry tile"). Empty without evidence. */
+  reasons?: string[];
 }
 
 const MIN_AREA = 0.0015;
@@ -361,8 +367,40 @@ export function dropSpecks(labels: Uint8Array, w: number, h: number): Uint8Array
   return out;
 }
 
+/** Evidence bits per RISK pixel: which independent checks say "dry" there. */
+export const EV_SAM = 1;
+export const EV_COLOUR = 2;
+export const EV_TILE = 4;
+const REASON_TEXT: [number, string][] = [
+  [EV_SAM, "SAM: dry grass"],
+  [EV_COLOUR, "colour: straw"],
+  [EV_TILE, "GPT: dry tile"],
+];
+/** A check is named for an area when it fired on at least this share of the area's pixels. */
+const REASON_SHARE = 0.4;
+
+/** The checks that fired on enough of an area; the strongest one when none did, "grown from nearby dry pixels" when none fired at all. */
+function reasonsOf(pixels: number[], evidence: Uint8Array): string[] {
+  const counts = REASON_TEXT.map(([bit]) => pixels.reduce((n, i) => n + (evidence[i] & bit ? 1 : 0), 0));
+  const named = REASON_TEXT.filter((_, k) => counts[k] >= REASON_SHARE * pixels.length).map(([, text]) => text);
+  if (named.length) return named;
+  const best = counts.indexOf(Math.max(...counts));
+  return counts[best] > 0 ? [REASON_TEXT[best][1]] : ["grown from nearby dry pixels"];
+}
+
+/** 0 for pixels that are not RISK, else how many checks agree (1 to 3). */
+export function agreement(labels: Uint8Array, evidence: Uint8Array): Uint8Array {
+  const out = new Uint8Array(labels.length);
+  for (let i = 0; i < labels.length; i++) {
+    if (labels[i] !== RISK) continue;
+    const e = evidence[i];
+    out[i] = Math.max(1, (e & 1) + ((e >> 1) & 1) + ((e >> 2) & 1));
+  }
+  return out;
+}
+
 /** Touching risk pixels grouped into areas, the biggest first. Call on a map that went through `dropSpecks`. */
-export function riskAreas(labels: Uint8Array, w: number, h: number): RiskArea[] {
+export function riskAreas(labels: Uint8Array, w: number, h: number, evidence?: Uint8Array | null): RiskArea[] {
   const total = labels.reduce((n, l) => n + (l === RISK ? 1 : 0), 0);
   return blobs(labels, w, h)
     .filter((b) => b.n / (w * h) >= MIN_AREA)
@@ -374,6 +412,7 @@ export function riskAreas(labels: Uint8Array, w: number, h: number): RiskArea[] 
       pctOfRisk: Math.round((b.n / total) * 100),
       pctOfFrame: Math.round((b.n / (w * h)) * 1000) / 10,
       where: whereOf(b.sx / b.n / w, b.sy / b.n / h),
+      reasons: evidence ? reasonsOf(b.pixels, evidence) : [],
     }));
 }
 
@@ -383,6 +422,8 @@ export interface FuelMap {
   labels: Uint8Array;
   verdict: Verdict;
   areas: RiskArea[];
+  /** Per pixel: 0 where the label is not RISK, else how many checks agree (3 = SAM dry mask + straw colour + GPT "dry" tile, 2 = two of them, 1 = one). */
+  agree?: Uint8Array;
   /** True when there were no vegetation masks and colour alone was used. */
   colourOnly: boolean;
 }
@@ -392,7 +433,7 @@ export interface FuelMap {
  * masks of the same group are unioned.
  */
 export function rasterise(masks: Mask[], srcW: number, w: number, h: number): Masks {
-  const out: Masks = { dry: new Uint8Array(w * h), live: new Uint8Array(w * h), exclude: new Uint8Array(w * h) };
+  const out: Masks = { dry: new Uint8Array(w * h), live: new Uint8Array(w * h), exclude: new Uint8Array(w * h), hard: new Uint8Array(w * h) };
   const k = w / srcW;
   for (const m of masks) {
     const target = out[m.group];
@@ -411,11 +452,35 @@ export function rasterise(masks: Mask[], srcW: number, w: number, h: number): Ma
       for (let i = 0; i + 1 < xs.length; i += 2) {
         const from = Math.max(0, Math.round(xs[i]));
         const to = Math.min(w, Math.round(xs[i + 1]));
-        for (let x = from; x < to; x++) target[y * w + x] = 1;
+        for (let x = from; x < to; x++) {
+          target[y * w + x] = 1;
+          if (m.hard) out.hard![y * w + x] = 1;
+        }
       }
     }
   }
+  growHard(out, w, h);
   return out;
+}
+
+/** Object masks are cut tight (fur, tail tips and legs fall just outside), so each is widened by this many map pixels before anything reads it. */
+const HARD_GROW = 2;
+
+/** Widens the hard mask by HARD_GROW pixels (square window) and adds the result to the exclude mask. */
+function growHard(masks: Masks, w: number, h: number): void {
+  const hard = masks.hard!;
+  if (!hard.includes(1)) return;
+  const wide = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!hard[y * w + x]) continue;
+      for (let yy = Math.max(0, y - HARD_GROW); yy <= Math.min(h - 1, y + HARD_GROW); yy++) {
+        for (let xx = Math.max(0, x - HARD_GROW); xx <= Math.min(w - 1, x + HARD_GROW); xx++) wide[yy * w + xx] = 1;
+      }
+    }
+  }
+  masks.hard = wide;
+  for (let i = 0; i < w * h; i++) if (wide[i]) masks.exclude[i] = 1;
 }
 
 /** The estimate's rows x cols tile labels ("dry" | "live" | "soil" | "other") over the frame, as /api/estimate returns them. */
@@ -555,8 +620,8 @@ export function reconcile(labels: Uint8Array, rgba: ArrayLike<number>, w: number
   const tex = texture(rgba, w, h);
   const off = (i: number) => cells[i] === "soil" || cells[i] === "other";
   const straw = (i: number) => colourOf(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]) === RISK;
-  // An exclude mask stops RISK, except straw colour in a "dry" tile: SAM's "bare soil" often covers a mown straw aisle, and there the estimate and the colour both say fuel.
-  const blocked = (i: number) => !!raster?.exclude[i] && !(cells[i] === "dry" && straw(i));
+  // An exclude mask stops RISK, except straw colour with grassy texture in a "dry" tile: SAM's "bare soil" or "plowed soil" often covers a mown straw aisle, and there the estimate and the colour both say fuel. Object masks (road, dog, person, post, building, vehicle) are never overridden.
+  const blocked = (i: number) => !!raster?.hard?.[i] || (!!raster?.exclude[i] && !(cells[i] === "dry" && straw(i) && tex[i] >= TEXTURE_MIN));
   const out = labels.slice();
   let risk = 0;
   let clear = 0;
@@ -602,13 +667,37 @@ export function reconcile(labels: Uint8Array, rgba: ArrayLike<number>, w: number
  * (grid only) or reconcile toward its dry area (grid, dryPct and vegFrac), smooth, drop specks, group. Pure, so the app
  * and the eval share it. A grid without dryPct and vegFrac gives the PR 20 gate.
  */
-export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, masks: Mask[] | null, grid?: EstimateGrid | null, dryPct?: number | null, vegFrac?: number | null): FuelMap {
+export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, masks: Mask[] | null, grid?: EstimateGrid | null, dryPct?: number | null, vegFrac?: number | null, trace?: (stage: string, labels: Uint8Array) => void): FuelMap {
   const raster = masks ? rasterise(masks, srcW, w, h) : null;
   const balanced = whiteBalance(rgba, w, h);
   const classified = classify(balanced, w, h, raster);
-  const gated = !(grid?.length && grid[0]?.length) ? classified : dryPct == null || vegFrac == null ? gateByGrid(classified, w, h, grid) : reconcile(classified, balanced, w, h, grid, dryPct, vegFrac, raster);
-  const labels = dropSpecks(smooth(gated, w, h), w, h);
-  return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h), colourOnly: !masks };
+  trace?.("classify", classified);
+  const hasGrid = !!(grid?.length && grid[0]?.length);
+  const gated = !hasGrid ? classified : dryPct == null || vegFrac == null ? gateByGrid(classified, w, h, grid!) : reconcile(classified, balanced, w, h, grid!, dryPct, vegFrac, raster);
+  trace?.("reconcile", gated);
+  const smoothed = smooth(gated, w, h);
+  // Smoothing votes across edges; an object mask (road, dog, person...) stays neutral whatever its neighbours say.
+  if (raster) for (let i = 0; i < w * h; i++) if (raster.hard?.[i]) smoothed[i] = NEUTRAL;
+  trace?.("smooth", smoothed);
+  const labels = dropSpecks(smoothed, w, h);
+  trace?.("dropSpecks", labels);
+  const evidence = evidenceOf(labels, balanced, w, h, raster, hasGrid ? cellsOf(w, h, grid!) : null);
+  return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h, evidence), agree: agreement(labels, evidence), colourOnly: !masks };
+}
+
+/** Which checks say "dry" at every RISK pixel: a SAM dry mask, straw colour (strict band, or the wide one inside a dry mask), a "dry" estimate tile. */
+function evidenceOf(labels: Uint8Array, rgba: ArrayLike<number>, w: number, h: number, raster: Masks | null, cells: string[] | null): Uint8Array {
+  const out = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    if (labels[i] !== RISK) continue;
+    const r = rgba[i * 4];
+    const g = rgba[i * 4 + 1];
+    const b = rgba[i * 4 + 2];
+    const sam = !!raster?.dry[i];
+    const colour = colourOf(r, g, b) === RISK || (sam && dryColourOf(r, g, b) === RISK);
+    out[i] = (sam ? EV_SAM : 0) | (colour ? EV_COLOUR : 0) | (cells?.[i] === "dry" ? EV_TILE : 0);
+  }
+  return out;
 }
 
 /** Browser wrapper: draws the frame at MAP_WIDTH and hands the pixels to `scan`. */

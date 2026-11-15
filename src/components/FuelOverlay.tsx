@@ -8,10 +8,12 @@ import { mapBoxToRect, type Fit } from "@/lib/scan";
 const CLEAR_RGBA = [74, 222, 128, 0.32] as const;
 const CLEAR_EDGE_ALPHA = 0.18;
 const RISK_RGBA = [239, 68, 68, 0.38] as const;
+/** Risk fill by how many checks agree (3, 2, 1): solid when SAM, colour and the estimate all say dry, fainter with fewer. */
+const AGREE_ALPHA = [0.25, 0.45, 0.65] as const;
 const EDGE_ALPHA = 0.85;
 
 /** Paints the fuel map into RGBA pixels: fills, plus a one-pixel edge where risk meets anything else. */
-export function paint(map: Pick<FuelMap, "w" | "h" | "labels">, out: Uint8ClampedArray): void {
+export function paint(map: Pick<FuelMap, "w" | "h" | "labels" | "agree">, out: Uint8ClampedArray): void {
   const { w, h, labels } = map;
   for (let i = 0; i < w * h; i++) {
     const l = labels[i];
@@ -33,7 +35,8 @@ export function paint(map: Pick<FuelMap, "w" | "h" | "labels">, out: Uint8Clampe
         (x < w - 1 && labels[i + 1] !== RISK) ||
         (y > 0 && labels[i - w] !== RISK) ||
         (y < h - 1 && labels[i + w] !== RISK);
-      out.set([RISK_RGBA[0], RISK_RGBA[1], RISK_RGBA[2], Math.round((edge ? EDGE_ALPHA : RISK_RGBA[3]) * 255)], o);
+      const fill = map.agree?.[i] ? AGREE_ALPHA[map.agree[i] - 1] : RISK_RGBA[3];
+      out.set([RISK_RGBA[0], RISK_RGBA[1], RISK_RGBA[2], Math.round((edge ? EDGE_ALPHA : fill) * 255)], o);
     } else {
       out.set([0, 0, 0, 0], o);
     }

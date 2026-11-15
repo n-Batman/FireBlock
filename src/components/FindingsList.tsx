@@ -53,6 +53,7 @@ export function AreaFindingsList({ areas, notes }: { areas: RiskArea[]; notes: A
               ) : notes === null ? (
                 <span className="scan-shimmer">Writing the findings…</span>
               ) : null}
+              {a.reasons?.length ? <span className="block text-xs text-ink-2">{a.reasons.join(" · ")}</span> : null}
             </span>
           </li>
         );

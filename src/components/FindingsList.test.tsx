@@ -19,6 +19,11 @@ const shownTotal = () =>
     .reduce((a, b) => a + b, 0);
 
 describe("AreaFindingsList", () => {
+  it("shows what fired in an area under its line", () => {
+    render(<AreaFindingsList areas={[{ ...area(1, 100), reasons: ["SAM: dry grass", "colour: straw", "GPT: dry tile"] }]} notes={[]} />);
+    expect(screen.getByText("SAM: dry grass · colour: straw · GPT: dry tile")).toBeInTheDocument();
+  });
+
   it("adds a Smaller patches line when 5% or more of the dry fuel is in unlisted areas", () => {
     render(<AreaFindingsList areas={[area(1, 60), area(2, 25)]} notes={[]} />);
     const items = screen.getAllByRole("listitem");
