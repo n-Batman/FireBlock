@@ -90,18 +90,21 @@ export function useParcels(place: Place | null, view: View | null = null): Parce
   const display=current?.kind==="ok"?current:retained?.placeId===place?.id?retained?.result:null;
   // Fetch only the requested point/view. Speculative envelopes competed with
   // visible lookups and repeatedly downloaded larger parcel geometries.
-  const units = useMemo(() => {
+  // Camera changes only filter these units; point tests and score-cache lookups
+  // belong to the geometry/evidence version, not every pan or resize.
+  const scoredUnits = useMemo(() => {
     if (!display) return [];
     const here = place ? point([place.lon, place.lat]) : null;
-    return display.units.filter(u=>!view||u.parts.some(part=>{
-      const xs=part[0].map(p=>p[1]),ys=part[0].map(p=>p[0]);
-      return Math.min(...xs)<=view.east&&Math.max(...xs)>=view.west&&Math.min(...ys)<=view.north&&Math.max(...ys)>=view.south;
-    })).map((u) => ({
+    return display.units.map((u) => ({
       ...u,
       atPoint: u.atPoint ?? (here ? booleanPointInPolygon(here, toGeoJSON(u)) : false),
       score: scoreCache.get(u,()=>scoreParcel(u, scans, cells)),
     }));
-  }, [display, view, place, scans, cells, scoreCache]);
+  }, [display, place, scans, cells, scoreCache]);
+  const units = useMemo(() => scoredUnits.filter(u=>!view||u.parts.some(part=>{
+    const xs=part[0].map(p=>p[1]),ys=part[0].map(p=>p[0]);
+    return Math.min(...xs)<=view.east&&Math.max(...xs)>=view.west&&Math.min(...ys)<=view.north&&Math.max(...ys)>=view.south;
+  })), [scoredUnits, view]);
 
   if (!place) return { phase: "idle", units: [], truncated: false, message: null };
   if (outside) return { phase: "outside", units: [], truncated: false, message: null };

@@ -1,7 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Parcels } from "./parcels";
-import { pointInPolygon } from "./geo";
+import { labelPoint, pointInPolygon } from "./geo";
 import { toGeoJSON, toParcelUnits } from "./parcelUnits";
+
+vi.mock("./geo", async importOriginal => {
+  const actual = await importOriginal<typeof import("./geo")>();
+  return { ...actual, labelPoint: vi.fn(actual.labelPoint) };
+});
+beforeEach(() => { vi.mocked(labelPoint).mockClear(); });
 
 type Geometry = Parcels["features"][number]["geometry"];
 
@@ -93,6 +99,40 @@ describe("acres", () => {
     const [unit] = toParcelUnits(collection(feature("k", { type: "Polygon", coordinates: [square(-120.86, 35.63, 0.01)] })));
     // 0.01 degrees is about 1112 m north-south and 904 m east-west here.
     expect(Math.abs(unit.acres - 248.3) / 248.3).toBeLessThan(0.01);
+  });
+});
+
+describe("parcel center cache", () => {
+  const geometry: Geometry = { type: "Polygon", coordinates: [square(-120.86, 35.63, 0.01)] };
+  it("reuses centers across cloned responses without sharing mutable center arrays", () => {
+    const input = collection(feature("cached-response", geometry));
+    const first = toParcelUnits(input)[0];
+    const center = [...first.center];
+    first.center[0] = 0;
+    const second = toParcelUnits(JSON.parse(JSON.stringify(input)))[0];
+    expect(second.center).toEqual(center);
+    expect(second.center).not.toBe(first.center);
+    expect(labelPoint).toHaveBeenCalledTimes(1);
+  });
+  it("misses for different IDs, ring lengths, holes and multipart structure", () => {
+    toParcelUnits(collection(feature("cache-key-a", geometry), feature("cache-key-b", geometry)));
+    const ring = geometry.coordinates[0];
+    const longer: Geometry = { type: "Polygon", coordinates: [[ring[0], [-120.855, 35.63], ...ring.slice(1)]] };
+    toParcelUnits(collection(feature("cache-key-a", longer)));
+    toParcelUnits(collection(feature("cache-key-a", { type: "Polygon", coordinates: [ring, square(-120.858, 35.632, 0.002)] })));
+    toParcelUnits(collection(feature("cache-key-a", { type: "MultiPolygon", coordinates: [[ring], [square(-120.8, 35.63, 0.01)]] })));
+    expect(labelPoint).toHaveBeenCalledTimes(5);
+  });
+  it("evicts the least recently used center after 256 entries", () => {
+    const read = (id: string) => toParcelUnits(collection(feature(id, geometry)));
+    for (let i = 0; i < 256; i++) read(`bounded-${i}`);
+    vi.mocked(labelPoint).mockClear();
+    read("bounded-0"); // Retain this entry while bounded-1 becomes the oldest.
+    read("bounded-new");
+    read("bounded-0");
+    expect(labelPoint).toHaveBeenCalledTimes(1);
+    read("bounded-1");
+    expect(labelPoint).toHaveBeenCalledTimes(2);
   });
 });
 

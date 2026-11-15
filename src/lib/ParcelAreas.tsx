@@ -3,11 +3,12 @@
 import { useMemo, useState } from "react";
 import { Polygon, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import type { ParcelUnit } from "@/data/types";
-import { parcelDisplay, type ParcelAreaSummary } from "./parcelDisplay";
+import { parcelDisplay, ParcelOutlineCache, type ParcelAreaSummary } from "./parcelDisplay";
 import { scaleColor } from "./riskScale";
 
 export function useParcelDisplay(parcels: ParcelUnit[], selectedId: string | null) {
   const map = useMap();
+  const [outlineCache]=useState(()=>new ParcelOutlineCache());
   const camera=()=>{const b=map.getBounds();return {west:b.getWest(),south:b.getSouth(),east:b.getEast(),north:b.getNorth()};};
   const [view,setView]=useState(camera);
   const refresh=()=>setView(previous=>{
@@ -15,7 +16,7 @@ export function useParcelDisplay(parcels: ParcelUnit[], selectedId: string | nul
     return next.west===previous.west&&next.east===previous.east&&next.south===previous.south&&next.north===previous.north?previous:next;
   });
   useMapEvents({moveend:refresh,zoomend:refresh,resize:refresh});
-  return useMemo(()=>parcelDisplay(parcels,view,selectedId),[parcels,view,selectedId]);
+  return useMemo(()=>parcelDisplay(parcels,view,selectedId,outlineCache),[parcels,view,selectedId,outlineCache]);
 }
 
 /** Union outlines of small parcels. Clicking fits the real member geometry. */

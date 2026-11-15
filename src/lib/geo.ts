@@ -82,7 +82,7 @@ export function labelPoint(polygon: LatLng[]): LatLng {
 
   let best = { x: cx, y: cy, d: -1, toCenter: Infinity };
   let step = Math.max(x1 - x0, y1 - y0) / 16;
-  for (let round = 0; round < 6 && step > 0; round++) {
+  for (let round = 0; round < 3 && step > 0; round++) {
     for (let x = x0; x <= x1 + 1e-9; x += step) {
       for (let y = y0; y <= y1 + 1e-9; y += step) {
         if (!insideXY(x, y, pts)) continue;
