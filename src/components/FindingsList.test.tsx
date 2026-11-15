@@ -25,6 +25,8 @@ describe("AreaFindingsList", () => {
       {area:1,label:"Dry grass",reason:"Dry stems",action:"Mow this patch"},
     ]} />);
     expect(screen.getByText("Do first: Mow this patch")).toHaveClass("font-semibold");
+    expect(screen.getAllByText(/Mow this patch/)).toHaveLength(1);
+    expect(within(screen.getAllByRole("listitem")[1]).getByText("Clear brush")).toBeInTheDocument();
     const details = screen.getByText("Dry stems").closest("details")!;
     expect(details).not.toHaveAttribute("open");
     expect(within(details).getByText("SAM: dry grass · colour: straw")).toBeInTheDocument();

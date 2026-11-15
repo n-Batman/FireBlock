@@ -54,7 +54,7 @@ export function AreaFindingsList({ areas, notes }: { areas: RiskArea[]; notes: A
               <p className="font-medium">{note?.label ?? "Dry fuel"}</p>
               <p className="text-sm text-ink-2">{a.where} · {a.pctOfRisk}% of the dry fuel</p>
               {note ? (
-                <p>{note.action}</p>
+                a.id !== areas[0].id && <p>{note.action}</p>
               ) : notes === null ? (
                 <span className="scan-shimmer">Writing the findings…</span>
               ) : null}
