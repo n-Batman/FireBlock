@@ -66,6 +66,35 @@ export function gapSummary(rs: Result[]): string[] {
   return lines;
 }
 
+const AREA_PTS = 10;
+const DIRT_FRAME = 0.03;
+
+/**
+ * The overlay itself, not GPT's number: "GPT only" is the VLM's 6x8 grid drawn as the map, "Ours" is scan(). MAE is the map's
+ * dry share vs the human label; dirt FP is real RISK pixels over 3% of the frame on dirt frames; area gap is
+ * |RISK share of frame - dryPct/100 x vegFrac|.
+ */
+export function overlaySummary(rs: Result[]): string[] {
+  const rated = rs.filter((r) => r.overlay != null && r.overlayRisk != null && r.gridRisk != null && r.gridShare != null && r.target != null);
+  if (rated.length === 0) return [];
+  const mean = (xs: number[]) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) : "n/a");
+  const line = (name: string, share: (r: Result) => number, risk: (r: Result) => number) => {
+    const errs = rated.flatMap((r) => (r.expected == null ? [] : [Math.abs(share(r) - r.expected)]));
+    const dirt = rated.filter((r) => r.dirt);
+    const gaps = rated.map((r) => Math.abs(risk(r) - (r.target as number)) * 100);
+    return `| ${name} | ${mean(errs)} | ${dirt.filter((r) => risk(r) > DIRT_FRAME).length}/${dirt.length} | ${mean(gaps)} | ${gaps.filter((g) => g > AREA_PTS).length}/${rated.length} |`;
+  };
+  return [
+    "",
+    "## Overlay accuracy",
+    "",
+    `| Overlay | MAE vs human (pts) | Dirt FP (risk >3% of frame) | Area gap, mean (pts of frame) | Area gap >${AREA_PTS} pts |`,
+    "|---|---|---|---|---|",
+    line("GPT only (grid)", (r) => r.gridShare as number, (r) => r.gridRisk as number),
+    line("Ours (scan)", (r) => r.overlay as number, (r) => r.overlayRisk as number),
+  ];
+}
+
 export async function report(all: Result[], meta: { total: number; dropped: number; failed: string[] }) {
   mk("eval/sheets");
   const flagged = all.filter((r) => r.suspect);
@@ -97,6 +126,7 @@ export async function report(all: Result[], meta: { total: number; dropped: numb
     `- VegAnn background false positives: mean ${(meanBg * 100).toFixed(1)}% of background pixels read as risk; ${veg.filter((r) => (r.bgFp ?? 0) > 0.05).length}/${veg.length} images over 5%`,
     `- "All clear" while risk is drawn (must be 0): **${acr.length}**${acr.length ? " — " + acr.slice(0, 10).map((r) => r.item.id).join(", ") : ""}`,
     ...gapSummary(results),
+    ...overlaySummary(results),
     "",
     "## Worst 20",
     "",

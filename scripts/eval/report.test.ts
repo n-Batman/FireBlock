@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gapSummary } from "./report";
+import { gapSummary, overlaySummary } from "./report";
 import type { Result } from "./run";
 
 const r = (id: string, ours: number, overlay: number | null): Result =>
@@ -18,5 +18,19 @@ describe("gapSummary", () => {
     const many = Array.from({ length: 12 }, (_, i) => r(`f${i}`, 50, i));
     expect(gapSummary(many).filter((l) => l.startsWith("| f")).length).toBe(10);
     expect(gapSummary([r("x", 5, null)])).toEqual([]);
+  });
+});
+
+describe("overlaySummary", () => {
+  const o = (over: Partial<Result>): Result => ({ item: { id: "a", category: "b" }, expected: 20, dirt: false, overlay: 30, overlayRisk: 0.1, gridShare: 60, gridRisk: 0.3, target: 0.15, ...over }) as unknown as Result;
+
+  it("scores the grid and scan() maps against the human label, the dirt rule and the estimate's area", () => {
+    const out = overlaySummary([o({}), o({ dirt: true, expected: 0, overlay: 0, overlayRisk: 0.01, gridShare: 100, gridRisk: 0.5, target: 0 })]);
+    expect(out.find((l) => l.startsWith("| GPT only"))).toBe("| GPT only (grid) | 70.0 | 1/1 | 32.5 | 2/2 |");
+    expect(out.find((l) => l.startsWith("| Ours"))).toBe("| Ours (scan) | 5.0 | 0/1 | 3.0 | 0/2 |");
+  });
+
+  it("prints nothing without an overlay", () => {
+    expect(overlaySummary([o({ overlay: null })])).toEqual([]);
   });
 });
