@@ -1,7 +1,5 @@
-import area from "@turf/area";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
-import { featureCollection, feature, point } from "@turf/helpers";
-import intersect from "@turf/intersect";
+import { point } from "@turf/helpers";
 import type { Polygon } from "geojson";
 import type { ParcelScan, ParcelScore, ParcelUnit } from "@/data/types";
 import type { Fetcher } from "./geocode";
@@ -63,17 +61,60 @@ export async function loadRiskCells(fetcher: Fetcher = fetch): Promise<RiskCell[
 
 const scoreOfValue = (score: number) => ({ score, level: levelOf(score) });
 
+type XY = [number, number];
+
+/** Shoelace with a local origin to preserve precision for small parcels. */
+function ringArea(ring: XY[]): number {
+  if (ring.length < 3) return 0;
+  const [x, y] = ring[0];
+  let sum = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    sum += (ring[j][0] - x) * (ring[i][1] - y) - (ring[i][0] - x) * (ring[j][1] - y);
+  }
+  return Math.abs(sum) / 2;
+}
+
+/** Sutherland-Hodgman clipping against the four axis-aligned cell edges. */
+function clipRing(ring: XY[], box: RiskCell["bbox"]): XY[] {
+  let clipped = ring;
+  for (let edge = 0; edge < 4 && clipped.length; edge++) {
+    const axis = edge % 2;
+    const boundary = box[edge];
+    const inside = (p: XY) => edge < 2 ? p[axis] >= boundary : p[axis] <= boundary;
+    const input = clipped;
+    clipped = [];
+    let previous = input[input.length - 1];
+    let previousInside = inside(previous);
+    for (const current of input) {
+      const currentInside = inside(current);
+      if (currentInside !== previousInside) {
+        const t = (boundary - previous[axis]) / (current[axis] - previous[axis]);
+        clipped.push(axis === 0
+          ? [boundary, previous[1] + t * (current[1] - previous[1])]
+          : [previous[0] + t * (current[0] - previous[0]), boundary]);
+      }
+      if (currentInside) clipped.push(current);
+      previous = current;
+      previousInside = currentInside;
+    }
+  }
+  return clipped;
+}
+
+const partArea = (rings: XY[][]) => ringArea(rings[0]) - rings.slice(1).reduce((sum, ring) => sum + ringArea(ring), 0);
+
 /**
  * Area-weighted mean of the risk-map cells that overlap the parcel. Cells with no data are skipped.
  * No score when scored cells cover under 60% of the parcel.
  */
 export function scoreFromCells(unit: ParcelUnit, cells: RiskCell[]): ParcelScore | null {
-  const geometry = toGeoJSON(unit);
-  const parcelArea = area(geometry);
-  if (!(parcelArea > 0)) return null;
   const lons = unit.parts.flatMap((rings) => rings[0].map((p) => p[1]));
   const lats = unit.parts.flatMap((rings) => rings[0].map((p) => p[0]));
   const [w, s, e, n] = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+  const scale = Math.cos(((s + n) / 2) * Math.PI / 180);
+  const parts = unit.parts.map(rings => rings.map(ring => ring.map(([lat, lon]): XY => [lon * scale, lat])));
+  const parcelArea = parts.reduce((sum, rings) => sum + partArea(rings), 0);
+  if (!(parcelArea > 0)) return null;
 
   let weighted = 0;
   let covered = 0;
@@ -81,8 +122,8 @@ export function scoreFromCells(unit: ParcelUnit, cells: RiskCell[]): ParcelScore
   for (const cell of cells) {
     if (cell.score === null) continue;
     if (cell.bbox[2] < w || cell.bbox[0] > e || cell.bbox[3] < s || cell.bbox[1] > n) continue;
-    const shared = intersect(featureCollection([feature(geometry), feature(cell.geometry)]));
-    const overlap = shared ? area(shared) : 0;
+    const box: RiskCell["bbox"] = [cell.bbox[0] * scale, cell.bbox[1], cell.bbox[2] * scale, cell.bbox[3]];
+    const overlap = parts.reduce((sum, rings) => sum + Math.max(0, partArea(rings.map(ring => clipRing(ring, box)))), 0);
     if (overlap <= 0) continue;
     weighted += overlap * cell.score;
     covered += overlap;

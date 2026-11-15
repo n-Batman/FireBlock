@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { performance } from "node:perf_hooks";
+import area from "@turf/area";
+import intersect from "@turf/intersect";
+import { featureCollection, feature } from "@turf/helpers";
 import type { Parcels } from "./parcels";
-import type { ParcelScan } from "@/data/types";
-import { cellsFromRiskMap, scoreFromCells, scoreFromScans, scoreParcel } from "./parcelScore";
-import { toParcelUnits } from "./parcelUnits";
+import type { ParcelScan, ParcelScore, ParcelUnit } from "@/data/types";
+import { cellsFromRiskMap, scoreFromCells, scoreFromScans, scoreParcel, type RiskCell } from "./parcelScore";
+import { toParcelUnits, toGeoJSON } from "./parcelUnits";
+import { levelOf } from "./score";
+import sloParcels from "./fixtures/sloParcels.json";
 
 type Geometry = Parcels["features"][number]["geometry"];
 
@@ -107,6 +114,25 @@ describe("scoreFromCells: area-weighted mean of the overlapping cells", () => {
     expect(scoreFromCells(parcel(), [])).toBeNull();
   });
 
+  it("ignores edge-only contact without changing the first contributing source", () => {
+    const cells = cellsOf(
+      cellFeature("edge", band(LON - 0.002, LON), 90),
+      cellFeature("inside", band(LON, LON + 0.002), 30),
+    );
+    cells[0].modelId = "edge-only";
+    const score = scoreFromCells(parcel(), cells)!;
+    expect(score.score).toBe(30);
+    expect(score.source).toMatchObject({ kind: "risk-map", modelId: "m1", coverage: 1 });
+  });
+
+  it("keeps shoelace coverage independent of ring winding and repeated closure", () => {
+    const unit = parcel();
+    const cells = cellsOf(cellFeature("a", band(LON, LON + 0.0014), 40));
+    const expected = scoreFromCells(unit, cells);
+    unit.parts[0][0] = unit.parts[0][0].slice(0, -1).reverse();
+    expect(scoreFromCells(unit, cells)).toEqual(expected);
+  });
+
   it("does not count a cell that sits in a hole of the parcel", () => {
     const withHole = unitOf({ type: "Polygon", coordinates: [square(LON, LAT, 0.004), square(LON + 0.001, LAT + 0.001, 0.002)] });
     const cells = cellsOf(
@@ -130,6 +156,85 @@ describe("scoreFromCells: area-weighted mean of the overlapping cells", () => {
   it("gives a MultiPolygon no score when the cell covers only one of two parts", () => {
     const multi = unitOf({ type: "MultiPolygon", coordinates: [[square(LON, LAT, 0.002)], [square(LON + 0.01, LAT, 0.002)]] });
     expect(scoreFromCells(multi, cellsOf(cellFeature("a", square(LON - 0.001, LAT - 0.001, 0.004), 55)))).toBeNull();
+  });
+});
+
+/** The original Turf implementation, kept in the test as an independent reference. */
+function turfScoreFromCells(unit: ParcelUnit, cells: RiskCell[]): ParcelScore | null {
+  const geometry = toGeoJSON(unit);
+  const parcelArea = area(geometry);
+  if (!(parcelArea > 0)) return null;
+  const lons = unit.parts.flatMap(rings => rings[0].map(p => p[1]));
+  const lats = unit.parts.flatMap(rings => rings[0].map(p => p[0]));
+  const [w, s, e, n] = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+  let weighted = 0;
+  let covered = 0;
+  let first: RiskCell | null = null;
+  for (const cell of cells) {
+    if (cell.score === null) continue;
+    if (cell.bbox[2] < w || cell.bbox[0] > e || cell.bbox[3] < s || cell.bbox[1] > n) continue;
+    const shared = intersect(featureCollection([feature(geometry), feature(cell.geometry)]));
+    const overlap = shared ? area(shared) : 0;
+    if (overlap <= 0) continue;
+    weighted += overlap * cell.score;
+    covered += overlap;
+    first ??= cell;
+  }
+  const coverage = Math.min(1, covered / parcelArea);
+  if (!first || covered === 0 || coverage < 0.6) return null;
+  const score = Math.round(weighted / covered);
+  return { score, level: levelOf(score), source: { kind: "risk-map", asOf: first.asOf, modelId: first.modelId, coverage } };
+}
+
+describe("real SLO parcels against the published rectangular risk map", () => {
+  const parcels = sloParcels as ParcelUnit[];
+  const cells = cellsFromRiskMap(JSON.parse(readFileSync("public/data/risk_map.geojson", "utf8")));
+
+  it("includes 40 parcels, a real hole and a MultiPolygon built from two real parcels", () => {
+    expect(parcels).toHaveLength(40);
+    expect(parcels.find(p => p.id === "003-501-013")!.parts.some(part => part.length > 1)).toBe(true);
+    const multi = parcels.find(p => p.id === "multipart:002-509-009+002-509-014")!;
+    expect(multi.parts).toEqual([parcels.find(p => p.id === "002-509-009")!.parts[0], parcels.find(p => p.id === "002-509-014")!.parts[0]]);
+    expect(cells).toHaveLength(1476);
+    for (const cell of cells) {
+      const [w, s, e, n] = cell.bbox;
+      expect(cell.geometry.coordinates).toHaveLength(1);
+      const ring = cell.geometry.coordinates[0];
+      expect(ring).toHaveLength(5);
+      expect(ring[0]).toEqual(ring[4]);
+      expect(new Set(ring.slice(0, 4).map(p => p.join(",")))).toEqual(new Set([[w,s],[e,s],[e,n],[w,n]].map(p => p.join(","))));
+    }
+  });
+
+  it.each(parcels)("matches Turf coverage within 1% and the score, level and provenance for $id", parcel => {
+    const expected = turfScoreFromCells(parcel, cells);
+    const actual = scoreFromCells(parcel, cells);
+    // The fixture is within scored SLO coverage, including its hole and multipart cases.
+    expect(expected).not.toBeNull();
+    expect(actual).not.toBeNull();
+    if (expected?.source.kind !== "risk-map" || actual?.source.kind !== "risk-map") throw new Error("Expected risk-map scores");
+    expect(Math.abs(actual.source.coverage - expected.source.coverage) / expected.source.coverage).toBeLessThan(0.01);
+    // Coverage is the permitted approximation; all other return fields are identical.
+    expect(actual).toEqual({ ...expected, source: { ...expected.source, coverage: actual.source.coverage } });
+  });
+
+  it("logs old Turf vs new clipping milliseconds for all 40 parcels", () => {
+    const measure = (score: typeof scoreFromCells) => {
+      parcels.forEach(parcel => score(parcel, cells)); // Warm both implementations.
+      const times: number[] = [];
+      for (let run = 0; run < 5; run++) {
+        const start = performance.now();
+        const results = parcels.map(parcel => score(parcel, cells));
+        times.push(performance.now() - start);
+        expect(results).toHaveLength(40);
+      }
+      return times.sort((a, b) => a - b)[2];
+    };
+    const oldMs = measure(turfScoreFromCells);
+    const newMs = measure(scoreFromCells);
+    process.stdout.write(`40 SLO parcels, 1476 cells (median of 5 warm runs): old Turf ${oldMs.toFixed(2)} ms; new clipping ${newMs.toFixed(2)} ms\n`);
+    // Timings are reported, not a flaky machine-dependent pass/fail threshold.
+    expect(Number.isFinite(oldMs) && Number.isFinite(newMs)).toBe(true);
   });
 });
 
