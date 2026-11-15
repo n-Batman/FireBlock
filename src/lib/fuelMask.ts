@@ -326,15 +326,36 @@ export function rasterise(masks: Mask[], srcW: number, w: number, h: number): Ma
   return out;
 }
 
-/** The whole analysis on a small RGBA frame (w x h): rasterise masks, classify, smooth, drop specks, group. Pure, so the app and the eval share it. */
-export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, masks: Mask[] | null): FuelMap {
+/** The estimate's rows x cols tile labels ("dry" | "live" | "soil" | "other") over the frame, as /api/estimate returns them. */
+export type EstimateGrid = ReadonlyArray<ReadonlyArray<string>>;
+
+/** Turns every risk pixel inside a "soil" or "other" tile neutral: the model says there is no ground vegetation there. */
+export function gateByGrid(labels: Uint8Array, w: number, h: number, grid: EstimateGrid): Uint8Array {
+  const rows = grid.length;
+  const out = labels.slice();
+  for (let y = 0; y < h; y++) {
+    const row = grid[Math.min(rows - 1, Math.floor((y / h) * rows))];
+    for (let x = 0; x < w; x++) {
+      const cell = row[Math.min(row.length - 1, Math.floor((x / w) * row.length))];
+      if (out[y * w + x] === RISK && (cell === "soil" || cell === "other")) out[y * w + x] = NEUTRAL;
+    }
+  }
+  return out;
+}
+
+/**
+ * The whole analysis on a small RGBA frame (w x h): rasterise masks, classify, gate by the estimate's grid when there is one,
+ * smooth, drop specks, group. Pure, so the app and the eval share it. No grid gives the same map as before.
+ */
+export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, masks: Mask[] | null, grid?: EstimateGrid | null): FuelMap {
   const raster = masks ? rasterise(masks, srcW, w, h) : null;
-  const labels = dropSpecks(smooth(classify(rgba, w, h, raster), w, h), w, h);
+  const classified = classify(rgba, w, h, raster);
+  const labels = dropSpecks(smooth(grid?.length && grid[0]?.length ? gateByGrid(classified, w, h, grid) : classified, w, h), w, h);
   return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h), colourOnly: !masks };
 }
 
 /** Browser wrapper: draws the frame at MAP_WIDTH and hands the pixels to `scan`. */
-export function analyse(source: CanvasImageSource, srcW: number, srcH: number, masks: Mask[] | null): FuelMap | null {
+export function analyse(source: CanvasImageSource, srcW: number, srcH: number, masks: Mask[] | null, grid?: EstimateGrid | null): FuelMap | null {
   const w = MAP_WIDTH;
   const h = Math.max(1, Math.round((srcH / srcW) * MAP_WIDTH));
   const canvas = document.createElement("canvas");
@@ -343,7 +364,7 @@ export function analyse(source: CanvasImageSource, srcW: number, srcH: number, m
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
   ctx.drawImage(source, 0, 0, w, h);
-  return scan(ctx.getImageData(0, 0, w, h).data, w, h, srcW, masks);
+  return scan(ctx.getImageData(0, 0, w, h).data, w, h, srcW, masks, grid);
 }
 
 /** Decodes an encoded frame (data URL) so it can be drawn. */
