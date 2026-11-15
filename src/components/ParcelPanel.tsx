@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Camera, X } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import type { ParcelUnit } from "@/data/types";
-import { acresLabel, NOT_SCORED, PLANNING_ONLY, sourceLabel } from "@/content/parcelCopy";
+import { acresLabel, BEFORE_AFTER_RESET, BEFORE_AFTER_TITLE, NOT_SCORED, PLANNING_ONLY, sourceLabel } from "@/content/parcelCopy";
 import { formatAsOf } from "@/lib/format";
+import { loadParcelReset, saveParcelReset } from "@/lib/parcelScanStore";
+import { beforeAfter } from "@/lib/parcelScore";
+import { useParcelScans } from "@/lib/useParcelScans";
 import { useWide } from "@/lib/useWide";
 import { RiskChip } from "./RiskChip";
 
@@ -16,6 +20,25 @@ export function ParcelPanel({ parcel, onClose }: { parcel: ParcelUnit; onClose: 
   const wide = useWide();
   const slide = wide ? { x: 24 } : { y: 24 };
   const { score } = parcel;
+  const scans = useParcelScans();
+  const [resetAt, setResetAt] = useState<string | null>(() => {
+    try {
+      return loadParcelReset(window.localStorage, parcel.id);
+    } catch {
+      return null;
+    }
+  });
+  const change = beforeAfter(parcel, scans, resetAt);
+  const restart = () => {
+    const at = new Date().toISOString();
+    try {
+      saveParcelReset(window.localStorage, parcel.id, at);
+    } catch {
+      /* the marker could not be saved; the row stays */
+      return;
+    }
+    setResetAt(at);
+  };
 
   return (
     <motion.section
@@ -69,11 +92,27 @@ export function ParcelPanel({ parcel, onClose }: { parcel: ParcelUnit; onClose: 
         ) : (
           <p className="text-[15px] leading-relaxed">{NOT_SCORED}</p>
         )}
+        {change && (
+          <div data-testid="before-after" className="mt-4 border-t border-[var(--glass-border)] pt-4">
+            <p className="text-xs font-medium text-ink-2">{BEFORE_AFTER_TITLE}</p>
+            <p className="mt-1 text-[15px]">
+              Before <span className="num font-semibold">{change.before.score}</span>
+              <span className="text-ink-2"> ({formatAsOf(change.before.at)})</span>
+            </p>
+            <p className="text-[15px]">
+              After <span className="num font-semibold">{change.after.score}</span>
+              <span className="text-ink-2"> ({formatAsOf(change.after.at)})</span>
+            </p>
+            <button type="button" onClick={restart} className="mt-2 h-11 text-xs font-medium text-ink-2 underline underline-offset-2 hover:text-ink">
+              {BEFORE_AFTER_RESET}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3 border-t border-[var(--glass-border)] px-5 py-5">
         <Link
-          href={`/scan?parcel=${encodeURIComponent(parcel.id)}`}
+          href={`/scan?parcel=${encodeURIComponent(parcel.id)}${score?.source.kind === "scan" ? "&rescan=1" : ""}`}
           className="inline-flex h-11 items-center gap-2 rounded-[var(--r)] border border-[var(--glass-border)] px-3 text-[15px] font-medium text-ink transition-colors hover:bg-white/5 active:scale-[0.98]"
         >
           <Camera size={18} aria-hidden="true" />
