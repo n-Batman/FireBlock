@@ -60,6 +60,10 @@ function mount(parcels: ParcelUnit[], selectedId: string | null = null, onSelect
 }
 const interactive = (polys: L.Polygon[]) => polys.filter((p) => p.options.interactive !== false);
 const color = (p: L.Polygon) => p.options.color;
+const redraw = (seen: ReturnType<typeof mount>, parcels: ParcelUnit[], selectedId: string | null, onSelect: (id: string) => void) =>
+  seen.rerender(<MapContainer center={[35.63, -120.86]} zoom={17} style={{height:400,width:400}}>
+    <ParcelPolygons parcels={parcels} selectedId={selectedId} onSelect={onSelect}/>
+  </MapContainer>);
 
 describe("ViewWatcher", () => {
   it("reports the map view once, 400 ms after it stops moving", () => {
@@ -101,6 +105,61 @@ describe("ViewWatcher", () => {
 });
 
 describe("ParcelPolygons", () => {
+  it("keeps pill DOM and polygon styles stable across identical parcel rerenders", () => {
+    const parcels = [unit("a", {score: high}), unit("b", {score: high})], onSelect = vi.fn();
+    const seen = mount(parcels, "a", onSelect);
+    const styles = seen.polygons.map(poly => vi.spyOn(poly, "setStyle"));
+    const icons = seen.markers.map(marker => vi.spyOn(marker, "setIcon"));
+    const elements = seen.markers.map(marker => marker.getElement()!.firstElementChild);
+    const cloned = parcels.map(parcel => ({...parcel, score: parcel.score && {...parcel.score}}));
+    redraw(seen, cloned, "a", onSelect);
+    styles.forEach(style => expect(style).not.toHaveBeenCalled());
+    icons.forEach(icon => expect(icon).not.toHaveBeenCalled());
+    seen.markers.forEach((marker, i) => expect(marker.getElement()!.firstElementChild).toBe(elements[i]));
+  });
+
+  it("updates only the changed parcel's icon, style and selected glow when its score changes", () => {
+    const parcels = [unit("a", {score: high}), unit("b", {score: high})], onSelect = vi.fn();
+    const seen = mount(parcels, "a", onSelect);
+    const [a, b] = interactive(seen.polygons);
+    const aStyle = vi.spyOn(a, "setStyle"), bStyle = vi.spyOn(b, "setStyle");
+    const glowStyle = vi.spyOn(seen.polygons.find(poly => poly.options.weight === 14)!, "setStyle");
+    const [aPill, bPill] = seen.markers;
+    const aIcon = vi.spyOn(aPill, "setIcon"), bIcon = vi.spyOn(bPill, "setIcon");
+    redraw(seen, [{...parcels[0], score: {...high, score: 40, level: "medium"}}, parcels[1]], "a", onSelect);
+    expect(aStyle).toHaveBeenCalledTimes(1);expect(glowStyle).toHaveBeenCalledTimes(1);
+    expect(aIcon).toHaveBeenCalledTimes(1);
+    expect(bStyle).not.toHaveBeenCalled();expect(bIcon).not.toHaveBeenCalled();
+    expect(a.options.color).toBe(scaleColor(40));
+    expect((aPill.options.icon as L.DivIcon).options.html).toContain(">40<");
+  });
+
+  it("updates selection and dimming without refreshing unaffected parcel icons or styles", () => {
+    const parcels = [unit("a", {score: high}), unit("b", {score: high}), unit("c", {score: high})], onSelect = vi.fn();
+    const seen = mount(parcels, "a", onSelect);
+    const [a, b, c] = interactive(seen.polygons);
+    const styles = [a, b, c].map(poly => vi.spyOn(poly, "setStyle"));
+    const icons = seen.markers.map(marker => vi.spyOn(marker, "setIcon"));
+    redraw(seen, parcels, "b", onSelect);
+    expect(styles[0]).toHaveBeenCalledTimes(1);expect(styles[1]).toHaveBeenCalledTimes(1);
+    expect(styles[2]).not.toHaveBeenCalled();
+    expect(icons[0]).toHaveBeenCalledTimes(1);expect(icons[1]).toHaveBeenCalledTimes(1);
+    expect(icons[2]).not.toHaveBeenCalled();
+    expect(a.options.opacity).toBe(.45);expect(b.options.weight).toBe(4);
+    expect((seen.markers[1].options.icon as L.DivIcon).options.html).toContain("ring-2 ring-ink");
+  });
+
+  it("keeps click handlers current without replacing icons or reapplying styles", () => {
+    const parcels = [unit("a", {score: high})], previous = vi.fn(), next = vi.fn();
+    const seen = mount(parcels, null, previous);
+    const [poly] = interactive(seen.polygons), [marker] = seen.markers;
+    const style = vi.spyOn(poly, "setStyle"), icon = vi.spyOn(marker, "setIcon");
+    redraw(seen, parcels, null, next);
+    poly.fire("click");marker.fire("click");
+    expect(previous).not.toHaveBeenCalled();expect(next).toHaveBeenCalledTimes(2);
+    expect(next).toHaveBeenCalledWith("a");
+    expect(style).not.toHaveBeenCalled();expect(icon).not.toHaveBeenCalled();
+  });
   it("shares one padded Canvas renderer across parcels and leaves the glow on SVG", () => {
     const seen = mount([unit("a"), unit("b")], "a");
     const [a, b] = interactive(seen.polygons);

@@ -2,7 +2,6 @@ import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point } from "@turf/helpers";
 import type { Polygon } from "geojson";
 import type { ParcelScan, ParcelScore, ParcelUnit } from "@/data/types";
-import type { Fetcher } from "./geocode";
 import { levelOf } from "./score";
 import { toGeoJSON } from "./parcelUnits";
 
@@ -47,16 +46,6 @@ export function cellsFromRiskMap(data: unknown): RiskCell[] {
     });
   }
   return cells;
-}
-
-/** Reads public/data/risk_map.geojson. A missing or unreadable file means no cells, never an error. */
-export async function loadRiskCells(fetcher: Fetcher = fetch): Promise<RiskCell[]> {
-  try {
-    const res = await fetcher("/data/risk_map.geojson");
-    return res.ok ? cellsFromRiskMap(await res.json()) : [];
-  } catch {
-    return [];
-  }
 }
 
 const scoreOfValue = (score: number) => ({ score, level: levelOf(score) });

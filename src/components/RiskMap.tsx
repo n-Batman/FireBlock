@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   AttributionControl,
   MapContainer,
@@ -19,6 +19,7 @@ import type { LatLngBoundsExpression } from "leaflet";
 import type { Block, Level, ParcelUnit, Property } from "@/data/types";
 import { boundsOfPolygon, labelPoint } from "@/lib/geo";
 import type { View } from "@/lib/parcelApi";
+import type { RiskGrid } from "@/lib/parcelRisk";
 import { toGeoJSON } from "@/lib/parcelUnits";
 import { scaleColor } from "@/lib/riskScale";
 import { levelOf, scoreOf } from "@/lib/score";
@@ -151,6 +152,50 @@ function PlaceFocus({ place }: { place: PickedPlace | null }) {
   return null;
 }
 
+const ParcelPolygon = memo(function ParcelPolygon({ parcel, renderer, isSelected, dim, onSelect }: {
+  parcel: ParcelUnit;
+  renderer: L.Canvas;
+  isSelected: boolean;
+  dim: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const color = parcel.score ? scaleColor(parcel.score.score) : PARCEL_NEUTRAL;
+  const fillOpacity = parcel.score
+    ? isSelected ? 0.22 : dim ? 0.06 : 0.15
+    : isSelected ? 0.1 : dim ? 0.02 : 0.04;
+  const pathOptions = useMemo(() => ({
+    color,
+    fillColor: color,
+    weight: isSelected ? 4 : 2,
+    opacity: dim ? 0.45 : 1,
+    fillOpacity,
+    lineJoin: "round" as const,
+  }), [color, isSelected, dim, fillOpacity]);
+  const eventHandlers = useMemo(() => ({ click: () => onSelect(parcel.id) }), [parcel.id, onSelect]);
+  return <Polygon positions={parcel.parts} renderer={renderer} pathOptions={pathOptions} eventHandlers={eventHandlers}>
+    <Tooltip sticky className="block-label">{`Parcel ${parcel.id}`}</Tooltip>
+  </Polygon>;
+});
+
+const ParcelPill = memo(function ParcelPill({ id, center, score, isSelected, dim, onSelect }: {
+  id: string;
+  center: ParcelUnit["center"];
+  score: number;
+  isSelected: boolean;
+  dim: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const icon = useMemo(() => pillIcon(String(score), "", isSelected, dim, scaleColor(score)), [score, isSelected, dim]);
+  const eventHandlers = useMemo(() => ({ click: () => onSelect(id) }), [id, onSelect]);
+  const label = `Parcel ${id}, score ${score}`;
+  return <Marker position={center} icon={icon} title={label} alt={label} zIndexOffset={isSelected ? 1000 : 0} eventHandlers={eventHandlers} />;
+});
+
+const ParcelGlow = memo(function ParcelGlow({ parts, color }: { parts: ParcelUnit["parts"]; color: string }) {
+  const pathOptions = useMemo(() => ({ color, weight: 14, opacity: 0.25, fill: false, interactive: false, lineJoin: "round" as const }), [color]);
+  return <Polygon positions={parts} pathOptions={pathOptions} />;
+});
+
 /**
  * County parcels as the clickable units, with the sample blocks' casing and selected glow. A scored
  * parcel is coloured on Nick's 0 to 100 scale. A parcel with no score is a neutral outline with no
@@ -176,54 +221,36 @@ export function ParcelPolygons({
       {individuals.map((parcel) => {
         const isSelected = parcel.id === selected?.id;
         const dim = selected !== null && !isSelected;
-        const color = colorOf(parcel);
-        const fillOpacity = parcel.score
-          ? isSelected ? 0.22 : dim ? 0.06 : 0.15
-          : isSelected ? 0.1 : dim ? 0.02 : 0.04;
         return (
-          <Polygon
+          <ParcelPolygon
             key={parcel.id}
-            positions={parcel.parts}
+            parcel={parcel}
             renderer={renderer}
-            pathOptions={{
-              color,
-              fillColor: color,
-              weight: isSelected ? 4 : 2,
-              opacity: dim ? 0.45 : 1,
-              fillOpacity,
-              lineJoin: "round",
-            }}
-            eventHandlers={{ click: () => onSelect(parcel.id) }}
-          >
-            <Tooltip sticky className="block-label">
-              {`Parcel ${parcel.id}`}
-            </Tooltip>
-          </Polygon>
+            isSelected={isSelected}
+            dim={dim}
+            onSelect={onSelect}
+          />
         );
       })}
 
       {/* Soft glow under the selected parcel's outline. */}
       {selected && (
-        <Polygon
-          positions={selected.parts}
-          pathOptions={{ color: colorOf(selected), weight: 14, opacity: 0.25, fill: false, interactive: false, lineJoin: "round" }}
-        />
+        <ParcelGlow parts={selected.parts} color={colorOf(selected)} />
       )}
 
       {individuals.map((parcel) => {
         if (!parcel.score) return null;
         const isSelected = parcel.id === selected?.id;
         const dim = selected !== null && !isSelected;
-        const label = `Parcel ${parcel.id}, score ${parcel.score.score}`;
         return (
-          <Marker
+          <ParcelPill
             key={`pill-${parcel.id}`}
-            position={parcel.center}
-            icon={pillIcon(String(parcel.score.score), "", isSelected, dim, scaleColor(parcel.score.score))}
-            title={label}
-            alt={label}
-            zIndexOffset={isSelected ? 1000 : 0}
-            eventHandlers={{ click: () => onSelect(parcel.id) }}
+            id={parcel.id}
+            center={parcel.center}
+            score={parcel.score.score}
+            isSelected={isSelected}
+            dim={dim}
+            onSelect={onSelect}
           />
         );
       })}
@@ -243,9 +270,11 @@ interface RiskMapProps {
   onPoint?: (point: { lat: number; lon: number }) => void;
   /** Called with the visible area 400 ms after the map stops moving. */
   onView?: (view: View) => void;
+  /** Share the regional grid already fetched by the overlay with parcel scoring. */
+  onGridChange?: (grid: RiskGrid | null) => void;
 }
 
-export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null, parcels = null, onPoint, onView }: RiskMapProps) {
+export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null, parcels = null, onPoint, onView, onGridChange }: RiskMapProps) {
   const wide = useWide();
   const tiles = tileSource(process.env.NEXT_PUBLIC_ARCGIS_KEY);
   // Three failed tiles in a row means the imagery is not loading. Say so instead of staying grey.
@@ -316,7 +345,7 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
         {!(wide && panelOpen) && (
           <ZoomControl key={wide ? "wide" : "narrow"} position={wide ? "bottomright" : "topright"} />
         )}
-        <ParcelOverlay center={place ? [place.lat, place.lon] : property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} onGridActive={setGridActive} showGridByDefault={false} parcelMask={parcelMask} />
+        <ParcelOverlay center={place ? [place.lat, place.lon] : property.center} lookup={place && { lat: place.lat, lon: place.lon, id: place.id }} onPoint={onPoint} onGridActive={setGridActive} onGridChange={onGridChange} showGridByDefault={false} parcelMask={parcelMask} />
         {onView && <ViewWatcher onView={onView} />}
         <PlaceFocus place={place} />
 

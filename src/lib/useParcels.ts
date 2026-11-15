@@ -5,7 +5,7 @@ import { point } from "@turf/helpers";
 import { useEffect, useMemo, useState } from "react";
 import type { ParcelUnit } from "@/data/types";
 import { lookupParcelsInView, type View, type ViewLookup } from "./parcelApi";
-import { loadRiskCells, scoreParcel, type RiskCell } from "./parcelScore";
+import { scoreParcel, type RiskCell } from "./parcelScore";
 import { toGeoJSON } from "./parcelUnits";
 import { useParcelScans } from "./useParcelScans";
 import { ParcelScoreCache } from "./parcelScoreCache";
@@ -28,6 +28,7 @@ interface Place {
 }
 
 const viewKeyOf = (v: View | null) => (v ? [v.west, v.south, v.east, v.north,v.zoom??17].join(",") : null);
+const EMPTY_CELLS: RiskCell[] = [];
 
 /** Diff by APN while retaining geometry references for unchanged parcels. */
 function reuseParcelUnits(previous: ParcelUnit[], incoming: ParcelUnit[]): ParcelUnit[] {
@@ -47,11 +48,10 @@ function reuseParcelUnits(previous: ParcelUnit[], incoming: ParcelUnit[]): Parce
 /**
  * Load a bounded visible viewport at every zoom and retain loaded geometry while
  * the next request completes. Each has a score only if a saved scan's GPS
- * falls inside it or public/data/risk_map.geojson covers it. Everything else stays unscored.
+ * falls inside it or the shared regional API grid covers it. Everything else stays unscored.
  */
-export function useParcels(place: Place | null, view: View | null = null): ParcelState {
+export function useParcels(place: Place | null, view: View | null = null, cells: RiskCell[] = EMPTY_CELLS): ParcelState {
   const scans = useParcelScans();
-  const [cells, setCells] = useState<RiskCell[]>([]);
   const [lookups,setLookups]=useState<{
     viewLookup:{placeId:number;viewKey:string;result:ViewLookup}|null;
     retained:{placeId:number;result:Extract<ViewLookup,{kind:"ok"}>}|null;
@@ -66,16 +66,6 @@ export function useParcels(place: Place | null, view: View | null = null): Parce
     window.addEventListener("pagehide",clear);
     return ()=>{clearInterval(timer);window.removeEventListener("pagehide",clear);clear();};
   },[scoreCache]);
-
-  useEffect(() => {
-    let alive = true;
-    void loadRiskCells().then((loaded) => {
-      if (alive) setCells(loaded);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const id = place?.id;
   const lat = place?.lat;
