@@ -129,6 +129,18 @@ describe("ScanScreen parcel save label", () => {
 });
 
 describe("ScanScreen", () => {
+  it("describes ground cover and excluded canopy only when an estimate exists", () => {
+    query = "parcel=014-331-010";
+    session = { ...IDLE, phase:"running", estimate:{dry_pct:40,veg_frac:0.5,grid:[]} };
+    const view = render(<ScanScreen />);
+    expect(screen.getByText("Vines and trees are not counted.")).toBeInTheDocument();
+    expect(screen.getByText("This scan rates 40% of the ground cover as dry.")).toBeInTheDocument();
+    session = {...session, estimate:null, fuel:{w:1,h:1,labels:new Uint8Array([2]),areas:[],colourOnly:true,verdict:{risk:1,clear:1,share:0.5,level:"high",text:"x"}}};
+    view.rerender(<ScanScreen />);
+    expect(screen.queryByText("Vines and trees are not counted.")).toBeNull();
+    expect(screen.getByText("This scan rates 50% of the vegetation as dry.")).toBeInTheDocument();
+  });
+
   it("offers the sample photos and one line of capture guidance on the idle card", () => {
     render(<ScanScreen />);
     expect(screen.getByText(/point down at the ground from a couple of steps back/i)).toBeInTheDocument();

@@ -167,7 +167,7 @@ describe("headlineVerdict certainty", () => {
 
   it("keeps the exact wording when the overlay is close", () => {
     const v = headlineVerdict(fuel(0.45), est(40))!;
-    expect(v.text).toBe("High risk: 40% of the vegetation looks dry.");
+    expect(v.text).toBe("High risk: 40% of the ground cover looks dry.");
     expect(v.share).toBe(0.4);
   });
   it("says About for a SAM-only number and keeps the share", () => {
@@ -184,14 +184,14 @@ describe("headlineVerdict certainty", () => {
     expect(headlineVerdict(fuel(0.2), est(40))!.text).toContain("About 40%");
   });
   it("stays exact at a gap of exactly 15", () => {
-    expect(headlineVerdict(fuel(0.25), est(40))!.text).toBe("High risk: 40% of the vegetation looks dry.");
+    expect(headlineVerdict(fuel(0.25), est(40))!.text).toBe("High risk: 40% of the ground cover looks dry.");
   });
   it("says About when the overlay draws under half the area the estimate implies, even with a matching share", () => {
     expect(headlineVerdict(fuel(0.4, 0.05), est(40))!.text).toContain("About 40%"); // a small blob under a confident number
     expect(headlineVerdict(fuel(0.4, 0.45), est(40))!.text).toContain("About 40%"); // and over twice it
-    expect(headlineVerdict(fuel(0.4, 0.11), est(40))!.text).toBe("High risk: 40% of the vegetation looks dry.");
+    expect(headlineVerdict(fuel(0.4, 0.11), est(40))!.text).toBe("High risk: 40% of the ground cover looks dry.");
   });
   it("does not call two tiny areas a disagreement", () => {
-    expect(headlineVerdict(fuel(0.4, 0.005), est(40, 0.06))!.text).toBe("High risk: 40% of the vegetation looks dry."); // 0.5% vs 2.4% of the frame
+    expect(headlineVerdict(fuel(0.4, 0.005), est(40, 0.06))!.text).toBe("High risk: 40% of the ground cover looks dry."); // 0.5% vs 2.4% of the frame
   });
 });

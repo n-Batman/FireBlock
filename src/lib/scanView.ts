@@ -172,7 +172,7 @@ export function headlineCertainty(fuel: FuelMap | null, est: ScanEstimate | null
 export function headlineVerdict(fuel: FuelMap | null, est: ScanEstimate | null): Verdict | null {
   const v = rate(fuel, est);
   if (!v || v.share === null || v.share <= 0 || headlineCertainty(fuel, est) === "exact") return v;
-  return { ...v, text: `${wordOf(v.level)}: About ${pctOf(v.share)} of the vegetation looks dry. This photo is hard to read.` };
+  return { ...v, text: `${wordOf(v.level)}: About ${pctOf(v.share)} of the ${est ? "ground cover" : "vegetation"} looks dry. This photo is hard to read.` };
 }
 
 const wordOf = (level: Verdict["level"]) => ({ high: "High risk", moderate: "Moderate risk", low: "Some risk", clear: "", none: "" })[level];
@@ -180,9 +180,9 @@ const pctOf = (share: number) => (share < 0.01 ? "<1%" : `${Math.round(share * 1
 
 function rate(fuel: FuelMap | null, est: ScanEstimate | null): Verdict | null {
   if (!est) return fuel?.verdict ?? null;
-  if (est.veg_frac <= 0) return { risk: 0, clear: 0, share: null, level: "none", text: "No vegetation to rate in this frame." };
+  if (est.veg_frac <= 0) return { risk: 0, clear: 0, share: null, level: "none", text: "No ground cover to rate in this frame." };
   const share = est.dry_pct / 100;
   if (share <= 0) return { risk: 0, clear: 0, share, level: "clear", text: "All clear: no dry vegetation found." };
   const level = share >= 0.4 ? "high" : share >= 0.15 ? "moderate" : "low";
-  return { risk: 0, clear: 0, share, level, text: `${wordOf(level)}: ${pctOf(share)} of the vegetation looks dry.` };
+  return { risk: 0, clear: 0, share, level, text: `${wordOf(level)}: ${pctOf(share)} of the ground cover looks dry.` };
 }

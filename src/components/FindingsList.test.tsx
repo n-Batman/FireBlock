@@ -19,6 +19,34 @@ const shownTotal = () =>
     .reduce((a, b) => a + b, 0);
 
 describe("AreaFindingsList", () => {
+  it("leads with the biggest area's action and keeps reasons in closed details", () => {
+    render(<AreaFindingsList areas={[{...area(1, 80), reasons:["SAM: dry grass", "colour: straw"]}, area(2, 20)]} notes={[
+      {area:2,label:"Brush",reason:"Small patch",action:"Clear brush"},
+      {area:1,label:"Dry grass",reason:"Dry stems",action:"Mow this patch"},
+    ]} />);
+    expect(screen.getByText("Do first: Mow this patch")).toHaveClass("font-semibold");
+    expect(screen.getAllByText(/Mow this patch/)).toHaveLength(1);
+    expect(within(screen.getAllByRole("listitem")[1]).getByText("Clear brush")).toBeInTheDocument();
+    const details = screen.getByText("Dry stems").closest("details")!;
+    expect(details).not.toHaveAttribute("open");
+    expect(within(details).getByText("SAM: dry grass · colour: straw")).toBeInTheDocument();
+    expect(within(details).getByText("Why")).toHaveClass("min-h-11");
+  });
+
+  it("folds a 2% area into smaller patches", () => {
+    render(<AreaFindingsList areas={[area(1, 90), area(2, 2)]} notes={[]} />);
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getByText(/Smaller patches: 10%/)).toBeInTheDocument();
+    expect(shownTotal()).toBe(100);
+  });
+
+  it("always lists the first area and waits for its notes before leading with an action", () => {
+    render(<AreaFindingsList areas={[area(1, 2), area(2, 1)]} notes={null} />);
+    expect(screen.getByText("bottom left · 2% of the dry fuel")).toBeInTheDocument();
+    expect(screen.getByText("Writing the findings…")).toHaveClass("scan-shimmer");
+    expect(screen.queryByText(/Do first:/)).toBeNull();
+  });
+
   it("shows what fired in an area under its line", () => {
     render(<AreaFindingsList areas={[{ ...area(1, 100), reasons: ["SAM: dry grass", "colour: straw", "GPT: dry tile"] }]} notes={[]} />);
     expect(screen.getByText("SAM: dry grass · colour: straw · GPT: dry tile")).toBeInTheDocument();
