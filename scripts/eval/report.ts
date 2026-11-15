@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import sharp from "sharp";
 import { CLEAR, RISK } from "../../src/lib/fuelMask";
 import type { Result } from "./run";
-import { DATA, REPORT, V2, mk } from "./common";
+import { DATA, REPORT, V2, isDirtBucket, mk } from "./common";
 
 const CW = 256;
 const CH = 192;
@@ -39,6 +39,7 @@ async function row(r: Result): Promise<Buffer> {
 }
 
 async function sheet(rs: Result[], name: string) {
+  if (rs.length === 0) return; // sharp cannot make a 0-height image
   const rows = await Promise.all(rs.map(row));
   await sharp({ create: { width: CW * 2 + TXT, height: CH * rows.length, channels: 3, background: "#000" } })
     .composite(rows.map((input, i) => ({ input, left: 0, top: i * CH })))
@@ -66,8 +67,9 @@ export async function report(all: Result[], meta: { total: number; dropped: numb
     const errs = rs.flatMap((r) => (r.err == null ? [] : [r.err]));
     lines.push(`| ${c} | ${rs.length} | ${pct(rs.filter((r) => r.pass).length, rs.length)} | ${errs.length ? (errs.reduce((a, b) => a + b, 0) / errs.length).toFixed(1) : "n/a"} |`);
   }
-  lines.push(`| **all** | ${results.length} | ${pct(results.filter((r) => r.pass).length, results.length)} | |`, "");
-  const dirt = results.filter((r) => ["bare soil field", "dirt road"].includes(r.item.category));
+  const allErrs = results.flatMap((r) => (r.err == null ? [] : [r.err]));
+  lines.push(`| **all** | ${results.length} | ${pct(results.filter((r) => r.pass).length, results.length)} | ${allErrs.length ? (allErrs.reduce((a, b) => a + b, 0) / allErrs.length).toFixed(1) : "n/a"} |`, "");
+  const dirt = results.filter((r) => isDirtBucket(r.item.category));
   const veg = results.filter((r) => r.bgFp != null);
   const meanBg = veg.reduce((a, r) => a + (r.bgFp ?? 0), 0) / (veg.length || 1);
   const acr = all.filter((r) => r.allClearWithRisk);
