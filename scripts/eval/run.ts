@@ -2,7 +2,7 @@
    EVAL_ESTIMATOR=vlm scores src/lib/estimate.ts instead of SAM (needs OPENAI_API_KEY; replies cached as eval/cache/est-<sha>.json). */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
-import { EST_COLS, EST_ROWS, estimateDry, type Estimate } from "../../src/lib/estimate";
+import { EST_COLS, EST_ROWS, SYSTEM_PROMPT, estimateDry, type Estimate } from "../../src/lib/estimate";
 import { CLEAR, MAP_WIDTH, NEUTRAL, RISK, hsv, scan, type FuelMap } from "../../src/lib/fuelMask";
 import { ENDPOINT, parseSegments, segmentBody } from "../../src/lib/segment";
 import { CACHE, DATA, LABELS_V2, MANIFEST, V2, isDirtBucket, mk, pool, sha, sleep, withHumanLabels, type Item } from "./common";
@@ -65,7 +65,7 @@ async function segment(jpeg: Buffer, key: string) {
 
 /** One VLM estimate, cached by frame. Retries 429/5xx twice. */
 async function estimate(jpeg: Buffer): Promise<Estimate> {
-  const cache = `${CACHE}/est-${sha(jpeg)}.json`;
+  const cache = `${CACHE}/est-${sha(sha(jpeg) + sha(SYSTEM_PROMPT))}.json`;
   if (existsSync(cache)) return JSON.parse(readFileSync(cache, "utf8"));
   for (let a = 0; ; a++) {
     try {

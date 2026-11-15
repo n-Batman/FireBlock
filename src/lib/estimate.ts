@@ -37,11 +37,14 @@ const SCHEMA = {
   },
 };
 
-const SYSTEM_PROMPT = `You are a wildfire fuels inspector rating one photo for dry ground fuel.
+export const SYSTEM_PROMPT = `You are a wildfire fuels inspector rating one photo for dry ground fuel.
 Rate only GROUND vegetation: grass, weeds, cover crop, leaf and grass litter.
 Ignore vine and tree canopy, autumn vine leaves still on the vine, trunks, canes, posts, sky and buildings.
 Bare soil, tilled rows, dirt roads, gravel, sand and snow are NOT vegetation and NOT dry fuel.
-Golden, tan or straw cured grass counts as dry even with a green tint.
+Golden, tan or straw cured grass counts as dry even with a green tint, but only where you can see blades, stalks, tufts or shrubs standing on the ground.
+Brown, tan, red or grey ground with no standing plants is soil even when it is a big uniform field: plowed or tilled fields, furrows, clods and crop-residue stubble are "soil". When unsure whether a tan area is soil or grass, call it soil.
+Snow, frost and fog-covered ground with no plants clearly standing in it means dry_pct 0 and veg_frac 0. Dormant leafless vines, canes and branches are canopy, not ground vegetation.
+Measure veg_frac and dry_pct only over the plants you can actually see; a dirt road or field with a few plants has a small veg_frac.
 Return dry_pct (percent of the ground vegetation that is dry, 0 if there is none), veg_frac (share of the frame that is ground vegetation) and a ${EST_ROWS} x ${EST_COLS} grid over the frame labelling each cell by what mostly fills it: "dry" (dry ground vegetation), "live" (green ground vegetation), "soil" (bare soil, road, gravel, sand, snow) or "other" (canopy, trunks, posts, sky, buildings).`;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
