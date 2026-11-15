@@ -93,6 +93,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P52 | Automate daily backend weather/FIRMS refresh and leave satellite adapter hook | DONE (Codex; restart-safe 24-hour runner, OS overlap lock, one-hour failure retry, rolling native FIRMS collection and bounded NWS collection; existing imagery reused with satellite scraping disabled; 72 Python tests, TypeScript and native/offline config checks pass; partner/weather-risk-model) |
 | P53 | Scrape and analyze the area around 35.324008, -120.717764 | DONE (Codex; existing native scraper, verified stored Nov 11 satellite products, three fresh FIRMS sensor requests and live NWS weather; 25/25 scored cells, weather on 22, zero local detections; artifact hashes/B2 uploads verified; analysis/point-35.324008--120.717764-20261115T055421Z; no frontend publication) |
 | P54 | Publish requested-point analysis to the live website | DONE (Codex; verified cloud catalog entry and bundled 25-cell weather-aware snapshot; five mosaic tests, TypeScript and production build pass; traced grid bundled for hosted API) |
+| P55 | Store location-based baseline/follow-up scanner scores by parcel in cloud | DONE (Codex; authenticated backend archive/history API, county GPS/APN matching, verified independent B2 records and paginated history, same-method/location baseline comparisons; 640 tests, TypeScript and production build pass; no frontend scanner connection; partner/cloud-parcel-scans) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

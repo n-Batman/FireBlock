@@ -43,9 +43,10 @@ export class CloudStorage {
     if(result.contentSha1!==hash||result.contentLength!==bytes.length||!result.fileId)throw new Error("Cloud upload verification failed");
     return {key,file_id:String(result.fileId),bytes:bytes.length,sha256:createHash("sha256").update(bytes).digest("hex")};
   }
-  async readVersion(fileId:string){
+  async readVersion(fileId:string,maxBytes=25*1024*1024){
+    if(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>25*1024*1024)throw new Error("Invalid cloud object size limit");
     const info=await this.api("b2_get_file_info",{fileId});
-    if(!Number.isSafeInteger(info.contentLength)||info.contentLength<0||info.contentLength>25*1024*1024||!/^[0-9a-f]{40}$/.test(info.contentSha1))throw new Error("Invalid cloud object metadata");
+    if(!Number.isSafeInteger(info.contentLength)||info.contentLength<0||info.contentLength>maxBytes||!/^[0-9a-f]{40}$/.test(info.contentSha1))throw new Error("Invalid cloud object metadata");
     const a=await this.authorize();
     const response=await this.request(`${a.apiInfo.storageApi.downloadUrl}/b2api/v4/b2_download_file_by_id?fileId=${encodeURIComponent(fileId)}`,{
       headers:{Authorization:a.authorizationToken},redirect:"error",signal:AbortSignal.timeout(30000)});
@@ -78,6 +79,21 @@ export class CloudStorage {
       startFileName=result.nextFileName||undefined;
     }while(startFileName);
     return files;
+  }
+  /** Bounded page for growing per-parcel archives; cursors stay within their prefix. */
+  async listPage(prefix:string,startFileName?:string,limit=50){
+    if(!prefix||prefix.length>1024||!Number.isInteger(limit)||limit<1||limit>100||
+        (startFileName!==undefined&&(!startFileName.startsWith(prefix)||startFileName.length>1024)))throw new Error("Invalid cloud page request");
+    const result=await this.api("b2_list_file_names",{bucketId:await this.bucket(),prefix,maxFileCount:limit,...(startFileName?{startFileName}:{})});
+    if(!Array.isArray(result.files)||result.files.length>limit)throw new Error("Invalid cloud page");
+    const files:{fileName:string;fileId:string}[]=result.files;
+    if(files.some((file,i)=>typeof file.fileName!=="string"||!file.fileName.startsWith(prefix)||
+        typeof file.fileId!=="string"||!file.fileId||
+        (startFileName!==undefined&&file.fileName<startFileName)||(i>0&&file.fileName<=files[i-1].fileName)))throw new Error("Invalid cloud page entry");
+    const nextFileName=result.nextFileName??null;
+    if(nextFileName!==null&&(typeof nextFileName!=="string"||!nextFileName.startsWith(prefix)||
+        !files.length||nextFileName<=files[files.length-1].fileName))throw new Error("Invalid cloud page cursor");
+    return {files,nextFileName:nextFileName as string|null};
   }
 }
 

@@ -8,6 +8,10 @@ The [daily backend runner](docs/daily-collection.md) refreshes weather and NASA
 FIRMS data every 24 hours and runs risk analysis, with satellite collection
 reserved for a future adapter.
 
+The [backend scan archive](docs/parcel-scan-archive.md) stores location-tagged
+baseline and follow-up scanner scores by parcel in private cloud storage.
+The frontend scanner is not connected to this archive yet.
+
 Cloud-backed runs now support verified working-file cleanup and direct cloud
 grid serving. See [cloud storage and retention](docs/cloud-retention.md) for
 configuration, parcel-license gating and recovery behavior.

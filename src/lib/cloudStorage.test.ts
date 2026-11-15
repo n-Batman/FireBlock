@@ -35,6 +35,23 @@ describe("verified cloud storage",()=>{
     expect((await storage.readVersion(receipt.file_id)).value).toEqual({value:42});
     expect(JSON.stringify(receipt)).not.toContain("secret");
   });
+  it("pages a private archive with scoped cursors and a bounded provider request",async()=>{
+    const {storage,fetcher}=backend();await storage.uploadJson("parcel-scans/test/a.json",{});
+    fetcher.mockResolvedValueOnce(Response.json({files:[{fileName:"parcel-scans/test/b.json",fileId:"b"}],nextFileName:"parcel-scans/test/c.json"}));
+    const page=await storage.listPage("parcel-scans/test/","parcel-scans/test/b.json",1);
+    expect(page.nextFileName).toBe("parcel-scans/test/c.json");
+    expect(JSON.parse(String(fetcher.mock.calls.at(-1)?.[1]?.body))).toMatchObject({prefix:"parcel-scans/test/",startFileName:"parcel-scans/test/b.json",maxFileCount:1});
+    await expect(storage.listPage("parcel-scans/test/","another-parcel/a.json",1)).rejects.toThrow(/Invalid/);
+    fetcher.mockResolvedValueOnce(Response.json({files:[{fileName:"another-parcel/a.json",fileId:"x"}]}));
+    await expect(storage.listPage("parcel-scans/test/")).rejects.toThrow(/Invalid/);
+    fetcher.mockResolvedValueOnce(Response.json({files:[{fileName:"parcel-scans/test/b.json",fileId:"b"}],nextFileName:"parcel-scans/test/b.json"}));
+    await expect(storage.listPage("parcel-scans/test/")).rejects.toThrow(/cursor/);
+  });
+  it("rejects oversized scan objects from metadata before downloading them",async()=>{
+    const {storage,fetcher}=backend();const receipt=await storage.uploadJson("parcel-scans/test/scan.json",{value:"x".repeat(100)});
+    await expect(storage.readVersion(receipt.file_id,16)).rejects.toThrow(/metadata/);
+    expect(fetcher.mock.calls.some(([url])=>String(url).includes("b2_download_file_by_id"))).toBe(false);
+  });
   it("archives boundaries and projections before publishing the ready manifest",async()=>{
     vi.stubEnv("PARCEL_CLOUD_CACHE_ALLOWED","true");const {storage,keys,stored}=backend();
     const receipt=await archiveParcelDisplay({boundaries:true},{score:70},{grid_file_id:"source-id"},storage);
