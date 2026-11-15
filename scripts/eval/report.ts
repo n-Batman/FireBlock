@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import sharp from "sharp";
 import { CLEAR, RISK } from "../../src/lib/fuelMask";
 import type { Result } from "./run";
-import { DATA, REPORT, V2, isDirtBucket, mk } from "./common";
+import { DATA, REPORT, V2, mk } from "./common";
 
 const CW = 256;
 const CH = 192;
@@ -69,12 +69,12 @@ export async function report(all: Result[], meta: { total: number; dropped: numb
   }
   const allErrs = results.flatMap((r) => (r.err == null ? [] : [r.err]));
   lines.push(`| **all** | ${results.length} | ${pct(results.filter((r) => r.pass).length, results.length)} | ${allErrs.length ? (allErrs.reduce((a, b) => a + b, 0) / allErrs.length).toFixed(1) : "n/a"} |`, "");
-  const dirt = results.filter((r) => isDirtBucket(r.item.category));
+  const dirt = results.filter((r) => r.dirt);
   const veg = results.filter((r) => r.bgFp != null);
   const meanBg = veg.reduce((a, r) => a + (r.bgFp ?? 0), 0) / (veg.length || 1);
   const acr = all.filter((r) => r.allClearWithRisk);
   lines.push(
-    `- Dirt false positives (bare-soil + dirt-road buckets, risk over 3% of frame): ${dirt.filter((r) => r.riskFrame > 0.03).length}/${dirt.length}`,
+    `- Dirt false positives (frames scored with the dirt rule, risk over 3% of frame): ${dirt.filter((r) => r.riskFrame > 0.03).length}/${dirt.length}`,
     `- VegAnn background false positives: mean ${(meanBg * 100).toFixed(1)}% of background pixels read as risk; ${veg.filter((r) => (r.bgFp ?? 0) > 0.05).length}/${veg.length} images over 5%`,
     `- "All clear" while risk is drawn (must be 0): **${acr.length}**${acr.length ? " — " + acr.slice(0, 10).map((r) => r.item.id).join(", ") : ""}`,
     "",

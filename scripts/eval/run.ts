@@ -20,6 +20,8 @@ export interface Result {
   err: number | null; // |ours - expected|
   bgFp: number | null; // VegAnn only
   riskFrame: number; // risk pixels / frame
+  /** Scored with the dirt rule (risk under 3% of frame). */
+  dirt: boolean;
   allClearWithRisk: boolean;
   pass: boolean;
   why: string;
@@ -131,13 +133,13 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   }
   const riskFrame = vlm ? (vlm.dryPct / 100) * vlm.vegFrac : risk / n; // vlm: dry share of vegetation x vegetation share of frame
   const err = expected == null ? null : Math.abs(ours - expected);
-  const dirt = isDirtBucket(item.category) || item.dirt === true;
+  const dirt = V2 ? item.dirt === true : isDirtBucket(item.category) || item.dirt === true; // v2: only hand-flagged soil-dominant frames; dirt-road buckets often hold real dry grass
   let pass = true;
   let why = "";
   if (err != null && err > PASS_PTS) (pass = false), (why = `dry% off by ${err.toFixed(0)}`);
   if (dirt && riskFrame > DIRT_PASS) (pass = false), (why = `dirt read as risk (${(riskFrame * 100).toFixed(0)}% of frame)`);
   if (bgFp != null && bgFp > BG_PASS) (pass = false), (why = `risk on ${(bgFp * 100).toFixed(0)}% of background`);
-  return { item, map, ours, expected, err, bgFp, riskFrame, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: V2 ? null : suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
+  return { item, map, ours, expected, err, bgFp, riskFrame, dirt, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: V2 ? null : suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
 }
 
 async function main() {
