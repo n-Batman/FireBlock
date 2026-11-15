@@ -126,7 +126,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | M27 | Reject blurry, dark or foggy photos before the scanner and ask for a retake (local pixel stats only) | DONE (0/163 good eval photos rejected; the 7 snow/fog negatives have real contrast and still pass, so the estimate handles them) |
 | M28 | Photo mode shows the whole photo (contain at the top, under the controls) with its map aligned; camera overlay follows rotation | DONE (`mapBoxToRect` fit "contain-top", `FuelOverlay` fit prop, video "resize" updates videoSize; checked at 375x812) |
 | M29 | Say "About N%" and ask for another angle when the dry number is shaky (SAM-only, tiny veg_frac, or overlay over 15 pts off); share and Save unchanged | DONE (`headlineCertainty` in `scanView.ts`; no API or model change) |
-| M30 | Scanner overlay accuracy: overlay metrics in the eval, white balance, Lab straw/soil colours, grid as a prior with area reconcile, area check in headline certainty | DOING (Milo; PR open, not merged. v2 overlay MAE 18.4 to 13.9, gap >15 pts 38 to 29 of 153, area gap 5.2 to 3.5 pts; overlay dirt FP 0 to 1 of 29; real sunset photo fixture still missing) |
+| M30 | Scanner overlay accuracy: overlay metrics in the eval, white balance, Lab straw/soil colours, grid as a prior with area reconcile, area check in headline certainty | DONE (merged in PR 29. v2 overlay MAE 18.4 to 13.9, gap >15 pts 38 to 29 of 153, area gap 5.2 to 3.5 pts; overlay dirt FP 0 to 1 of 29; real sunset photo fixture still missing) |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
