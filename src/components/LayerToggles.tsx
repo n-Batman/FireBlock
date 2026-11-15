@@ -13,7 +13,7 @@ export function LayerToggles({ showParcels, showGrid, onParcels, onGrid }: {
   const [host, setHost] = useState<HTMLElement | null>(null);
   useEffect(() => {
     const node = L.DomUtil.create("div");
-    node.className = "absolute left-4 bottom-[calc(40dvh+8rem)] z-[800] lg:bottom-auto lg:top-32";
+    node.className = "absolute left-4 bottom-[calc(40dvh+8rem)] z-[800] lg:bottom-auto lg:left-auto lg:right-4 lg:top-20";
     L.DomEvent.disableClickPropagation(node);
     L.DomEvent.disableScrollPropagation(node);
     map.getContainer().appendChild(node);
