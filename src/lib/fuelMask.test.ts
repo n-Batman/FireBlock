@@ -20,11 +20,22 @@ describe("colourOf", () => {
   });
 });
 
+const PALE: [number, number, number] = [205, 185, 180]; // pinkish dead grass
+const masks = (dry: number[], live: number[], exclude: number[]) => ({ dry: Uint8Array.from(dry), live: Uint8Array.from(live), exclude: Uint8Array.from(exclude) });
+
 describe("classify", () => {
-  it("rates by colour inside the mask; outside it, straw is neutral and only green counts (as clear)", () => {
-    const rgba = px(STRAW, GREEN, STRAW, GREEN);
-    expect([...classify(rgba, 4, 1, [1, 1, 0, 0])]).toEqual([RISK, CLEAR, NEUTRAL, CLEAR]);
-    expect([...classify(rgba, 4, 1, null)]).toEqual([RISK, CLEAR, RISK, CLEAR]); // colour-only fallback
+  it("exclude wins; dry masks use the wide band (pale pink counts); live masks the strict band", () => {
+    const rgba = px(PALE, PALE, STRAW, GREEN);
+    const m = masks([1, 1, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]);
+    expect([...classify(rgba, 4, 1, m)]).toEqual([RISK, NEUTRAL, RISK, CLEAR]);
+    expect([...classify(px(PALE), 1, 1, masks([0], [1], [0]))]).toEqual([NEUTRAL]); // pale in a live mask is not fuel
+  });
+
+  it("outside every mask green is clear, tan is risk only with grassy texture, and no masks means colour alone", () => {
+    const none = masks([0, 0], [0, 0], [0, 0]);
+    expect([...classify(px(STRAW, STRAW), 2, 1, none)]).toEqual([NEUTRAL, NEUTRAL]); // flat tan = smooth dirt
+    expect([...classify(px(STRAW, [120, 100, 60]), 2, 1, none)]).toEqual([RISK, NEUTRAL]); // textured tan
+    expect([...classify(px(STRAW, GREEN), 2, 1, null)]).toEqual([RISK, CLEAR]);
   });
 });
 
@@ -47,10 +58,11 @@ describe("verdict", () => {
     expect(of(25, 75, 900).share).toBe(0.25);
   });
 
-  it("never says all clear above 3%, and says it at 3% or less", () => {
-    expect(of(4, 96).level).toBe("low");
-    expect(of(4, 96).text).not.toMatch(/all clear/i);
-    expect(of(3, 97).level).toBe("clear");
+  it("says all clear only with zero risk pixels, and shows <1% for tiny shares", () => {
+    expect(of(0, 100).level).toBe("clear");
+    expect(of(1, 999).level).toBe("low");
+    expect(of(1, 999).text).toMatch(/<1%/);
+    expect(of(3, 97).text).not.toMatch(/all clear/i);
     expect(of(0, 0, 10).level).toBe("none");
   });
 
@@ -76,15 +88,30 @@ describe("riskAreas", () => {
 });
 
 describe("rasterise / scan", () => {
-  it("fills a polygon scaled to the working size", async () => {
-    const { rasterise, scan } = await import("./fuelMask");
-    const m = rasterise([[[0, 0], [20, 0], [20, 10], [0, 10]]], 20, 10, 10); // left-top half of a 20x20 frame at 10x10
-    expect([...m].reduce((a, b) => a + b, 0)).toBe(50);
-    const rgba = new Uint8ClampedArray(10 * 10 * 4).fill(255);
-    for (let i = 0; i < 100; i++) [rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]] = STRAW;
-    const r = scan(rgba, 10, 10, 20, [[[0, 0], [20, 0], [20, 10], [0, 10]]]);
-    expect(r.verdict.risk).toBeGreaterThan(30); // smoothing trims the edge, so not exactly 50
-    expect(r.verdict.risk).toBeLessThan(100); // straw outside the mask stays neutral
-    expect(r.colourOnly).toBe(false);
+  const square = (a: number, b: number): [number, number][] => [[a, a], [b, a], [b, b], [a, b]];
+  it("fills a mask scaled to the working size and keeps holes as holes (even-odd)", async () => {
+    const { rasterise } = await import("./fuelMask");
+    const m = rasterise([{ group: "dry", polys: [[[0, 0], [20, 0], [20, 10], [0, 10]]] }], 20, 10, 10);
+    expect([...m.dry].reduce((a, b) => a + b, 0)).toBe(50);
+    const holed = rasterise([{ group: "dry", polys: [square(0, 20), square(5, 15)] }], 20, 20, 20);
+    expect(holed.dry[10 * 20 + 10]).toBe(0);
+    expect(holed.dry[2 * 20 + 2]).toBe(1);
+  });
+
+  it("drops risk specks from the map itself and never says all clear while red is drawn", async () => {
+    const { scan } = await import("./fuelMask");
+    const w = 40;
+    const rgba = new Uint8ClampedArray(w * w * 4).fill(255);
+    for (let i = 0; i < w * w; i++) [rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]] = GREEN;
+    for (let y = 10; y < 12; y++) for (let x = 10; x < 12; x++) [rgba[(y * w + x) * 4], rgba[(y * w + x) * 4 + 1], rgba[(y * w + x) * 4 + 2]] = STRAW; // 4 px speck
+    const all = [{ group: "dry" as const, polys: [square(0, 40)] }];
+    const r = scan(rgba, w, w, w, all);
+    expect(r.labels.includes(RISK)).toBe(false);
+    expect(r.verdict.level).toBe("clear");
+    for (let y = 20; y < 40; y++) for (let x = 0; x < 40; x++) [rgba[(y * w + x) * 4], rgba[(y * w + x) * 4 + 1], rgba[(y * w + x) * 4 + 2]] = STRAW;
+    const big = scan(rgba, w, w, w, all);
+    expect(big.verdict.level).not.toBe("clear");
+    expect(big.areas.length).toBeGreaterThan(0);
+    expect(big.colourOnly).toBe(false);
   });
 });

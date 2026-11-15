@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { RISK, CLEAR, type FuelMap } from "@/lib/fuelMask";
 import { mapBoxToRect } from "@/lib/scan";
 
-/** Clear is a faint green wash with no edge; risk is a stronger red with a soft thin edge. */
-const CLEAR_RGBA = [134, 239, 172, 0.18] as const;
+/** Clear is a clearly visible green wash with a softer edge; risk is a stronger red with a soft thin edge. */
+const CLEAR_RGBA = [74, 222, 128, 0.32] as const;
+const CLEAR_EDGE_ALPHA = 0.18;
 const RISK_RGBA = [239, 68, 68, 0.38] as const;
 const EDGE_ALPHA = 0.85;
 
@@ -16,7 +17,14 @@ export function paint(map: Pick<FuelMap, "w" | "h" | "labels">, out: Uint8Clampe
     const l = labels[i];
     const o = i * 4;
     if (l === CLEAR) {
-      out.set([CLEAR_RGBA[0], CLEAR_RGBA[1], CLEAR_RGBA[2], Math.round(CLEAR_RGBA[3] * 255)], o);
+      const x = i % w;
+      const y = (i - x) / w;
+      const soft =
+        (x > 0 && labels[i - 1] !== CLEAR) ||
+        (x < w - 1 && labels[i + 1] !== CLEAR) ||
+        (y > 0 && labels[i - w] !== CLEAR) ||
+        (y < h - 1 && labels[i + w] !== CLEAR);
+      out.set([CLEAR_RGBA[0], CLEAR_RGBA[1], CLEAR_RGBA[2], Math.round((soft ? CLEAR_EDGE_ALPHA : CLEAR_RGBA[3]) * 255)], o);
     } else if (l === RISK) {
       const x = i % w;
       const y = (i - x) / w;

@@ -46,14 +46,16 @@ async function sheet(rs: Result[], name: string) {
     .toFile(`eval/sheets/${name}.jpg`);
 }
 
-export async function report(results: Result[], meta: { total: number; dropped: number; failed: string[] }) {
+export async function report(all: Result[], meta: { total: number; dropped: number; failed: string[] }) {
   mk("eval/sheets");
+  const flagged = all.filter((r) => r.suspect);
+  const results = all.filter((r) => !r.suspect); // pass rates leave out obvious label errors
   const cats = [...new Set(results.map((r) => r.item.category))].sort();
   const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "n/a");
   const lines = [
     "# Scanner eval",
     "",
-    `Images in manifest: ${meta.total}. Dropped as irrelevant by GPT: ${meta.dropped}. Scored: ${results.length}. Failed: ${meta.failed.length}.`,
+    `Images in manifest: ${meta.total}. Dropped as irrelevant by GPT: ${meta.dropped}. Scored: ${all.length} (${flagged.length} flagged as probable label errors and left out of the rates). Failed: ${meta.failed.length}.`,
     "Pass = dry% within 15 pts of GPT's estimate; dirt buckets also need risk under 3% of the frame; VegAnn needs risk on under 5% of background pixels.",
     "",
     "| Bucket | n | Pass | Mean abs err (pts) |",
@@ -68,7 +70,7 @@ export async function report(results: Result[], meta: { total: number; dropped: 
   const dirt = results.filter((r) => ["bare soil field", "dirt road"].includes(r.item.category));
   const veg = results.filter((r) => r.bgFp != null);
   const meanBg = veg.reduce((a, r) => a + (r.bgFp ?? 0), 0) / (veg.length || 1);
-  const acr = results.filter((r) => r.allClearWithRisk);
+  const acr = all.filter((r) => r.allClearWithRisk);
   lines.push(
     `- Dirt false positives (bare-soil + dirt-road buckets, risk over 3% of frame): ${dirt.filter((r) => r.riskFrame > 0.03).length}/${dirt.length}`,
     `- VegAnn background false positives: mean ${(meanBg * 100).toFixed(1)}% of background pixels read as risk; ${veg.filter((r) => (r.bgFp ?? 0) > 0.05).length}/${veg.length} images over 5%`,
@@ -81,8 +83,11 @@ export async function report(results: Result[], meta: { total: number; dropped: 
   );
   const worst = [...results].filter((r) => !r.pass).sort((a, b) => sev(b) - sev(a)).slice(0, 20);
   for (const r of worst) lines.push(`| [${r.item.id}](${r.item.url}) | ${r.item.category} | ${r.ours.toFixed(0)}% | ${r.expected == null ? "n/a" : r.expected.toFixed(0) + "%"} | ${r.why} |`);
+  lines.push("", "## Probable label errors (GPT estimate looks wrong; not tuned to)", "", "| Image | Bucket | Ours | GPT | Reason |", "|---|---|---|---|---|");
+  for (const r of flagged) lines.push(`| [${r.item.id}](${r.item.url}) | ${r.item.category} | ${r.ours.toFixed(0)}% | ${r.expected?.toFixed(0)}% | ${r.suspect} |`);
   if (meta.failed.length) lines.push("", "## Failed to run", "", ...meta.failed.map((f) => `- ${f}`));
   writeFileSync("eval/report.md", lines.join("\n") + "\n");
+  await sheet(flagged.slice(0, ROWS), "label-errors");
   await sheet(worst.slice(0, ROWS), "worst-a");
   await sheet(worst.slice(ROWS, ROWS * 2), "worst-b");
   for (const c of cats) {

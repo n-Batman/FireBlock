@@ -1,7 +1,7 @@
 /* Scores the scanner on eval/manifest.json. Run: npm run eval:run  (needs ROBOFLOW_API_KEY in .env.local; replies cached in eval/cache) */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
-import { MAP_WIDTH, RISK, CLEAR, scan, type FuelMap } from "../../src/lib/fuelMask";
+import { MAP_WIDTH, RISK, hsv, scan, type FuelMap } from "../../src/lib/fuelMask";
 import { ENDPOINT, parseSegments, segmentBody } from "../../src/lib/segment";
 import { CACHE, DATA, MANIFEST, mk, pool, sha, sleep, type Item } from "./common";
 
@@ -21,7 +21,20 @@ export interface Result {
   allClearWithRisk: boolean;
   pass: boolean;
   why: string;
+  /** Why GPT's estimate looks wrong, if it obviously does. Flagged images are listed, not counted in pass rates. */
+  suspect: string | null;
   jpeg: Buffer;
+}
+
+/** An obvious label error: the estimate contradicts its own note or claims dry vegetation in a snow/monochrome scene. Not tuned to; only flagged. */
+export function suspectLabel(notes: string, expected: number | null, snowShare: number, meanSat: number): string | null {
+  if (expected == null) return null;
+  if (expected > 20 && (snowShare > 0.35 || meanSat < 0.05)) return "snow or monochrome scene, no rateable vegetation";
+  if (expected > 20 && /snow|black.and.white|monochrome|sepia/i.test(notes)) return "note says snow/monochrome";
+  if (expected > 25 && /\b(bare|no vegetation|gravel)\b/i.test(notes)) return "note says bare ground";
+  if (expected < 35 && /mostly (dry|dead|brown|straw|tan)/i.test(notes)) return "note says mostly dry, number says otherwise";
+  if (expected > 65 && /mostly green|lush/i.test(notes)) return "note says mostly green, number says otherwise";
+  return null;
 }
 
 /** Same framing as the app: longest side 1024, JPEG 0.85. */
@@ -56,6 +69,13 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   const rgba = await sharp(jpeg).resize(w, h, { fit: "fill" }).ensureAlpha().raw().toBuffer();
   const map = scan(rgba, w, h, sw, polygons);
   const n = w * h;
+  let snow = 0;
+  let satSum = 0;
+  for (let i = 0; i < n; i++) {
+    const [, sat, v] = hsv(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]);
+    satSum += sat;
+    if (v > 0.8 && sat < 0.12) snow++;
+  }
   let risk = 0;
   for (const l of map.labels) if (l === RISK) risk++;
   const ours = map.verdict.share == null ? 0 : map.verdict.share * 100;
@@ -81,7 +101,7 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   if (err != null && err > PASS_PTS) (pass = false), (why = `dry% off by ${err.toFixed(0)}`);
   if (dirt && riskFrame > DIRT_PASS) (pass = false), (why = `dirt read as risk (${(riskFrame * 100).toFixed(0)}% of frame)`);
   if (bgFp != null && bgFp > BG_PASS) (pass = false), (why = `risk on ${(bgFp * 100).toFixed(0)}% of background`);
-  return { item, map, ours, expected, err, bgFp, riskFrame, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, jpeg };
+  return { item, map, ours, expected, err, bgFp, riskFrame, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
 }
 
 async function main() {

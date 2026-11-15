@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import type { AreaNote, ScanResponse } from "@/data/types";
 import { DEMO_CLIP_URL } from "./demoClip";
 import { encodeFrame, MIN_SHARPNESS } from "./frame";
-import { analyse, loadImage, type FuelMap, type Polygon } from "./fuelMask";
+import { analyse, loadImage, type FuelMap, type Mask } from "./fuelMask";
 import { getCached, hashImage, putCached } from "./scanCache";
 import { createTracker, updateTracker, type TrackerState } from "./scan";
 import { selectFindings } from "./scanView";
@@ -60,16 +60,16 @@ const demoScan = (image: string, demoTime: number, signal: AbortSignal) =>
   postJson<ScanResponse>("/api/scan", { image, demoTime }, signal);
 
 /**
- * Vegetation polygons for a frame from /api/segment (Roboflow SAM3), cached by image hash. Null when
+ * Grouped masks for a frame from /api/segment (Roboflow SAM3), cached by image hash. Null when
  * segmentation fails: the caller then rates by colour alone. An abort still throws.
  */
-async function segment(image: string, hash: string, signal: AbortSignal): Promise<Polygon[] | null> {
-  const hit = getCached<Polygon[]>(`seg:${hash}`, storage());
+async function segment(image: string, hash: string, signal: AbortSignal): Promise<Mask[] | null> {
+  const hit = getCached<Mask[]>(`seg:v2:${hash}`, storage());
   if (hit) return hit;
   try {
-    const { polygons } = await postJson<{ polygons: Polygon[] }>("/api/segment", { image }, signal);
-    putCached(`seg:${hash}`, polygons, storage());
-    return polygons;
+    const { masks } = await postJson<{ masks: Mask[] }>("/api/segment", { image }, signal);
+    putCached(`seg:v2:${hash}`, masks, storage());
+    return masks;
   } catch (error) {
     if (signal.aborted) throw error;
     return null;
@@ -79,7 +79,7 @@ async function segment(image: string, hash: string, signal: AbortSignal): Promis
 /** The model's words for the measured risk areas, cached by image hash. */
 async function fetchNotes(image: string, hash: string, map: FuelMap, signal: AbortSignal): Promise<AreaNote[]> {
   if (map.areas.length === 0 || map.verdict.share === null) return [];
-  const key = `notes:${map.colourOnly ? "c" : "s"}:${hash}`;
+  const key = `notes:v2:${map.colourOnly ? "c" : "s"}:${hash}`;
   const hit = getCached<AreaNote[]>(key, storage());
   if (hit) return hit;
   const { notes } = await postJson<{ notes: AreaNote[] }>(
@@ -93,9 +93,9 @@ async function fetchNotes(image: string, hash: string, map: FuelMap, signal: Abo
 
 /** Masks (or colour only), then the per-pixel fuel map, all for one encoded frame. */
 async function mapFrame(image: string, hash: string, signal: AbortSignal): Promise<FuelMap | null> {
-  const polygons = await segment(image, hash, signal);
+  const masks = await segment(image, hash, signal);
   const img = await loadImage(image);
-  return analyse(img, img.naturalWidth, img.naturalHeight, polygons);
+  return analyse(img, img.naturalWidth, img.naturalHeight, masks);
 }
 
 /**

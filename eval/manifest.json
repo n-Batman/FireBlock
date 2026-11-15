@@ -1,5 +1,369 @@
 [
  {
+  "id": "chaparral-29551397",
+  "file": "chaparral/29551397.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Chaparral_clearing_at_Fort_Ord_Oct._15_(10601932275).jpg",
+  "license": "CC BY 2.0",
+  "author": "U.S. Army Corps of Engineers from USA",
+  "category": "Chaparral",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 75,
+   "notes": "A wildfire burns through dry scrub on a coastal hillside."
+  }
+ },
+ {
+  "id": "chaparral-30429713",
+  "file": "chaparral/30429713.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Del_Puerto_Canyon,_California.jpg",
+  "license": "CC0",
+  "author": "Alex Wild",
+  "category": "Chaparral",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 25,
+   "notes": "A dry hillside with mostly green shrubs and patches of cured grass."
+  }
+ },
+ {
+  "id": "chaparral-78168226",
+  "file": "chaparral/78168226.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Chaparral_Neighborhood_Trail_(32634112387).jpg",
+  "license": "Public domain",
+  "author": "San Bernardino Nat'l Forest",
+  "category": "Chaparral",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A grassy dirt path runs between green shrubs and flowering trees."
+  }
+ },
+ {
+  "id": "cover-crops-15708412",
+  "file": "cover-crops/15708412.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:2004_0609_Italian_ryegrass_cover_crop.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Alan Manson",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 55,
+   "notes": "A harvested field with dry crop stubble and green grass between rows."
+  }
+ },
+ {
+  "id": "cover-crops-24768287",
+  "file": "cover-crops/24768287.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:NRCSCA01010_-_California_(637)(NRCS_Photo_Gallery).jpg",
+  "license": "Public domain",
+  "author": "Photo by Gary Kramer, USDA Natural Resources Conservation Service.",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A green orchard with lush ground cover and small dry patches between tree rows."
+  }
+ },
+ {
+  "id": "cover-crops-44439802",
+  "file": "cover-crops/44439802.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:A.H._Hoffman_Seeds,_Inc._materials_(Page_21)_BHL47107457.jpg",
+  "license": "Public domain",
+  "author": "A.H. Hoffman Seeds, Inc.; Liberty Hyde Bailey Hortorium.",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "A photographed page of text about field peas."
+  }
+ },
+ {
+  "id": "cover-crops-48210676",
+  "file": "cover-crops/48210676.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Northwestern_South_Dakota_cover_crops,_2015_(20097473376).jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "USDA NRCS South Dakota",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "A field covered mostly in dry crop residue with a few green seedlings."
+  }
+ },
+ {
+  "id": "cover-crops-48210681",
+  "file": "cover-crops/48210681.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Cover_crops_in_Northwestern_South_Dakota_2015_(20115558362).jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "USDA NRCS South Dakota",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 80,
+   "notes": "A field with green shoots emerging through abundant dry crop residue."
+  }
+ },
+ {
+  "id": "cover-crops-48210707",
+  "file": "cover-crops/48210707.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Awesome_cover_crops_started_in_eastern_South_Dakota_(14941202317).jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "USDA NRCS South Dakota",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 98,
+   "notes": "A harvested field is covered in dry crop stubble with a few green weeds."
+  }
+ },
+ {
+  "id": "cover-crops-65874800",
+  "file": "cover-crops/65874800.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:KEHN_SEES_STEWARDSHIP_PROGRAM_AS_STEP_TOWARD_EFFICIENCY_(2)_(11996651173).jpg",
+  "license": "Public domain",
+  "author": "USDA NRCS South Dakota",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "A man and child pose with vegetables in a green field."
+  }
+ },
+ {
+  "id": "cover-crops-65884521",
+  "file": "cover-crops/65884521.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Grazing_Cover_Crops_in_Union_County,_SD_(15348856671).jpg",
+  "license": "Public domain",
+  "author": "USDA NRCS South Dakota",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 10,
+   "notes": "A field of mostly green, cut or flattened vegetation with trees in the background."
+  }
+ },
+ {
+  "id": "cover-crops-65884640",
+  "file": "cover-crops/65884640.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Cover_Crops_in_Small_Grain,_Brookings_County,_SD_(20099574516).jpg",
+  "license": "Public domain",
+  "author": "USDA NRCS South Dakota",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 90,
+   "notes": "Green shoots emerge through a field of dry crop stubble."
+  }
+ },
+ {
+  "id": "cover-crops-65884662",
+  "file": "cover-crops/65884662.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Cover_Crops_in_Small_Grain,_Brookings_County,_SD_(19504908173).jpg",
+  "license": "Public domain",
+  "author": "USDA NRCS South Dakota",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "Hands hold a clump of soil in a field of mostly dry stubble."
+  }
+ },
+ {
+  "id": "cover-crops-65884663",
+  "file": "cover-crops/65884663.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Cover_Crops_in_Small_Grain,_Brookings_County,_SD_(19503233464).jpg",
+  "license": "Public domain",
+  "author": "USDA NRCS South Dakota",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "Dry field stubble surrounds a few green shoots above exposed soil."
+  }
+ },
+ {
+  "id": "cover-crops-65884675",
+  "file": "cover-crops/65884675.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Cover_Crops_in_Small_Grain,_Brookings_County,_SD_(20099588116).jpg",
+  "license": "Public domain",
+  "author": "USDA NRCS South Dakota",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 95,
+   "notes": "Dry cut stalks and sparse green shoots surround exposed soil and a person's boots."
+  }
+ },
+ {
+  "id": "cover-crops-65890944",
+  "file": "cover-crops/65890944.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Pollinators_BM_0035_(39002872152).jpg",
+  "license": "Public domain",
+  "author": "USDA NRCS",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "Close-up of flowering plants and insects."
+  }
+ },
+ {
+  "id": "cover-crops-65891127",
+  "file": "cover-crops/65891127.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Pollinators0030_(38153525955).jpg",
+  "license": "Public domain",
+  "author": "USDA NRCS",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A sunflower stands in a predominantly green grassy field."
+  }
+ },
+ {
+  "id": "cover-crops-66358215",
+  "file": "cover-crops/66358215.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Little_red_wheat_field_mushroom.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "B137",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "Mushrooms and sparse green grass grow in bare soil."
+  }
+ },
+ {
+  "id": "cover-crops-80580052",
+  "file": "cover-crops/80580052.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Kremsm%C3%BCnster_Guntendorf_Tempetalweg-3860.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Isiwal",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 10,
+   "notes": "A grassy farm track runs between trees and green flowering fields."
+  }
+ },
+ {
+  "id": "cover-crops-80580058",
+  "file": "cover-crops/80580058.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Kremsm%C3%BCnster_Guntendorf_Tempetalweg-3861.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Isiwal",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 10,
+   "notes": "A grassy farm track runs between green flowering fields and trees."
+  }
+ },
+ {
+  "id": "cover-crops-80580071",
+  "file": "cover-crops/80580071.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Kremsm%C3%BCnster_Guntendorf-3849.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Isiwal",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 55,
+   "notes": "A harvested, dry field borders a green crop and tree line."
+  }
+ },
+ {
+  "id": "cover-crops-80580072",
+  "file": "cover-crops/80580072.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Kremsm%C3%BCnster_Guntendorf-3850.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Isiwal",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 35,
+   "notes": "A rural lane runs between fields with green ground cover and autumn-colored trees."
+  }
+ },
+ {
+  "id": "cover-crops-80580087",
+  "file": "cover-crops/80580087.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Kremsm%C3%BCnster_Tempetal-3835.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Isiwal",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A cultivated field with green and flowering crops, trees, and farm buildings."
+  }
+ },
+ {
+  "id": "cover-crops-80598740",
+  "file": "cover-crops/80598740.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Allhaming_Laimgr%C3%A4ben_Autobahn-3920.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Isiwal",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "Rolling farmland with green crops, bare fields, and trees."
+  }
+ },
+ {
+  "id": "cover-crops-80598741",
+  "file": "cover-crops/80598741.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Allhaming_Obstbaumallee_in_Lindach-3906.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Isiwal",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 35,
+   "notes": "A grassy farm track runs between trees and a green crop field, with dry grass along the verge."
+  }
+ },
+ {
+  "id": "cover-crops-80598744",
+  "file": "cover-crops/80598744.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Allhaming_Bauernhof_Lindach_12-3902.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Isiwal",
+  "category": "Cover crops",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A plowed field with a green crop strip and trees near farm buildings."
+  }
+ },
+ {
   "id": "dry-grass-11493848",
   "file": "dry-grass/11493848.jpg",
   "url": "https://commons.wikimedia.org/wiki/File:Buchloe_dactyloides.jpg",
@@ -700,6 +1064,356 @@
   }
  },
  {
+  "id": "lawns-10601967",
+  "file": "lawns/10601967.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Ballet_flat_in_the_Westpark_in_Bochum.JPG",
+  "license": "CC BY-SA 3.0",
+  "author": "Zelda F. Scott",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 25,
+   "notes": "A shoe lies in a mostly green grassy field with some dry brown grass."
+  }
+ },
+ {
+  "id": "lawns-10712165",
+  "file": "lawns/10712165.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Black_raspberries_in_a_basket,_side_view.jpg",
+  "license": "Public domain",
+  "author": "Nyttend",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A basket of blackberries sits on mostly green grass."
+  }
+ },
+ {
+  "id": "lawns-10712167",
+  "file": "lawns/10712167.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Black_raspberries_in_a_basket,_angled_view.jpg",
+  "license": "Public domain",
+  "author": "Nyttend",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 2,
+   "notes": "A carton of blackberries sits on mostly green lawn grass."
+  }
+ },
+ {
+  "id": "lawns-10810140",
+  "file": "lawns/10810140.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Blissfield_township_betz_airport.JPG",
+  "license": "CC BY 3.0",
+  "author": "Dwight Burdette",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 35,
+   "notes": "A mowed field with mostly green grass and some dry brown patches near farm buildings."
+  }
+ },
+ {
+  "id": "lawns-17908180",
+  "file": "lawns/17908180.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Baltimore_and_Ohio_Railroad_Company_Depot_site.jpg",
+  "license": "Public domain",
+  "author": "Nyttend",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 60,
+   "notes": "A grassy vacant lot with brown and green vegetation and leafless trees."
+  }
+ },
+ {
+  "id": "lawns-20106125",
+  "file": "lawns/20106125.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Apertura_-_Guadalupe_Cervilla.jpg",
+  "license": "CC BY 2.0",
+  "author": "Guadalupe Cervilla from Barcelona, España",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 2,
+   "notes": "A green lawn and garden with trees and shrubs."
+  }
+ },
+ {
+  "id": "lawns-21125582",
+  "file": "lawns/21125582.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:A_Typical_Sky.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Bryancalabro",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A mostly green grassy field bordered by leafy trees."
+  }
+ },
+ {
+  "id": "lawns-24908552",
+  "file": "lawns/24908552.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Beautiful_nice_grass.jpg",
+  "license": "Public domain",
+  "author": "Dale Strickland-Clark",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 2,
+   "notes": "A park with a mostly green lawn and leafy trees."
+  }
+ },
+ {
+  "id": "lawns-2545730",
+  "file": "lawns/2545730.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Absolute_Chateau_de_Pourtales_01.JPG",
+  "license": "CC BY-SA 3.0",
+  "author": "Jonathan M",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 0,
+   "notes": "A green lawn and leafy trees surround a large building."
+  }
+ },
+ {
+  "id": "lawns-32037994",
+  "file": "lawns/32037994.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bluebell_circle_(3470737017).jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "allen watkin from London, UK",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 1,
+   "notes": "A landscaped park with mostly green lawn, trees, and flowers."
+  }
+ },
+ {
+  "id": "lawns-34828640",
+  "file": "lawns/34828640.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Brno_Kom%C3%ADn9475.JPG",
+  "license": "CC0",
+  "author": "I.Sáček, senior",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "Mostly green flowering vegetation grows outside an apartment building."
+  }
+ },
+ {
+  "id": "lawns-37228329",
+  "file": "lawns/37228329.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Area_de_jardin_uasd.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Ronny Medina",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A landscaped green lawn with palm trees and shrubs near a parking area."
+  }
+ },
+ {
+  "id": "lawns-45719094",
+  "file": "lawns/45719094.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:20151217_boerderij_op_terp_tHanerik_polder_Mastenbroek.jpg",
+  "license": "CC0",
+  "author": "Gouwenaar",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 2,
+   "notes": "A green lawn with trees and shrubs surrounds a house."
+  }
+ },
+ {
+  "id": "lawns-48151041",
+  "file": "lawns/48151041.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Buda_Arboreta._Upper_garden._Parade_square._Building_%27E%27._-_Budapest_District_IX.JPG",
+  "license": "CC BY-SA 3.0",
+  "author": "Globetrotter19",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 2,
+   "notes": "A landscaped yard with green lawns, flower beds, shrubs, and gravel paths."
+  }
+ },
+ {
+  "id": "lawns-51592042",
+  "file": "lawns/51592042.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:..._loosing_prime_(2898366019).jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Dinesh Valke from Thane, India",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "Close-up of a flower and a few surrounding stems."
+  }
+ },
+ {
+  "id": "lawns-54405207",
+  "file": "lawns/54405207.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:8-tallet_in_%C3%98restaden_-_panoramio.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Thomas_Scholz",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A landscaped courtyard with mostly green grass and some dry ornamental plants."
+  }
+ },
+ {
+  "id": "lawns-54835366",
+  "file": "lawns/54835366.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:2_Squadron.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Fahad Faisal",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 2,
+   "notes": "A green lawn with palms, hedges, and trees outside a building."
+  }
+ },
+ {
+  "id": "lawns-55651972",
+  "file": "lawns/55651972.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Arrosage_des_pelouses.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Deniev Dagun",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 25,
+   "notes": "A shaded lawn with sprinklers, green trees, and scattered fallen leaves."
+  }
+ },
+ {
+  "id": "lawns-63333436",
+  "file": "lawns/63333436.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Acceso_Camping.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Noemzn",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 10,
+   "notes": "A grassy park with trees and a dirt path."
+  }
+ },
+ {
+  "id": "lawns-7106553",
+  "file": "lawns/7106553.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Base_Construction.jpg",
+  "license": "Public domain",
+  "author": "Phanatic10",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": false,
+   "dry_pct_estimate": 0,
+   "notes": "A labeled diagram of a synthetic turf system."
+  }
+ },
+ {
+  "id": "lawns-75538931",
+  "file": "lawns/75538931.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Banga_Plaza_td_(2018-12-26)_10.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Tdorante10",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 1,
+   "notes": "A mostly green grassy field bordered by trees and buildings."
+  }
+ },
+ {
+  "id": "lawns-80152616",
+  "file": "lawns/80152616.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:15._Moses_Grinter_House_and_Ferry_(1420_South_78th_St,_Kansas_City,_KS)_on_the_Santa_Fe_National_Historic_Trail_(2004)_(0f717e29-2322-4be8-b3e6-602c3c00a7c2).jpg",
+  "license": "Public domain",
+  "author": "NPS Staff (Photo Credit: NPS)",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 1,
+   "notes": "A lush green lawn surrounds a large house and trees."
+  }
+ },
+ {
+  "id": "lawns-8046355",
+  "file": "lawns/8046355.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bersarinplatz_14.JPG",
+  "license": "CC BY-SA 3.0",
+  "author": "Angela M. Arnold, Berlin",
+  "category": "Lawns",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "An urban grassy field and shrubs with mostly green vegetation."
+  }
+ },
+ {
+  "id": "vineyards-in-california-1190684",
+  "file": "vineyards-in-california/1190684.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:California-grapesjpg.jpg",
+  "license": "CC BY 2.0",
+  "author": "ayako from Tokyo, Japan",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 10,
+   "notes": "A vineyard with mostly green vines and trees on exposed soil."
+  }
+ },
+ {
+  "id": "vineyards-in-california-12627437",
+  "file": "vineyards-in-california/12627437.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Close_up_of_vineyard_irrigation,_wire_trellising,_staking_and_cover_crop_for_new_vineyard.jpg",
+  "license": "CC BY-SA 2.0",
+  "author": "Helder Ribeiro",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A vineyard with predominantly green ground cover between the rows."
+  }
+ },
+ {
   "id": "vineyards-in-california-132907263",
   "file": "vineyards-in-california/132907263.jpg",
   "url": "https://commons.wikimedia.org/wiki/File:Bechthold_Vineyard_-_Cinsaut_-_planted_1886.jpg",
@@ -770,6 +1484,20 @@
   }
  },
  {
+  "id": "vineyards-in-california-153752124",
+  "file": "vineyards-in-california/153752124.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:California_Vineyard,_1933.jpg",
+  "license": "Public domain",
+  "author": "Edward Weston",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 25,
+   "notes": "A black-and-white photo of a cultivated hillside and farmstead with patches of grass and trees."
+  }
+ },
+ {
   "id": "vineyards-in-california-16895865",
   "file": "vineyards-in-california/16895865.jpg",
   "url": "https://commons.wikimedia.org/wiki/File:BOB_MARTINEZ_SPRAYING_GRAPE_VINES_-_NARA_-_542533.jpg",
@@ -798,6 +1526,62 @@
   }
  },
  {
+  "id": "vineyards-in-california-25375510",
+  "file": "vineyards-in-california/25375510.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Chateau_Julien_Winery,_Carmel,_California,_USA_(8254423245).jpg",
+  "license": "CC BY 2.0",
+  "author": "Jim G from Silicon Valley, CA, USA",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A vineyard with mostly green grapevines and bare soil between rows."
+  }
+ },
+ {
+  "id": "vineyards-in-california-2553160",
+  "file": "vineyards-in-california/2553160.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Dorn_bay_clear_lake_state_park_ca.jpg",
+  "license": "CC BY 2.5",
+  "author": "Kglavin",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 15,
+   "notes": "A lake bordered by trees and a distant green vineyard."
+  }
+ },
+ {
+  "id": "vineyards-in-california-30872782",
+  "file": "vineyards-in-california/30872782.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Chinese_farm_workers_pruning_a_vineyard,_ca.1900_(CHS-1372).jpg",
+  "license": "Public domain",
+  "author": "C. C. Pierce",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 80,
+   "notes": "People stand in a harvested field with sparse, mostly dry plant residue; the black-and-white image limits certainty."
+  }
+ },
+ {
+  "id": "vineyards-in-california-3752472",
+  "file": "vineyards-in-california/3752472.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:CaliforniaVineyard.jpg",
+  "license": "CC BY 3.0",
+  "author": "Steve Howe",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A vineyard with mostly green vines and grass."
+  }
+ },
+ {
   "id": "vineyards-in-california-3981971",
   "file": "vineyards-in-california/3981971.jpg",
   "url": "https://commons.wikimedia.org/wiki/File:Beringerredhillslakecounty.png",
@@ -823,6 +1607,20 @@
    "relevant": true,
    "dry_pct_estimate": 0,
    "notes": "A grapevine canopy stands over mostly bare ground."
+  }
+ },
+ {
+  "id": "vineyards-in-california-53907067",
+  "file": "vineyards-in-california/53907067.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Crystal_Range_-_panoramio.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Kurt Minard",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 5,
+   "notes": "A vineyard with green ground cover and leafy trees."
   }
  },
  {
@@ -907,6 +1705,20 @@
    "relevant": true,
    "dry_pct_estimate": 5,
    "notes": "A vineyard hillside with mostly green vines, trees, and lawn over dry soil."
+  }
+ },
+ {
+  "id": "vineyards-in-california-9011014",
+  "file": "vineyards-in-california/9011014.jpg",
+  "url": "https://commons.wikimedia.org/wiki/File:Chateau_Julien_Winery,_Carmel,_Monterey,_California,_USA.jpg",
+  "license": "CC BY 2.0",
+  "author": "Jim G",
+  "category": "Vineyards in California",
+  "source": "commons",
+  "expected": {
+   "relevant": true,
+   "dry_pct_estimate": 3,
+   "notes": "Green vineyard rows flank a mostly bare soil path with scattered leaves."
   }
  },
  {
