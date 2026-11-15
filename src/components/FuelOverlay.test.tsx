@@ -20,6 +20,15 @@ describe("paint", () => {
     expect(at(13)).toEqual([239, 68, 68, Math.round(0.38 * 255)]); // inside the risk patch
     expect(at(7)[3]).toBeGreaterThan(at(13)[3]); // on its edge
   });
+
+  it("draws risk fainter the fewer checks agree: 0.65, 0.45, 0.25", () => {
+    const labels = Uint8Array.from([NEUTRAL, RISK, RISK, RISK, RISK, RISK, NEUTRAL, RISK, RISK, RISK, RISK, RISK, NEUTRAL, RISK, RISK, RISK, RISK, RISK]);
+    const agree = Uint8Array.from(labels, (l, i) => (l === RISK ? [3, 2, 1][Math.floor(i / 6)] : 0));
+    const out = new Uint8ClampedArray(labels.length * 4);
+    paint({ w: 6, h: 3, labels, agree }, out);
+    const alpha = (i: number) => out[i * 4 + 3];
+    expect([alpha(3), alpha(9), alpha(15)]).toEqual([0.65, 0.45, 0.25].map((a) => Math.round(a * 255)));
+  });
 });
 
 describe("FuelOverlay", () => {

@@ -324,6 +324,7 @@ export function ScanScreen() {
             ) : (
               <FindingsList tracks={shown} empty="Looking for dry fuel in view..." />
             )}
+            {fuel && fuel.areas.length > 0 && <p className="text-xs text-ink-2">Solid red: three checks agree. Paler red: fewer do.</p>}
             {session.frozen && (
               <p className="text-xs font-medium text-ink-2">Frozen. Tap the screen to resume.</p>
             )}

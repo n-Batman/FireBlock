@@ -1,11 +1,11 @@
 /* Scores the scanner on eval/manifest.json. Run: npm run eval:run  (needs ROBOFLOW_API_KEY in .env.local; replies cached in eval/cache)
    EVAL_ESTIMATOR=vlm scores src/lib/estimate.ts instead of SAM (needs OPENAI_API_KEY; replies cached as eval/cache/est-<sha>.json). */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
-import { EST_COLS, EST_ROWS, SYSTEM_PROMPT, estimateDry, type Estimate } from "../../src/lib/estimate";
+import { EST_COLS, EST_ROWS, type Estimate } from "../../src/lib/estimate";
 import { CLEAR, MAP_WIDTH, NEUTRAL, RISK, hsv, scan, type FuelMap } from "../../src/lib/fuelMask";
-import { ENDPOINT, parseSegments, segmentBody } from "../../src/lib/segment";
-import { CACHE, DATA, LABELS_V2, MANIFEST, V2, heldOut, isDirtBucket, mk, pool, sha, sleep, withHumanLabels, type Item } from "./common";
+import { CACHE, DATA, LABELS_V2, MANIFEST, V2, heldOut, isDirtBucket, mk, pool, withHumanLabels, type Item } from "./common";
+import { estimate, frame, segment } from "./replies";
 
 const VLM = process.env.EVAL_ESTIMATOR === "vlm";
 const PASS_PTS = 15; // |our dry% - GPT estimate|
@@ -53,47 +53,6 @@ export function suspectLabel(notes: string, expected: number | null, snowShare: 
   return null;
 }
 
-/** Same framing as the app: longest side 1024, JPEG 0.85. */
-async function frame(path: string) {
-  const { data, info } = await sharp(path).rotate().resize(1024, 1024, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer({ resolveWithObject: true });
-  return { jpeg: data, w: info.width, h: info.height };
-}
-
-async function segment(jpeg: Buffer, key: string) {
-  const body = segmentBody(`data:image/jpeg;base64,${jpeg.toString("base64")}`);
-  const cache = `${CACHE}/seg-${sha(body)}.json`;
-  if (existsSync(cache)) return JSON.parse(readFileSync(cache, "utf8"));
-  for (let a = 0; a < 4; a++) {
-    const res = await fetch(ENDPOINT, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${key}` }, body, signal: AbortSignal.timeout(60000) }).catch(() => null);
-    if (!res || res.status >= 500 || res.status === 429) {
-      await sleep(1500 * (a + 1));
-      continue;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`); // body never printed: it can echo the key
-    const reply = await res.json();
-    writeFileSync(cache, JSON.stringify(reply));
-    return reply;
-  }
-  throw new Error("segmentation failed after retries");
-}
-
-/** One VLM estimate, cached by frame. Retries 429/5xx twice. */
-async function estimate(jpeg: Buffer): Promise<Estimate> {
-  const cache = `${CACHE}/est-${sha(sha(jpeg) + sha(SYSTEM_PROMPT))}.json`;
-  if (existsSync(cache)) return JSON.parse(readFileSync(cache, "utf8"));
-  for (let a = 0; ; a++) {
-    try {
-      const est = await estimateDry(`data:image/jpeg;base64,${jpeg.toString("base64")}`);
-      writeFileSync(cache, JSON.stringify(est));
-      return est;
-    } catch (e) {
-      const status = (e as { status?: number }).status;
-      if (a >= 2 || (status !== 429 && status !== 502 && status !== 504)) throw e;
-      await sleep(1500 * (a + 1));
-    }
-  }
-}
-
 /** The VLM's 6x8 grid as a FuelMap (dry = risk, live = clear, the rest neutral), so reports and sheets draw it like SAM's. */
 function gridMap(est: Estimate, w: number, h: number): FuelMap {
   const labels = new Uint8Array(w * h);
@@ -121,11 +80,11 @@ async function evaluate(item: Item, key: string): Promise<Result> {
     map = gridMap(vlm, w, h);
     const rf = process.env.ROBOFLOW_API_KEY?.trim();
     if (rf) {
-      const sam = await segment(jpeg, rf).then((r) => scan(rgba, w, h, sw, parseSegments(r), vlm?.grid, vlm?.dryPct, vlm?.vegFrac), () => null); // SAM failure leaves overlay null: reported separately
+      const sam = await segment(jpeg, rf).then((r) => scan(rgba, w, h, sw, r, vlm?.grid, vlm?.dryPct, vlm?.vegFrac), () => null); // SAM failure leaves overlay null: reported separately
       overlayMap = sam;
       if (sam) overlay = sam.verdict.share == null ? 0 : sam.verdict.share * 100;
     }
-  } else map = scan(rgba, w, h, sw, parseSegments(await segment(jpeg, key)));
+  } else map = scan(rgba, w, h, sw, await segment(jpeg, key));
   const n = w * h;
   let snow = 0;
   let satSum = 0;
@@ -184,6 +143,8 @@ async function main() {
     }
   });
   results.sort((a, b) => a.item.id.localeCompare(b.item.id));
+  // EVAL_DUMP=path: per-image overlay numbers as JSON, to diff two runs.
+  if (process.env.EVAL_DUMP) writeFileSync(process.env.EVAL_DUMP, JSON.stringify(results.map((r) => ({ id: r.item.id, category: r.item.category, expected: r.expected, overlay: r.overlay, risk: r.overlayRisk, dirt: r.dirt }))));
   const { report } = await import("./report");
   await report(results, { total: all.length, dropped, failed });
 }

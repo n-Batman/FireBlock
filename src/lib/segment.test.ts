@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { parseSegments, PROMPTS, segmentFrame } from "./segment";
+import { OBJECT_PROMPTS, parseAll, parseSegments, PROMPTS, segmentFrame } from "./segment";
 
 const IMAGE = "data:image/jpeg;base64,QUJD";
 
@@ -24,6 +24,30 @@ describe("parseSegments", () => {
   it("is an error when the reply has no results", () => {
     expect(() => parseSegments({ message: "nope" })).toThrow();
   });
+
+  it("reads the object reply by its own prompts: road, dog and the rest are hard excludes, plowed soil is soft", () => {
+    const tri = [[[0, 0], [10, 0], [10, 10]]];
+    const reply = {
+      prompt_results: [
+        { prompt_index: OBJECT_PROMPTS.indexOf("dog"), echo: {}, predictions: [{ confidence: 0.5, masks: tri }] },
+        { prompt_index: OBJECT_PROMPTS.indexOf("plowed soil"), echo: {}, predictions: [{ confidence: 0.5, masks: tri }] },
+        { prompt_index: OBJECT_PROMPTS.indexOf("person"), echo: {}, predictions: [{ confidence: 0.1, masks: tri }] },
+      ],
+    };
+    expect(parseSegments(reply, OBJECT_PROMPTS)).toEqual([
+      { group: "exclude", polys: tri, hard: true },
+      { group: "exclude", polys: tri },
+    ]);
+  });
+
+  it("parseAll adds the object masks, and a missing or broken object reply leaves the first call's masks as they were", () => {
+    const tri = [[[0, 0], [10, 0], [10, 10]]];
+    const main = { prompt_results: [{ prompt_index: dry, echo: {}, predictions: [{ confidence: 0.5, masks: tri }] }] };
+    const objects = { prompt_results: [{ prompt_index: OBJECT_PROMPTS.indexOf("dirt road"), echo: {}, predictions: [{ confidence: 0.5, masks: tri }] }] };
+    expect(parseAll(main, objects)).toHaveLength(2);
+    expect(parseAll(main, null)).toEqual([{ group: "dry", polys: tri }]);
+    expect(parseAll(main, { message: "nope" })).toEqual([{ group: "dry", polys: tri }]);
+  });
 });
 
 describe("segmentFrame", () => {
@@ -38,15 +62,24 @@ describe("segmentFrame", () => {
     vi.unstubAllEnvs();
   });
 
-  it("posts the raw base64 with every vegetation prompt as polygons, key in a Bearer header", async () => {
-    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ prompt_results: [] }) });
+  const ok = (reply: unknown = { prompt_results: [] }) => ({ ok: true, status: 200, json: async () => reply });
+  const promptsOf = (init: { body: string }) => (JSON.parse(init.body).prompts as { text: string }[]).map((p) => p.text);
+  /** Answers the main call from `main` and the object call from `objects`, told apart by the prompts sent. */
+  const route = (main: () => unknown, objects: () => unknown = () => ok()) =>
+    fetchMock.mockImplementation(async (_url: string, init: { body: string }) => (promptsOf(init)[0] === OBJECT_PROMPTS[0] ? objects() : main()));
+
+  it("posts the raw base64 with every vegetation prompt as polygons, key in a Bearer header, and the object prompts in a second call", async () => {
+    route(() => ok());
     await segmentFrame(IMAGE);
-    const [url, init] = fetchMock.mock.calls[0];
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [[url, init], [, objInit]] = fetchMock.mock.calls.sort(([, a], [, b]) => Number(promptsOf(a)[0] === OBJECT_PROMPTS[0]) - Number(promptsOf(b)[0] === OBJECT_PROMPTS[0]));
     expect(url).toBe("https://serverless.roboflow.com/sam3/concept_segment");
     expect(init.headers.authorization).toBe("Bearer rf-secret");
+    expect(objInit.headers.authorization).toBe("Bearer rf-secret");
     const body = JSON.parse(init.body);
     expect(body.image).toEqual({ type: "base64", value: "QUJD" });
-    expect(body.prompts.map((p: { text: string }) => p.text)).toEqual(PROMPTS);
+    expect(promptsOf(init)).toEqual(PROMPTS);
+    expect(promptsOf(objInit)).toEqual(OBJECT_PROMPTS);
     expect(body).toMatchObject({ format: "polygon", output_prob_thresh: 0.3 });
   });
 
@@ -62,16 +95,31 @@ describe("segmentFrame", () => {
 
   it("tries a 5xx again, up to twice, but not a 4xx", async () => {
     const fail = { ok: false, status: 500, json: async () => ({}) };
-    fetchMock.mockResolvedValueOnce(fail).mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ prompt_results: [] }) });
+    let calls = 0;
+    route(() => (calls++ === 0 ? fail : ok()));
     expect(await segmentFrame(IMAGE)).toEqual([]);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(calls).toBe(2);
     fetchMock.mockReset();
-    fetchMock.mockResolvedValue(fail);
+    calls = 0;
+    route(() => (calls++, fail));
     await expect(segmentFrame(IMAGE)).rejects.toMatchObject({ status: 502 });
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(calls).toBe(3);
     fetchMock.mockReset();
-    fetchMock.mockResolvedValue({ ok: false, status: 401, json: async () => ({}) });
+    calls = 0;
+    route(() => (calls++, { ok: false, status: 401, json: async () => ({}) }));
     await expect(segmentFrame(IMAGE)).rejects.toMatchObject({ status: 502 });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(calls).toBe(1);
+  });
+
+  it("adds the object masks, and scans with the first call's masks alone when the object call fails", async () => {
+    const tri = [[[0, 0], [10, 0], [10, 10]]];
+    const main = ok({ prompt_results: [{ prompt_index: 0, echo: {}, predictions: [{ confidence: 0.5, masks: tri }] }] });
+    route(() => main, () => ok({ prompt_results: [{ prompt_index: OBJECT_PROMPTS.indexOf("vehicle"), echo: {}, predictions: [{ confidence: 0.5, masks: tri }] }] }));
+    expect(await segmentFrame(IMAGE)).toEqual([{ group: "dry", polys: tri }, { group: "exclude", polys: tri, hard: true }]);
+    for (const failure of [{ ok: false, status: 500, json: async () => ({}) }, new Error("down")]) {
+      fetchMock.mockReset();
+      route(() => main, () => { if (failure instanceof Error) throw failure; return failure; });
+      expect(await segmentFrame(IMAGE)).toEqual([{ group: "dry", polys: tri }]);
+    }
   });
 });
