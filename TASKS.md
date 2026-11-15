@@ -112,6 +112,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | M21 | Address search on the map ("Search an address or vineyard", ArcGIS, SLO County only) that flies there and runs the parcel lookup; honest notices when nothing is scored or the place is outside the county | DONE |
 | M23 | Remove demo property navigation and default to Downtown SLO while keeping address search | DONE (Codex; 18 focused tests and TypeScript pass; full suite: 395 pass, 2 failures in unchanged useScanSession tests) |
 | M24 | Eval: headline-vs-overlay gap metric (VLM mode also runs SAM; report line plus worst-10 table) | DONE |
+| M25 | Reconcile the SAM overlay to the headline dry_pct inside `scan()` (gate, fill, trim) | DONE (v2 VLM gap 54/153 to 38/153, mean 19.8 to 12.0; pass/MAE and dirt FP unchanged) |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
