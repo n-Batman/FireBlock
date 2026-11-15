@@ -14,6 +14,8 @@ const abortError=()=>new DOMException("Parcel request cancelled","AbortError");
 const contains=(a:Box,b:Box)=>a[0]<=b[0]&&a[1]<=b[1]&&a[2]>=b[2]&&a[3]>=b[3];
 
 function queryBox(query:URLSearchParams):Box|null {
+  // Size-filtered queries use exact keys only. A coarse response must never
+  // claim complete coverage for a later unfiltered/detail query (or vice versa).
   if([...query.keys()].some(k=>!["bbox","lat","lon","radius"].includes(k)))return null;
   if(query.has("bbox")){
     if(query.has("lat")||query.has("lon")||query.has("radius"))return null;

@@ -59,14 +59,22 @@ function geometry(value: unknown): Polygon | MultiPolygon {
 }
 export async function findParcels(params:URLSearchParams, fetcher:typeof fetch=fetch):Promise<Parcels> {
   const spatial=searchGeometry(params);
+  const minAcres=params.has("min_acres")?Number(params.get("min_acres")):0;
+  if(params.has("min_acres")&&(!params.has("bbox")||!params.get("min_acres")?.trim()||!Number.isFinite(minAcres)||minAcres<0||minAcres>1000000))
+    throw new ParcelError("min_acres requires a bbox and a value from 0 to 1000000");
   const source=process.env.PARCEL_LAYER_URL || DEFAULT_PARCEL_LAYER;
   const url=new URL(source);
   if (url.protocol!=="https:" || !/\/(MapServer|FeatureServer)\/\d+\/?$/.test(url.pathname) || url.search || url.username || url.password) throw new ParcelError("Invalid configured parcel layer",503);
   const apn=process.env.PARCEL_ID_FIELD || "apn";
   const oid=process.env.PARCEL_OBJECT_ID_FIELD || "OBJECTID";
   if (![apn,oid].every(v=>/^[A-Za-z_][A-Za-z0-9_]*$/.test(v))) throw new ParcelError("Invalid configured parcel field",503);
+  // The county layer stores geometry area in square feet. Filter there before
+  // downloading vertices; never compute polygon area to decide what to fetch.
+  const areaField=process.env.PARCEL_AREA_FIELD||"Shape.STArea()";
+  if(minAcres&&!/^(?:[A-Za-z_][A-Za-z0-9_]*|Shape\.STArea\(\))$/.test(areaField))throw new ParcelError("Invalid configured parcel area field",503);
+  const where=minAcres?`${areaField} >= ${minAcres*43560}`:"1=1";
   url.pathname=url.pathname.replace(/\/$/,"")+"/query";
-  url.search=new URLSearchParams({...spatial,f:"geojson",where:"1=1",inSR:"4326",outSR:"4326",
+  url.search=new URLSearchParams({...spatial,f:"geojson",where,inSR:"4326",outSR:"4326",
     spatialRel:"esriSpatialRelIntersects",outFields:`${oid},${apn}`,returnGeometry:"true",
     orderByFields:oid,resultRecordCount:String(MAX_PARCELS+1),returnZ:"false",returnM:"false"}).toString();
   const response=await fetcher(url,{cache:"no-store",signal:AbortSignal.timeout(15000),redirect:"error"});

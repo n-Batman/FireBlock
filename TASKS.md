@@ -81,6 +81,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P40 | Cache parcel label centers and reduce label search refinement | DONE (Codex; 256-entry LRU keyed by ID and part/ring lengths, copied centers, three refinement rounds; 50 touched tests and TypeScript pass; local only, no PR or deployment) |
 | P41 | Document parcel system architecture and current performance behavior | DONE (Codex; PARCEL_CONTEXT.md covers lookup, scoring paths, screen-area grouping, caches, limits and verification; documentation only) |
 | P42 | Disable parcel combining and raise lookup capacity to 500 | DONE (Codex; individual-only pass-through skips camera/grouping math, shared 500-parcel service/cache/projection limit and 512-entry score/center caches; 456 tests and TypeScript pass) |
+| P43 | Skip small parcels efficiently when zooming out | DONE (Codex; fixed zoom/acreage tiers, verified provider area predicate, cached bounds and exact filtered-query cache keys; immediate retained-parcel filtering; 477 tests and TypeScript pass; no combining) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

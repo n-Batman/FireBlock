@@ -91,7 +91,7 @@ describe("useParcels", () => {
       "geometry" in p&&p.geometry.coordinates[0]===place.lon&&p.geometry.coordinates[1]===place.lat);
     expect(pointTests()).toHaveLength(0);
     // Too-wide replies do not replace the retained display/evidence version.
-    hook.rerender({view:{west:-121,south:35.5,east:-120.5,north:36,zoom:10}});
+    hook.rerender({view:{west:-121,south:35.5,east:-120.5,north:36,zoom:16}});
     await waitFor(()=>expect(hook.result.current.phase).toBe("zoom"));
     expect(hook.result.current.units[0]).toBe(a);
     expect(hook.result.current.units[1]).toBe(b);
@@ -139,10 +139,32 @@ describe("useParcels", () => {
     await waitFor(()=>expect(hook.result.current.phase).toBe('ready'));
     hook.rerender({view:{west:-121,south:35.5,east:-120.5,north:36,zoom:10}});
     await waitFor(()=>expect(hook.result.current.phase).toBe('zoom'));
-    expect(hook.result.current.units).toHaveLength(2);
+    expect(hook.result.current.units).toHaveLength(0); // Retained parcels are too small for zoom 10.
     hook.rerender({view:detail});
     await waitFor(()=>expect(hook.result.current.phase).toBe('ready'));
     expect(hook.result.current.units).toHaveLength(2);
+  });
+  it("hides retained small parcels immediately on zoom-out and reloads detail on zoom-in",async()=>{
+    const mixed={...parcelsBody,features:[parcelsBody.features[0],{
+      ...parcelsBody.features[1],geometry:{type:"Polygon",coordinates:[square(-120.85,35.63,.0001)]},
+    }]};
+    fetchMock.mockImplementation(async(url:string)=>{
+      if(!url.includes("/api/parcels"))return reply({},404);
+      const min=new URL(url,"https://local.test").searchParams.get("min_acres");
+      return reply({...mixed,features:min?[mixed.features[0]]:mixed.features});
+    });
+    const place=at(1);
+    const hook=renderHook(({view})=>useParcels(place,view),{initialProps:{view:detail}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    expect(hook.result.current.units).toHaveLength(2);
+    hook.rerender({view:{...detail,zoom:16}});
+    expect(hook.result.current.units.map(u=>u.id)).toEqual(["A-1"]);
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    expect(fetchMock.mock.calls.some(([url])=>String(url).includes("min_acres=1"))).toBe(true);
+    hook.rerender({view:detail});
+    await waitFor(()=>expect(hook.result.current.phase).toBe("ready"));
+    expect(hook.result.current.units).toHaveLength(2);
+    hook.unmount();
   });
   it("invalidates memoized parcel scores when new scan evidence arrives", async () => {
     routes({risk:riskMap});

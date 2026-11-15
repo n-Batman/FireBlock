@@ -10,6 +10,7 @@ import { toGeoJSON } from "./parcelUnits";
 import { useParcelScans } from "./useParcelScans";
 import { ParcelScoreCache } from "./parcelScoreCache";
 import { insideSlo } from "./geocode";
+import { minParcelAcres } from "./parcelDisplayConfig";
 
 export interface ParcelState {
   /** "zoom" means the view exceeds the county query limit; loaded parcels remain. */
@@ -101,10 +102,15 @@ export function useParcels(place: Place | null, view: View | null = null): Parce
       score: scoreCache.get(u,()=>scoreParcel(u, scans, cells)),
     }));
   }, [display, place, scans, cells, scoreCache]);
-  const units = useMemo(() => scoredUnits.filter(u=>!view||u.parts.some(part=>{
-    const xs=part[0].map(p=>p[1]),ys=part[0].map(p=>p[0]);
-    return Math.min(...xs)<=view.east&&Math.max(...xs)>=view.west&&Math.min(...ys)<=view.north&&Math.max(...ys)>=view.south;
-  })), [scoredUnits, view]);
+  // Compute bounds once per scored response, not by walking vertices on each pan.
+  const boundedUnits=useMemo(()=>scoredUnits.map(unit=>({unit,boxes:unit.parts.map(part=>
+    part[0].reduce((b,p)=>[Math.min(b[0],p[1]),Math.min(b[1],p[0]),Math.max(b[2],p[1]),Math.max(b[3],p[0])],
+      [Infinity,Infinity,-Infinity,-Infinity]))})),[scoredUnits]);
+  const units = useMemo(() => {
+    const minAcres=minParcelAcres(view?.zoom);
+    return boundedUnits.filter(({unit,boxes})=>(minAcres===0||unit.acres>=minAcres)&&
+      (!view||boxes.some(([w,s,e,n])=>w<=view.east&&e>=view.west&&s<=view.north&&n>=view.south))).map(({unit})=>unit);
+  }, [boundedUnits, view]);
 
   if (!place) return { phase: "idle", units: [], truncated: false, message: null };
   if (outside) return { phase: "outside", units: [], truncated: false, message: null };

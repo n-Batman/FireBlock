@@ -107,10 +107,16 @@ describe("lookupParcels", () => {
     expect(fetcher).toHaveBeenCalledTimes(1); // the wide view never reached the API
   });
 
-  it('requests a bounded viewport regardless of its zoom number',async()=>{
+  it('requests only larger parcels in a zoomed-out viewport',async()=>{
     const fetcher=vi.fn().mockResolvedValue(reply(body()));
     expect(await lookupParcelsInView({west:-120.86,south:35.63,east:-120.85,north:35.64,zoom:16},{fetcher})).toMatchObject({kind:'ok'});
     expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(new URL(fetcher.mock.calls[0][0],'https://local.test').searchParams.get('min_acres')).toBe('1');
+  });
+  it("removes the acreage filter again at detail zoom",async()=>{
+    const fetcher=vi.fn().mockResolvedValue(reply(body()));
+    await lookupParcelsInView({west:-120.86,south:35.63,east:-120.85,north:35.64,zoom:17},{fetcher});
+    expect(new URL(fetcher.mock.calls[0][0],'https://local.test').searchParams.has('min_acres')).toBe(false);
   });
 
   it("does not call the API outside SLO County", async () => {

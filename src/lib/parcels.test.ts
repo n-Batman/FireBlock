@@ -6,6 +6,23 @@ const polygon={type:"Polygon",coordinates:[[[0,0],[1,0],[1,1],[0,0]]]};
 const feature={type:"Feature",geometry:polygon,properties:{apn:"012-345-678",OBJECTID:7,assessee:"Do not expose"}};
 afterEach(()=>vi.unstubAllGlobals());
 describe("parcel spatial lookup",()=>{
+  it("filters by the county's stored square-foot area before requesting geometry",async()=>{
+    const fetcher=vi.fn<typeof fetch>().mockImplementation(async()=>Response.json({type:"FeatureCollection",features:[]}));
+    await findParcels(new URLSearchParams("bbox=-120.66,35.27,-120.65,35.28&min_acres=4"),fetcher);
+    expect(new URL(String(fetcher.mock.calls[0][0])).searchParams.get("where")).toBe("Shape.STArea() >= 174240");
+    await findParcels(new URLSearchParams("bbox=-120.66,35.27,-120.65,35.28"),fetcher);
+    expect(new URL(String(fetcher.mock.calls[1][0])).searchParams.get("where")).toBe("1=1");
+  });
+  it.each(["-1","NaN","Infinity","1000001","4 OR 1=1",""])("rejects invalid acreage filter %s before HTTP",async value=>{
+    const fetcher=vi.fn();
+    await expect(findParcels(new URLSearchParams({bbox:"-120.66,35.27,-120.65,35.28",min_acres:value}),fetcher)).rejects.toThrow(/min_acres/);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("does not apply acreage filtering to exact point lookups",async()=>{
+    const fetcher=vi.fn();
+    await expect(findParcels(new URLSearchParams("lat=35.28&lon=-120.65&min_acres=1"),fetcher)).rejects.toThrow(/min_acres/);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
   it("builds enclosing point and bounded envelope queries with longitude first",()=>{
     expect(JSON.parse(searchGeometry(new URLSearchParams("lat=35.28&lon=-120.65")).geometry).x).toBe(-120.65);
     expect(searchGeometry(new URLSearchParams("lat=35.28&lon=-120.65&radius=100")).geometryType).toBe("esriGeometryEnvelope");

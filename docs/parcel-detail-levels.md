@@ -7,6 +7,14 @@ union work or outline cache. `parcelDisplay.ts` remains for reference and legacy
 unit tests but has no active rendering caller. The API reports
 `X-FireBlock-Parcel-Display: individual-parcels` without a screen threshold.
 
+Small parcels are now skipped using fixed acreage tiers: all sizes at zoom 17+,
+1 acre at 16, 4 at 15, 16 at 14, 64 at 13, and 256 below 13. Viewport requests
+send `min_acres`; the county's square-foot area field filters before geometry is
+downloaded. Retained parcels use their existing acreage for immediate filtering
+on zoom-out. Point/radius searches are unaffected. Bounds are memoized per scored
+response; panning needs only numeric comparisons, not new polygon area or union
+calculations. Filtered cache entries are reused only for identical query keys.
+
 The following grouping description is historical and inactive:
 
 Individual parcel visibility has no fixed zoom cutoff. A parcel remains an

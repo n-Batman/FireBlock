@@ -13,7 +13,8 @@ belong to Milo. Coordinate shared changes to `src/data/types.ts`.
 2. `src/components/RiskMap.tsx` reports camera bounds after movement settles
    (400 ms). It renders the returned parcel units and uses `useParcelDisplay`
    from `src/lib/ParcelAreas.tsx`, which now passes all units through as
-   individuals without running the retained grouping implementation.
+   individuals without running the retained grouping implementation. The hook
+   already filters out parcels below the current zoom's acreage tier.
 3. `src/lib/useParcels.ts` calls `lookupParcelsInView` in `parcelApi.ts`.
    Requests flow through the browser-session cache in `parcelCache.ts` to
    `GET /api/parcels`, implemented in `src/app/api/parcels/route.ts`.
@@ -49,6 +50,18 @@ simple field names are accepted.
   most 200,000 vertices per feature. GIS boundaries are not surveyed boundaries.
 - The main hook rejects chosen points outside its SLO coverage check. A viewport
   over 25 km2 returns `too-wide` without requesting boundaries.
+
+Viewport lookups send `min_acres` at lower zooms: zoom 17+ includes all sizes,
+16 requires 1 acre, 15 requires 4 acres, 14 requires 16 acres, 13 requires
+64 acres, and lower zooms require 256 acres. These are fixed comparisons in
+`minParcelAcres`, not screen-area calculations. Fractional zooms use the same
+intervals; missing zoom defaults to full detail. Exact-point and radius searches
+remain unfiltered.
+
+The API validates `min_acres` and applies `Shape.STArea() >= min_acres * 43560`
+at the county service before requesting geometry. The county layer's area is in
+square feet. Custom layers can set `PARCEL_AREA_FIELD` to a simple numeric field
+name with the same units. The 25 km2/500-parcel/download limits still apply.
 
 Raising the cap requires coordinated changes: `parcels.ts` caps responses,
 `parcelCache.ts` rejects cacheable payloads over 500 features, and
@@ -86,8 +99,13 @@ The hook deliberately uses two memos:
 
 - `scoredUnits` computes `atPoint` and scores from display geometry, place,
   scans, cells, and the evidence-version score cache. It does not depend on view.
-- `units` applies only the viewport bounding-box filter to those scored units.
+- Bounds are memoized from the scored response once, avoiding vertex walks on pan.
+- `units` applies the acreage-tier and viewport bounding-box comparisons to those units.
   Panning with unchanged display/evidence reuses the same parcel objects.
+
+Zooming out hides retained undersized parcels immediately, including during a
+pending request or a too-wide view. A zoom-in requests full detail again rather
+than treating a coarse response as complete fine coverage.
 
 `src/lib/parcelScore.ts` applies this priority:
 
@@ -111,7 +129,7 @@ original parcel array as `individuals` and an empty `areas` array. It does not
 subscribe to camera events, instantiate an outline cache, or call
 `parcelDisplay`, `parcelScreenFraction`, clipping, union, or grouping score math.
 Every loaded, viewport-filtered parcel keeps its own boundary, score and click
-target regardless of screen size. The API identifies this as
+target if it meets the current acreage tier. The API identifies this as
 `X-FireBlock-Parcel-Display: individual-parcels` and no longer reports an active
 screen threshold.
 
@@ -154,6 +172,9 @@ its member geometry; zooming in restores individual parcel boundaries.
 
 Boundary caching stores public geometry and whitelisted metadata only, not
 addresses, photos, or scan GPS data. It is memory-only and cleared on page exit.
+Queries containing `min_acres` reuse exact query keys only. They do not reuse
+containing-envelope coverage across differing filters, so a coarse result can
+never suppress the fine-detail request on zoom-in.
 Always preserve the native fetch receiver (`fetcher.call(globalThis, ...)`):
 binding native fetch to a cache object previously caused `Illegal invocation`
 before any HTTP request. Automatic nearby preloading is disabled; its helper

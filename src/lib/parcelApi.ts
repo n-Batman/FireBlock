@@ -5,6 +5,7 @@ import { insideSlo, type Fetcher } from "./geocode";
 import type { Parcels } from "./parcels";
 import { toGeoJSON, toParcelUnits } from "./parcelUnits";
 import { fetchParcelResponse } from "./parcelCache";
+import { minParcelAcres } from "./parcelDisplayConfig";
 
 export type ParcelLookup =
   | { kind: "ok"; units: ParcelUnit[]; truncated: boolean }
@@ -83,7 +84,7 @@ export interface View {
   south: number;
   east: number;
   north: number;
-  /** Leaflet zoom; below the detail threshold no individual boundaries are requested. */
+  /** Leaflet zoom; lower levels request only larger parcels. */
   zoom?: number;
 }
 
@@ -101,7 +102,10 @@ export type ViewLookup = Exclude<ParcelLookup, { kind: "outside" }> | { kind: "t
 export async function lookupParcelsInView(view: View, { fetcher = fetch, signal }: Options = {}): Promise<ViewLookup> {
   if (viewAreaKm2(view) > MAX_VIEW_KM2) return { kind: "too-wide" };
   const bbox = [view.west, view.south, view.east, view.north].join(",");
-  return request(new URLSearchParams({ bbox }), fetcher, signal);
+  const query=new URLSearchParams({bbox});
+  const minAcres=minParcelAcres(view.zoom);
+  if(minAcres)query.set("min_acres",String(minAcres));
+  return request(query, fetcher, signal);
 }
 
 /** The parcel(s) at the exact point. Any failure but an abort gives none, and the 300 m list stands. */

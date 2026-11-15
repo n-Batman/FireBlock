@@ -12,6 +12,19 @@ const reply=(value=body(),status=200)=>new Response(JSON.stringify(value),{statu
 afterEach(()=>{for(const c of caches)c.clear();caches.length=0;clearParcelCache();vi.unstubAllGlobals();vi.useRealTimers();});
 
 describe("bounded parcel session cache",()=>{
+  it("reuses exact acreage queries without mixing coarse and full-detail coverage",async()=>{
+    const fetcher=vi.fn().mockImplementation(async()=>reply());const c=cache(fetcher);
+    const coarse=new URLSearchParams({bbox:"0,0,3,3",min_acres:"4"});
+    await c.request(coarse);await c.request(coarse);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    await c.request(query("1,1,1.5,1.5"));
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    await c.request(new URLSearchParams({bbox:"1,1,1.5,1.5",min_acres:"1"}));
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    // Even unfiltered cached geometry cannot bypass the server's area predicate.
+    await c.request(new URLSearchParams({bbox:"1,1,1.5,1.5",min_acres:"16"}));
+    expect(fetcher).toHaveBeenCalledTimes(4);
+  });
   it("caches a full 500-parcel response but declines oversized feature counts",async()=>{
     for(const count of [500,501]){
       const value=body();value.features=Array.from({length:count},(_,i)=>({...value.features[0],properties:{...value.features[0].properties,parcelId:String(i)}}));
