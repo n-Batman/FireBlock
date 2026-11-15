@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ParcelScan } from "@/data/types";
-import { loadParcelReset, loadParcelScans, PARCEL_RESET_KEY, PARCEL_SCAN_KEY, saveParcelReset, saveParcelScan } from "./parcelScanStore";
+import { clearParcelFix, loadParcelFix, loadParcelReset, loadParcelScans, loadRescanSpot, PARCEL_FIX_KEY, PARCEL_MARKS_EVENT, PARCEL_RESET_KEY, PARCEL_SCAN_KEY, saveParcelFix, saveParcelReset, saveParcelScan, saveRescanSpot } from "./parcelScanStore";
 
 const memory = (initial?: string) => {
   let value = initial ?? null;
@@ -88,5 +88,57 @@ describe("parcel reset marker", () => {
     const store = memory("{broken");
     saveParcelReset(store, "a", "2026-11-15T00:00:00Z");
     expect(loadParcelReset(store, "a")).toBe("2026-11-15T00:00:00Z");
+  });
+});
+
+describe("parcel mowed mark", () => {
+  it("reads nothing, bad data and other parcels as not marked", () => {
+    expect(loadParcelFix(memory(), "a")).toBeNull();
+    expect(loadParcelFix(memory("nope"), "a")).toBeNull();
+    expect(loadParcelFix(memory(JSON.stringify({ a: { apn: "a", at: "yesterday" }, b: { apn: "b", at: "2026-11-15T00:00:00Z" } })), "a")).toBeNull();
+  });
+
+  it("saves a mark with its note per parcel, under its own key, and removes only that parcel's", () => {
+    const store = memory();
+    saveParcelFix(store, { apn: "a", at: "2026-11-15T18:00:00Z", note: "Mowed to 4 in" });
+    saveParcelFix(store, { apn: "b", at: "2026-11-16T18:00:00Z" });
+    expect(loadParcelFix(store, "a")).toEqual({ apn: "a", at: "2026-11-15T18:00:00Z", note: "Mowed to 4 in" });
+    expect(loadParcelFix(store, "b")).toEqual({ apn: "b", at: "2026-11-16T18:00:00Z" });
+    clearParcelFix(store, "a");
+    expect(loadParcelFix(store, "a")).toBeNull();
+    expect(loadParcelFix(store, "b")).not.toBeNull();
+    expect(PARCEL_FIX_KEY).toBe("fireblock.parcelFixes.v1");
+  });
+
+  it("trims the note, cuts it at 80 characters and leaves out an empty one", () => {
+    const store = memory();
+    saveParcelFix(store, { apn: "a", at: "2026-11-15T18:00:00Z", note: "   " });
+    expect(loadParcelFix(store, "a")).toEqual({ apn: "a", at: "2026-11-15T18:00:00Z" });
+    saveParcelFix(store, { apn: "a", at: "2026-11-15T18:00:00Z", note: `  ${"x".repeat(120)}  ` });
+    expect(loadParcelFix(store, "a")!.note).toHaveLength(80);
+  });
+
+  it("announces fix and reset writes on the window, so open panels and the map update together", () => {
+    const heard = vi.fn();
+    window.addEventListener(PARCEL_MARKS_EVENT, heard);
+    const store = memory();
+    saveParcelFix(store, { apn: "a", at: "2026-11-15T18:00:00Z" });
+    clearParcelFix(store, "a");
+    saveParcelReset(store, "a", "2026-11-15T18:00:00Z");
+    window.removeEventListener(PARCEL_MARKS_EVENT, heard);
+    expect(heard).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("rescan spot handoff", () => {
+  it("returns the spot only for the parcel it was saved for, and nothing for bad data", () => {
+    let raw: string | null = null;
+    const storage = { getItem: () => raw, setItem: (_k: string, v: string) => void (raw = v) };
+    expect(loadRescanSpot(storage, "a")).toBeNull();
+    saveRescanSpot(storage, "a", { lat: 35.632, lon: -120.853 });
+    expect(loadRescanSpot(storage, "a")).toEqual({ lat: 35.632, lon: -120.853 });
+    expect(loadRescanSpot(storage, "b")).toBeNull();
+    raw = "{broken";
+    expect(loadRescanSpot(storage, "a")).toBeNull();
   });
 });

@@ -28,6 +28,7 @@ import { useWide } from "@/lib/useWide";
 import type { Place } from "@/lib/geocode";
 import { ParcelOverlay } from "@/lib/ParcelOverlay";
 import { ParcelAreas, useParcelDisplay } from "@/lib/ParcelAreas";
+import { ScanSpotPins, type ScanSpots } from "./ScanSpotPins";
 
 // Literal colors for Leaflet: the risk colors from DESIGN.md.
 const RISK_COLOR: Record<Level, string> = { low: "#5db67f", medium: "#e0a83a", high: "#e5675a" };
@@ -296,9 +297,11 @@ interface RiskMapProps {
   onView?: (view: View) => void;
   /** Share the regional grid already fetched by the overlay with parcel scoring. */
   onGridChange?: (grid: RiskGrid | null) => void;
+  /** Pins for the selected parcel's first scan and latest scan. */
+  scanSpots?: ScanSpots | null;
 }
 
-export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null, parcels = null, onPoint, onView, onGridChange }: RiskMapProps) {
+export default function RiskMap({ property, selectedId, onSelect, panelOpen, place = null, parcels = null, onPoint, onView, onGridChange, scanSpots = null }: RiskMapProps) {
   const wide = useWide();
   const tiles = tileSource(process.env.NEXT_PUBLIC_ARCGIS_KEY);
   // Three failed tiles in a row means the imagery is not loading. Say so instead of staying grey.
@@ -374,6 +377,7 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
         <PlaceFocus place={place} />
 
         {parcels && <ParcelPolygons parcels={parcels} selectedId={selectedId} onSelect={onSelect} />}
+        {parcels && <ScanSpotPins spots={scanSpots} />}
 
         {blocks.map((block) => {
           const dim = selected !== null && block.id !== selected.id;

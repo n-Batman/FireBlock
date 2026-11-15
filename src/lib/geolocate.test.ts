@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { currentPosition, LocationError } from "./geolocate";
+import { currentPosition, LocationError, metresBetween, RESCAN_RADIUS_M } from "./geolocate";
 
 type Success = (p: { coords: { latitude: number; longitude: number } }) => void;
 type Failure = (e: { code: number }) => void;
@@ -46,5 +46,23 @@ describe("currentPosition", () => {
   it("rejects a position that is not a real latitude and longitude", async () => {
     const geo = fake((ok) => ok({ coords: { latitude: Number.NaN, longitude: -120 } }));
     await expect(currentPosition(geo)).rejects.toBeInstanceOf(LocationError);
+  });
+});
+
+describe("metresBetween", () => {
+  it("is zero for the same point and about 111 km per degree of latitude", () => {
+    const here = { lat: 35.632, lon: -120.853 };
+    expect(metresBetween(here, here)).toBe(0);
+    expect(metresBetween(here, { lat: here.lat + 1, lon: here.lon })).toBeGreaterThan(111_000);
+    expect(metresBetween(here, { lat: here.lat + 1, lon: here.lon })).toBeLessThan(111_400);
+  });
+
+  it("tells 12 m from 40 m around the 25 m rescan radius", () => {
+    const first = { lat: 35.632, lon: -120.853 };
+    const north = (m: number) => ({ lat: first.lat + m / 111_195, lon: first.lon });
+    expect(metresBetween(first, north(12))).toBeCloseTo(12, 0);
+    expect(metresBetween(first, north(12))).toBeLessThan(RESCAN_RADIUS_M);
+    expect(metresBetween(first, north(40))).toBeGreaterThan(RESCAN_RADIUS_M);
+    expect(RESCAN_RADIUS_M).toBe(25);
   });
 });

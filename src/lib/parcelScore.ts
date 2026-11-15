@@ -146,10 +146,20 @@ export function scoreFromScans(unit: ParcelUnit, scans: ParcelScan[]): ParcelSco
   };
 }
 
-/** One end of a before/after: the scan's score and when it was saved. */
+/** One end of a before/after: the scan's score, when it was saved and where. */
 export interface ScanPoint {
   score: number;
   at: string;
+  lat: number;
+  lon: number;
+}
+
+const scanPoint = (s: ParcelScan): ScanPoint => ({ score: percent(s), at: s.at, lat: s.lat, lon: s.lon });
+
+/** The parcel's scans since its reset marker (all of them with none), newest first. */
+function scansSince(unit: ParcelUnit, scans: ParcelScan[], since?: string | null): ParcelScan[] {
+  const floor = since ? Date.parse(since) : -Infinity;
+  return scansInside(unit, scans).filter((s) => Date.parse(s.at) > floor);
 }
 
 /**
@@ -159,12 +169,22 @@ export interface ScanPoint {
  * (docs/parcel-scan-archive.md), which the browser cannot read: it needs the server's token.
  */
 export function beforeAfter(unit: ParcelUnit, scans: ParcelScan[], since?: string | null): { before: ScanPoint; after: ScanPoint; improvement: number } | null {
-  const floor = since ? Date.parse(since) : -Infinity;
-  const inside = scansInside(unit, scans).filter((s) => Date.parse(s.at) > floor);
+  const inside = scansSince(unit, scans, since);
   if (inside.length < 2) return null;
-  const point = (s: ParcelScan): ScanPoint => ({ score: percent(s), at: s.at });
-  const [before, after] = [point(inside[inside.length - 1]), point(inside[0])];
+  const [before, after] = [scanPoint(inside[inside.length - 1]), scanPoint(inside[0])];
   return { before, after, improvement: before.score - after.score };
+}
+
+/** Where the first scan since the reset was saved, and the newest one once there is a second. Null with no scan. */
+export function scanSpots(unit: ParcelUnit, scans: ParcelScan[], since?: string | null): { before: ScanPoint; after?: ScanPoint } | null {
+  const inside = scansSince(unit, scans, since);
+  if (!inside.length) return null;
+  return { before: scanPoint(inside[inside.length - 1]), ...(inside.length > 1 ? { after: scanPoint(inside[0]) } : {}) };
+}
+
+/** True when a scan saved inside the parcel is later than `at` (a mowed mark's date): the fix has been rescanned. */
+export function hasScanAfter(unit: ParcelUnit, scans: ParcelScan[], at: string): boolean {
+  return scansInside(unit, scans).some((s) => Date.parse(s.at) > Date.parse(at));
 }
 
 /** A scan saved inside the parcel wins over the risk map. With neither, there is no score. */

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { ListBullets, MapPinLine } from "@phosphor-icons/react";
@@ -19,7 +19,9 @@ import { WeatherStrip } from "@/components/WeatherStrip";
 import type { Place } from "@/lib/geocode";
 import type { View } from "@/lib/parcelApi";
 import { useParcels } from "@/lib/useParcels";
-import { cellsFromRiskMap, type RiskCell } from "@/lib/parcelScore";
+import { cellsFromRiskMap, scanSpots as spotsOf, type RiskCell } from "@/lib/parcelScore";
+import { useParcelMarks } from "@/lib/useParcelMarks";
+import { useParcelScans } from "@/lib/useParcelScans";
 import type { RiskGrid } from "@/lib/parcelRisk";
 import { useWide } from "@/lib/useWide";
 
@@ -69,6 +71,10 @@ function MapShell() {
   const units = parcelState.units;
   const selectedParcel = units.find((u) => u.id === selectedId) ?? null;
   const hasSelection = selectedParcel !== null;
+  // Pins for the selected parcel's first and newest scan, the same pair its before/after row shows.
+  const scans = useParcelScans();
+  const { resetAt } = useParcelMarks(selectedParcel?.id ?? null);
+  const scanSpots = useMemo(() => (selectedParcel ? spotsOf(selectedParcel, scans, resetAt) : null), [selectedParcel, scans, resetAt]);
 
   useEffect(() => {
     if (!hasSelection) return;
@@ -128,6 +134,7 @@ function MapShell() {
           onPoint={onPoint}
           onView={setView}
           onGridChange={onGridChange}
+          scanSpots={scanSpots}
         />
       </div>
 

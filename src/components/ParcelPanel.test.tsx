@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ParcelUnit } from "@/data/types";
 import { scaleColor } from "@/lib/riskScale";
-import { PARCEL_RESET_KEY, PARCEL_SCAN_KEY } from "@/lib/parcelScanStore";
+import { PARCEL_FIX_KEY, PARCEL_RESET_KEY, PARCEL_SCAN_KEY, RESCAN_SPOT_KEY } from "@/lib/parcelScanStore";
 import { ParcelPanel } from "./ParcelPanel";
 
 const ring: [number, number][] = [
@@ -29,9 +29,13 @@ const memoryStorage = {
   removeItem: (k: string) => void store.delete(k),
   clear: () => store.clear(),
 };
+const session = new Map<string, string>();
+const memorySession = { ...memoryStorage, getItem: (k: string) => session.get(k) ?? null, setItem: (k: string, v: string) => void session.set(k, v), removeItem: (k: string) => void session.delete(k), clear: () => session.clear() };
 beforeEach(() => {
   store.clear();
+  session.clear();
   vi.stubGlobal("localStorage", memoryStorage);
+  vi.stubGlobal("sessionStorage", memorySession);
 });
 
 describe("ParcelPanel before and after", () => {
@@ -69,6 +73,74 @@ describe("ParcelPanel before and after", () => {
     window.localStorage.setItem(PARCEL_RESET_KEY, JSON.stringify({ "014-331-010": "2026-11-17T00:00:00Z" }));
     render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
     expect(screen.queryByTestId("before-after")).toBeNull();
+  });
+});
+
+describe("ParcelPanel mowed mark", () => {
+  const scanAt = (risks: number, clears: number, at: string) => ({ lat: 35.632, lon: -120.853, risks, clears, at });
+  const save = (...scans: ReturnType<typeof scanAt>[]) => store.set(PARCEL_SCAN_KEY, JSON.stringify(scans));
+  const fixAt = (at: string, note?: string) => store.set(PARCEL_FIX_KEY, JSON.stringify({ "014-331-010": { apn: "014-331-010", at, ...(note ? { note } : {}) } }));
+
+  it("saves the mark with its note, shows it by date, and unmarks", async () => {
+    render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
+    expect(screen.queryByTestId("mowed")).toBeNull();
+    await userEvent.type(screen.getByLabelText("Note (optional)"), "Mowed to 4 in");
+    await userEvent.click(screen.getByRole("button", { name: "Mark as mowed" }));
+    const saved = JSON.parse(store.get(PARCEL_FIX_KEY)!)["014-331-010"];
+    expect(saved).toMatchObject({ apn: "014-331-010", note: "Mowed to 4 in" });
+    expect(Number.isFinite(Date.parse(saved.at))).toBe(true);
+    expect(screen.getByTestId("mowed")).toHaveTextContent(/^Marked mowed [A-Z][a-z]{2} \d{1,2}: Mowed to 4 in/);
+    expect(screen.queryByRole("button", { name: "Mark as mowed" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Unmark" }));
+    expect(screen.queryByTestId("mowed")).toBeNull();
+    expect(JSON.parse(store.get(PARCEL_FIX_KEY)!)).toEqual({});
+    expect(screen.getByRole("button", { name: "Mark as mowed" })).toBeInTheDocument();
+  });
+
+  it("saves a mark with no note, and a note longer than the field is cut", async () => {
+    render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
+    await userEvent.click(screen.getByRole("button", { name: "Mark as mowed" }));
+    expect(JSON.parse(store.get(PARCEL_FIX_KEY)!)["014-331-010"].note).toBeUndefined();
+  });
+
+  it("asks to rescan while no scan is later than the mark", () => {
+    save(scanAt(3, 1, "2026-11-14T10:00:00Z"));
+    fixAt("2026-11-15T18:00:00Z");
+    render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
+    expect(screen.getByText("Marked mowed Nov 15")).toBeInTheDocument();
+    expect(screen.getByText("Rescan to prove it")).toBeInTheDocument();
+  });
+
+  it("drops the prompt once a scan inside the parcel is later than the mark", () => {
+    save(scanAt(3, 1, "2026-11-14T10:00:00Z"), scanAt(1, 3, "2026-11-16T10:00:00Z"));
+    fixAt("2026-11-15T18:00:00Z");
+    render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
+    expect(screen.getByText("Marked mowed Nov 15")).toBeInTheDocument();
+    expect(screen.queryByText("Rescan to prove it")).toBeNull();
+  });
+
+  it("puts the mowed date between the before and after scans, and leaves it out when it is outside them", () => {
+    save(scanAt(3, 1, "2026-11-14T10:00:00Z"), scanAt(1, 3, "2026-11-16T10:00:00Z"));
+    fixAt("2026-11-15T18:00:00Z");
+    const { unmount } = render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
+    const text = screen.getByTestId("before-after").textContent!;
+    expect(text.indexOf("Before")).toBeLessThan(text.indexOf("Mowed Nov 15"));
+    expect(text.indexOf("Mowed Nov 15")).toBeLessThan(text.indexOf("After"));
+    unmount();
+    fixAt("2026-11-18T18:00:00Z");
+    render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
+    expect(screen.getByTestId("before-after").textContent).not.toContain("Mowed");
+  });
+
+  it("hands the first scan's spot to the scanner for this tab when Scan again is clicked, not in the address", async () => {
+    save(scanAt(3, 1, "2026-11-14T10:00:00Z"));
+    const score = { score: 75, level: "high" as const, source: { kind: "scan" as const, at: "2026-11-14T10:00:00Z", risks: 3, clears: 1 } };
+    render(<ParcelPanel parcel={parcel({ score })} onClose={() => {}} />);
+    const link = screen.getByRole("link", { name: "Scan again" });
+    link.addEventListener("click", (e) => e.preventDefault());
+    await userEvent.click(link);
+    expect(JSON.parse(session.get(RESCAN_SPOT_KEY)!)).toEqual({ apn: "014-331-010", lat: 35.632, lon: -120.853 });
+    expect(link.getAttribute("href")).not.toMatch(/35\.63/);
   });
 });
 
