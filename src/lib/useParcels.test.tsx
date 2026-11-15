@@ -9,6 +9,7 @@ import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import * as parcelApi from "./parcelApi";
 import {toParcelUnits} from "./parcelUnits";
 import type {Parcels} from "./parcels";
+import {cellsFromRiskMap, type RiskCell} from "./parcelScore";
 
 vi.mock("@turf/boolean-point-in-polygon",async importOriginal=>{
   const actual=await importOriginal<typeof import("@turf/boolean-point-in-polygon")>();
@@ -39,11 +40,12 @@ const riskMap = {
 
 const reply = (json: unknown, status = 200) => ({ ok: status < 400, status, json: async () => json });
 const fetchMock = vi.fn();
-/** Routes the parcel API and the optional risk-map file. */
+let suppliedCells:RiskCell[]=[];
+/** The hook receives regional cells from the map's existing grid request. */
 function routes(over: { parcels?: () => Promise<unknown>; risk?: unknown } = {}) {
+  suppliedCells=over.risk?cellsFromRiskMap(over.risk):[];
   fetchMock.mockImplementation(async (url: string) => {
     if (url.includes("/api/parcels")) return over.parcels ? over.parcels() : reply(parcelsBody);
-    if (url.includes("/data/risk_map.geojson")) return over.risk ? reply(over.risk) : reply({}, 404);
     throw new Error(`unexpected ${url}`);
   });
 }
@@ -60,6 +62,7 @@ const memoryStorage = {
 beforeEach(() => {
   clearParcelCache();
   store.clear();
+  suppliedCells=[];
   vi.stubGlobal("localStorage", memoryStorage);
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -72,7 +75,7 @@ afterEach(() => {
 
 const at = (id: number, lat = 35.632, lon = -120.858) => ({ lat, lon, id });
 const detail:View={west:-120.87,south:35.62,east:-120.84,north:35.64,zoom:17};
-const useParcels=(place:Parameters<typeof useViewportParcels>[0],view:View|null=detail)=>useViewportParcels(place,view);
+const useParcels=(place:Parameters<typeof useViewportParcels>[0],view:View|null=detail)=>useViewportParcels(place,view,suppliedCells);
 
 describe("useParcels", () => {
   it("reuses displayed parcel objects for cloned and reordered identical APN results",async()=>{
@@ -140,7 +143,7 @@ describe("useParcels", () => {
   it("filters retained units on view changes without repeating point tests or score lookups",async()=>{
     routes({risk:riskMap});
     const place=at(1);
-    const hook=renderHook(({view}:{view:View|null})=>useViewportParcels(place,view),{initialProps:{view:detail as View|null}});
+    const hook=renderHook(({view}:{view:View|null})=>useViewportParcels(place,view,suppliedCells),{initialProps:{view:detail as View|null}});
     await waitFor(()=>expect(hook.result.current.units[0]?.score?.score).toBe(40));
     const [a,b]=hook.result.current.units;
     expect(a.atPoint).toBe(true);expect(b.atPoint).toBe(false);
@@ -185,7 +188,7 @@ describe("useParcels", () => {
   });
   it('loads parcels at every zoom and restores them after zoom-out and zoom-in',async()=>{
     routes({risk:riskMap});
-    const hook=renderHook(({view}:{view:View|null})=>useViewportParcels(at(1),view),{initialProps:{view:null as View|null}});
+    const hook=renderHook(({view}:{view:View|null})=>useViewportParcels(at(1),view,suppliedCells),{initialProps:{view:null as View|null}});
     expect(fetchMock.mock.calls.filter(([url])=>String(url).includes('/api/parcels'))).toHaveLength(0);
     hook.rerender({view:{...detail,zoom:16}});
     await waitFor(()=>expect(hook.result.current.phase).toBe('ready'));
@@ -291,7 +294,7 @@ describe("useParcels", () => {
     expect(b.score).toBeNull();
   });
 
-  it("scores parcels from public/data/risk_map.geojson when it exists", async () => {
+  it("scores parcels from shared regional cells without fetching the static map", async () => {
     routes({ risk: riskMap });
     const { result } = renderHook(() => useParcels(at(1)));
     await waitFor(() => {
@@ -299,9 +302,10 @@ describe("useParcels", () => {
       expect(result.current.units.every((u) => u.score !== null)).toBe(true);
     });
     expect(result.current.units[0].score).toMatchObject({ score: 40, source: { kind: "risk-map", modelId: "m1" } });
+    expect(fetchMock.mock.calls.every(([url])=>String(url).includes("/api/parcels"))).toBe(true);
   });
 
-  it("falls back to unscored, with no error, when there is no risk map file", async () => {
+  it("falls back to unscored, with no error, when no regional cells are loaded", async () => {
     routes();
     const { result } = renderHook(() => useParcels(at(1)));
     await waitFor(() => expect(result.current.phase).toBe("ready"));

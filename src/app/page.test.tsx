@@ -4,7 +4,10 @@ import Home from "./page";
 
 const state = vi.hoisted(() => ({ params: new URLSearchParams(), parcels: vi.fn() }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => state.params }));
-vi.mock("next/dynamic", () => ({ default: () => (props: { place: { lat: number; lon: number }; parcels: unknown[] }) => <div data-testid="map" data-lat={props.place.lat} data-lon={props.place.lon} data-parcels={props.parcels.length} /> }));
+vi.mock("next/dynamic", () => ({ default: () => (props: { place: { lat: number; lon: number }; parcels: unknown[]; onGridChange: (grid:unknown)=>void }) => <div data-testid="map" data-lat={props.place.lat} data-lon={props.place.lon} data-parcels={props.parcels.length}>
+  <button onClick={()=>props.onGridChange({type:"FeatureCollection",features:[{type:"Feature",geometry:{type:"Polygon",coordinates:[[[-120.66,35.28],[-120.65,35.28],[-120.65,35.29],[-120.66,35.29],[-120.66,35.28]]]},properties:{layer:"relative_risk",cell_id:"regional",risk_score:62,model_id:"regional-model",as_of:"2026-11-14T00:00:00Z"}}]})}>Loaded regional grid</button>
+  <button onClick={()=>props.onGridChange(null)}>Grid unavailable</button>
+</div> }));
 vi.mock("@/lib/useParcels", () => ({ useParcels: (...args: unknown[]) => { state.parcels(...args); return { units: [], phase: "loading", truncated: false }; } }));
 vi.mock("@/lib/useWide", () => ({ useWide: () => true }));
 vi.mock("@/components/AddressSearch", () => ({ AddressSearch: ({ onSelect }: { onSelect: (p: unknown) => void }) => <button onClick={() => onSelect({ lat: 35.6, lon: -120.7, label: "Searched address" })}>Search address</button> }));
@@ -14,6 +17,14 @@ vi.mock("@/components/Legend", () => ({ Legend: () => null }));
 vi.mock("@/components/ParcelPanel", () => ({ ParcelPanel: () => null }));
 
 describe("map starting place", () => {
+  it("passes the overlay's regional cells into parcel scoring and clears them on grid failure",()=>{
+    state.params=new URLSearchParams();
+    render(<Home/>);
+    fireEvent.click(screen.getByRole("button",{name:"Loaded regional grid"}));
+    expect(state.parcels.mock.lastCall![2]).toMatchObject([{cellId:"regional",score:62,modelId:"regional-model"}]);
+    fireEvent.click(screen.getByRole("button",{name:"Grid unavailable"}));
+    expect(state.parcels.mock.lastCall![2]).toEqual([]);
+  });
   it("opens real parcels in Downtown SLO even with an old demo property link", () => {
     state.params = new URLSearchParams("property=adelaida-hills");
     render(<Home />);

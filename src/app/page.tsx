@@ -19,6 +19,8 @@ import { WeatherStrip } from "@/components/WeatherStrip";
 import type { Place } from "@/lib/geocode";
 import type { View } from "@/lib/parcelApi";
 import { useParcels } from "@/lib/useParcels";
+import { cellsFromRiskMap, type RiskCell } from "@/lib/parcelScore";
+import type { RiskGrid } from "@/lib/parcelRisk";
 import { useWide } from "@/lib/useWide";
 
 // Leaflet touches `window`, so the map loads in the browser only.
@@ -50,6 +52,11 @@ function MapShell() {
   const [toolsOpen, setToolsOpen] = useState(false);
   // The map's visible area, reported 400 ms after it stops moving. The parcels follow it.
   const [view, setView] = useState<View | null>(null);
+  const [cells, setCells] = useState<RiskCell[]>([]);
+  const onGridChange = useCallback((grid: RiskGrid | null) => {
+    if (grid) setCells(cellsFromRiskMap(grid));
+    else setCells(previous => previous.length ? [] : previous);
+  }, []);
   const picks = useRef(1);
   const wide = useWide();
   const openLimits = useCallback(() => setLimitsOpen(true), []);
@@ -58,7 +65,7 @@ function MapShell() {
   // The shared map and rail accept a property for legacy block mode.
   // Supplying parcels replaces those sample blocks with real county boundaries.
   const property = properties[0];
-  const parcelState = useParcels(place, view);
+  const parcelState = useParcels(place, view, cells);
   const units = parcelState.units;
   const selectedParcel = units.find((u) => u.id === selectedId) ?? null;
   const hasSelection = selectedParcel !== null;
@@ -120,6 +127,7 @@ function MapShell() {
           parcels={units}
           onPoint={onPoint}
           onView={setView}
+          onGridChange={onGridChange}
         />
       </div>
 

@@ -8,8 +8,8 @@ belong to Milo. Coordinate shared changes to `src/data/types.ts`.
 
 ## Main map data flow
 
-1. `src/app/page.tsx` owns the chosen place, selected parcel, and viewport.
-   It defaults to Downtown SLO and calls `useParcels(place, view)`.
+1. `src/app/page.tsx` owns the chosen place, selected parcel, viewport and regional
+   risk cells. It defaults to Downtown SLO and calls `useParcels(place, view, cells)`.
 2. `src/components/RiskMap.tsx` reports camera bounds after movement settles
    (400 ms). It renders the returned parcel units and uses `useParcelDisplay`
    from `src/lib/ParcelAreas.tsx`, which now passes all units through as
@@ -116,8 +116,15 @@ than treating a coarse response as complete fine coverage.
    cells cover at least 60% of the parcel.
 3. Otherwise the score is null. Unknown coverage is never a zero-risk score.
 
-The hook loads `/data/risk_map.geojson` once on mount through `loadRiskCells`.
-A missing/unreadable file means no cells. `useParcelScans.ts` watches the local
+The hook receives cells from the map's existing regional `/api/risk-grid?bbox=...`
+response; it performs no risk-data fetch itself. `ParcelOverlay.onGridChange`
+passes the validated grid through `RiskMap` to the page, where `cellsFromRiskMap`
+derives scoring cells without another JSON download/parse. The static asset
+`public/data/risk_map.geojson` remains for fixtures/legacy use but is no longer
+downloaded by the main map. A new grid response resets evidence-scoped score
+caches; missing, empty or failed coverage leaves parcels unscored unless a saved
+scan applies. Pending requests retain only previously loaded coverage, never
+inventing coverage outside it. `useParcelScans.ts` watches the local
 scan store (`fireblock.parcelScans.v1`); `parcelScanStore.ts` retains the last
 200 appended scans. These are observations and relative estimates, not calibrated
 ignition probabilities or a certification that land is safe.
@@ -180,12 +187,16 @@ binding native fetch to a cache object previously caused `Illegal invocation`
 before any HTTP request. Automatic nearby preloading is disabled; its helper
 still exists but is not called by the main hook.
 
-## Cloud grid overlay and archive: a separate scoring path
+## Shared regional risk grid and cloud archive
 
-Do not assume the main hook's static risk cells are the cloud overlay's grid.
-`src/lib/ParcelOverlay.tsx` loads viewport `/api/risk-grid` data on mount,
-after movement (250 ms debounce), and every 60 seconds. It also accepts a local
-grid file. The cloud endpoint composes published regional runs; see
+`src/lib/ParcelOverlay.tsx` owns the single viewport `/api/risk-grid` request
+shared with parcel scoring. Each request pads the viewport by 50% per side.
+Movement inside the successfully fetched bbox reuses the same grid; leaving it
+starts a new request after 250 ms and aborts stale requests. There is no periodic
+polling. The configured-grid button forces a reload inside cached coverage too.
+Imported local grids also flow to parcel scoring, while the published-snapshot
+message and onGridActive behavior remain intact. The cloud endpoint composes
+published regional runs; see
 `docs/risk-catalog.md` for discovery and overlap handling.
 
 `projectGridToParcels` in `parcelRisk.ts` validates up to 10,000 non-overlapping
@@ -195,8 +206,10 @@ published score with the same default 60% coverage requirement.
 
 When `RiskMap` supplies `parcelMask`, the overlay is in managed-parcel mode:
 it skips its own parcel projection/rendering because the main UI already owns
-those parcels. Its cloud grid does **not** update `useParcels` scores. The grid
-can be displayed outside parcel masks; hidden grids skip that clipping work.
+those parcels. It still shares the complete loaded grid with `useParcels` through
+the page even when its drawn layer is hidden. The grid can be displayed outside
+parcel masks; hidden grids skip that clipping work. Clearing a failed grid also
+clears map-derived parcel scores; saved scan overrides remain local.
 
 `POST /api/parcel-display` archives a fresh county lookup plus its configured
 cloud-grid projection to B2. It does not archive an imported local grid. Writes

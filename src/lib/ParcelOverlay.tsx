@@ -12,7 +12,7 @@ import { OUTSIDE_COUNTY_MESSAGE } from "@/content/placeMessages";
 import { fetchParcelResponse } from "./parcelCache";
 
 /** Independent parcel geometry; never changes or invents risk block scores. `lookup` is a place picked in the address search; a new `id` runs a new lookup. `onPoint` reports the point of a latitude/longitude or "Pick on map" lookup. */
-export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefault=true,parcelMask}:{center:[number,number];onGridActive?:(active:boolean)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void;showGridByDefault?:boolean;parcelMask?:(Polygon|MultiPolygon)[]}) {
+export function ParcelOverlay({center,onGridActive,onGridChange,lookup,onPoint,showGridByDefault=true,parcelMask}:{center:[number,number];onGridActive?:(active:boolean)=>void;onGridChange?:(grid:RiskGrid|null)=>void;lookup?:{lat:number;lon:number;id:number}|null;onPoint?:(p:{lat:number;lon:number})=>void;showGridByDefault?:boolean;parcelMask?:(Polygon|MultiPolygon)[]}) {
   const map=useMap();
   const [host,setHost]=useState<HTMLElement|null>(null);
   const [lat,setLat]=useState(String(center[0]));
@@ -34,6 +34,7 @@ export function ParcelOverlay({center,onGridActive,lookup,onPoint,showGridByDefa
   const [gridMessage,setGridMessage]=useState("Load backend risk_map.geojson to color whole properties.");
   const managedParcels=parcelMask!==undefined;
   useEffect(()=>{onGridActive?.(!!grid?.features.length);},[grid,onGridActive]);
+  useEffect(()=>{onGridChange?.(grid);},[grid,onGridChange]);
   const projection=useMemo(()=>{
     if(!visible||managedParcels||!data||!grid)return {data:null,error:null};
     try{return {data:projectGridToParcels(data,grid),error:null};}
