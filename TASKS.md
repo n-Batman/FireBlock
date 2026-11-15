@@ -97,6 +97,8 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P56 | Add at least 100 square kilometres of scored coverage between SLO/Santa Margarita and toward Morro Bay | DONE (Codex; 136.88 net new km2, 3,534 scored cells across three regions; fresh FIRMS/NWS, verified Nov 11 satellite reuse, 51 artifacts and prior-coverage exclusions verified; cloud catalog read-back preserved all new cells in 8,224-cell mosaic; analysis/central-coast-expansion-20261115T064720Z; website snapshot unchanged) |
 | P57 | Export and push the 136.88 km2 Central Coast expansion as website snapshots | DONE (Codex; three checksum-verified cloud grids and provenance added to the eight-run bundled catalog; 3,534 new scored cells, 136.88 km2; nine targeted risk-grid/mosaic tests, TypeScript and production build pass; all three grids traced into API bundle; no env changes) |
 
+| P58 | Scrape, analyze and publish unmapped coverage near 35.269972, -120.655722 | DONE (Codex; 3.00 new km2, 96/96 scored cells, zero overlap with eight verified live regions; native ScraperControl, verified satellite reuse and fresh FIRMS, stale NWS excluded; B2 publication and website snapshot verified; 690 tests and production build pass) |
+
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |
 |---|---|---|
