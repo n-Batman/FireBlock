@@ -29,5 +29,5 @@ export function useWeather(lat: number, lon: number): { weather: LiveWeather | n
     const timer = setInterval(() => void load(), 5 * 60_000);
     return () => { alive = false; controller?.abort(); clearInterval(timer); };
   }, [key]);
-  return state.key === key ? state : { weather: null, error: null };
+  return state.key === key ? state : { weather: state.weather, error: null };
 }

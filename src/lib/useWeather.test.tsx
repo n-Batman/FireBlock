@@ -4,14 +4,15 @@ import { useWeather } from "./useWeather";
 const payload = (windMph = 10) => ({ type: "FeatureCollection", features: [{ properties: { kind: "forecast", windMph, validTo: new Date(Date.now() + 3600000).toISOString() } }] });
 afterEach(() => { vi.restoreAllMocks(); });
 describe("weather connection", () => {
-  it("loads for the selected place and clears old weather when it changes", async () => {
+  it("loads for the selected place and retains old weather until the new place responds", async () => {
     let resolveSecond: (r: Response) => void = () => {};
     const second = new Promise<Response>(resolve => { resolveSecond = resolve; });
     const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json(payload())).mockReturnValueOnce(second);
     const hook = renderHook(({ lat }) => useWeather(lat, -120.66), { initialProps: { lat: 35.28 } });
     await waitFor(() => expect(hook.result.current.weather?.windMph).toBe(10));
     hook.rerender({ lat: 35.6 });
-    expect(hook.result.current.weather).toBeNull();
+    expect(hook.result.current.weather?.windMph).toBe(10);
+    expect(hook.result.current.error).toBeNull();
     await act(async () => { resolveSecond(Response.json(payload(20))); });
     expect(hook.result.current.weather?.windMph).toBe(20);
     expect(fetcher.mock.calls[1][0]).toBe("/api/weather?lat=35.6000&lon=-120.6600");

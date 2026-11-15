@@ -1,22 +1,25 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import Home from "./page";
+import { FINDING_PARCELS } from "@/content/parcelCopy";
 import type { View } from "@/lib/parcelApi";
 
-const state = vi.hoisted(() => ({ params: new URLSearchParams(), parcels: vi.fn(), weather: vi.fn() }));
+const state = vi.hoisted(() => ({ wide: true, units: [] as {id: string; score: null}[], params: new URLSearchParams(), parcels: vi.fn(), weather: vi.fn() }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => state.params }));
-vi.mock("next/dynamic", () => ({ default: () => (props: { place: { lat: number; lon: number }; parcels: unknown[]; onGridChange: (grid:unknown)=>void; onView: (view: View) => void }) => <div data-testid="map" data-lat={props.place.lat} data-lon={props.place.lon} data-parcels={props.parcels.length}>
+vi.mock("next/dynamic", () => ({ default: () => (props: { showParcels: boolean; showGrid: boolean; place: { lat: number; lon: number }; parcels: unknown[]; onGridChange: (grid:unknown)=>void; onView: (view: View) => void }) => <div data-testid="map" data-boundaries={props.showParcels} data-grid={props.showGrid} data-lat={props.place.lat} data-lon={props.place.lon} data-parcels={props.parcels.length}>
   <button onClick={()=>props.onGridChange({type:"FeatureCollection",features:[{type:"Feature",geometry:{type:"Polygon",coordinates:[[[-120.66,35.28],[-120.65,35.28],[-120.65,35.29],[-120.66,35.29],[-120.66,35.28]]]},properties:{layer:"relative_risk",cell_id:"regional",risk_score:62,model_id:"regional-model",as_of:"2026-11-14T00:00:00Z"}}]})}>Loaded regional grid</button>
   <button onClick={()=>props.onGridChange(null)}>Grid unavailable</button>
   <button onClick={() => props.onView({ south: 35.401, north: 35.421, west: -120.73, east: -120.696 })}>Pan map</button>
 </div> }));
-vi.mock("@/lib/useParcels", () => ({ useParcels: (...args: unknown[]) => { state.parcels(...args); return { units: [], phase: "loading", truncated: false }; } }));
-vi.mock("@/lib/useWide", () => ({ useWide: () => true }));
+vi.mock("@/lib/useParcels", () => ({ useParcels: (...args: unknown[]) => { state.parcels(...args); return { units: state.units, phase: "loading", truncated: false }; } }));
+vi.mock("@/lib/useWide", () => ({ useWide: () => state.wide }));
 vi.mock("@/components/AddressSearch", () => ({ AddressSearch: ({ onSelect }: { onSelect: (p: unknown) => void }) => <button onClick={() => onSelect({ lat: 35.6, lon: -120.7, label: "Searched address" })}>Search address</button> }));
 vi.mock("@/components/BlockRail", () => ({ BlockRail: () => null }));
 vi.mock("@/components/WeatherStrip", () => ({ WeatherStrip: (props: { lat: number; lon: number }) => { state.weather(props); return null; } }));
 vi.mock("@/components/Legend", () => ({ Legend: () => null }));
 vi.mock("@/components/ParcelPanel", () => ({ ParcelPanel: () => null }));
+
+beforeEach(() => { state.wide = true; state.units = []; });
 
 it("shows the landing screen without map parameters", () => {
   state.params = new URLSearchParams();
@@ -26,6 +29,31 @@ it("shows the landing screen without map parameters", () => {
 });
 
 describe("map starting place", () => {
+  it("suppresses the phone loading notice while retained parcels are shown", () => {
+    state.params = new URLSearchParams("map=1");
+    state.wide = false;
+    const view = render(<Home />);
+    fireEvent.click(screen.getByRole("button", {name:"Parcel tools"}));
+    expect(screen.getByText(FINDING_PARCELS)).toBeInTheDocument();
+    state.units = [{id:"retained",score:null}];
+    view.rerender(<Home />);
+    expect(screen.queryByText(FINDING_PARCELS)).toBeNull();
+  });
+
+  it("starts with boundaries on and grid off and passes toggle changes to the map", () => {
+    state.params = new URLSearchParams("map=1");
+    render(<Home />);
+    const boundaries = screen.getByRole("button", {name:"Property boundaries"});
+    const grid = screen.getByRole("button", {name:"Risk grid"});
+    expect(boundaries).toHaveAttribute("aria-pressed","true");
+    expect(grid).toHaveAttribute("aria-pressed","false");
+    expect(screen.getByTestId("map")).toHaveAttribute("data-grid","false");
+    fireEvent.click(grid);
+    fireEvent.click(boundaries);
+    expect(screen.getByTestId("map")).toHaveAttribute("data-grid","true");
+    expect(screen.getByTestId("map")).toHaveAttribute("data-boundaries","false");
+  });
+
   it("passes the overlay's regional cells into parcel scoring and clears them on grid failure",()=>{
     state.params=new URLSearchParams("map=1");
     render(<Home/>);
@@ -59,6 +87,6 @@ describe("map starting place", () => {
     render(<Home />);
     expect(state.weather).toHaveBeenLastCalledWith({ lat: 35.284, lon: -120.664 });
     fireEvent.click(screen.getByRole("button", { name: "Pan map" }));
-    expect(state.weather).toHaveBeenLastCalledWith({ lat: 35.41, lon: -120.71 });
+    expect(state.weather).toHaveBeenLastCalledWith({ lat: 35.4, lon: -120.7 });
   });
 });
