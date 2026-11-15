@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { RESCAN_SPOT_KEY } from "@/lib/parcelScanStore";
+import { loadParcelScans, RESCAN_SPOT_KEY } from "@/lib/parcelScanStore";
 import { ScanScreen } from "./ScanScreen";
 
 let query = "";
-vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(query), useRouter: () => ({ push: vi.fn() }) }));
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(query), useRouter: () => ({ push }) }));
 vi.mock("@/lib/useDemoAvailable", () => ({ useDemoAvailable: () => false }));
 vi.mock("@/lib/samples", () => ({ SAMPLES: [{ id: "row", label: "Straw between the vines", src: "/demo/sample-row.jpg" }] }));
 
@@ -108,6 +109,35 @@ describe("ScanScreen rescan distance", () => {
 
 describe("ScanScreen parcel save label", () => {
   const rated = { ...IDLE, phase: "running", mode: "photo", photo: { src: "blob:x", image: "data:x" }, scanning: false, tracker: { tracks: [], status: "clear" }, fuel: { w: 1, h: 1, labels: new Uint8Array([2]), verdict: { risk: 1, clear: 1, share: 0.5, level: "high", text: "x" }, areas: [], colourOnly: false } };
+
+  it.each([
+    { mode: "photo", coordinates: "&plat=35.632&plon=-120.853", lat: 35.632, lon: -120.853, gps: false },
+    { mode: "camera", coordinates: "&plat=35.632&plon=-120.853", lat: 35.28, lon: -120.66, gps: true },
+    { mode: "photo", coordinates: "&plat=35.632&plon=", lat: 35.28, lon: -120.66, gps: true },
+    { mode: "photo", coordinates: "", lat: 35.28, lon: -120.66, gps: true },
+  ])("saves $mode scans with GPS=$gps for coordinates '$coordinates'", async ({ mode, coordinates, lat, lon, gps }) => {
+    const getCurrentPosition = vi.fn((resolve: (position: { coords: { latitude: number; longitude: number } }) => void) => {
+      resolve({ coords: { latitude: 35.28, longitude: -120.66 } });
+    });
+    vi.stubGlobal("navigator", { ...navigator, geolocation: { getCurrentPosition } });
+    const entries = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => entries.get(key) ?? null,
+      setItem: (key: string, value: string) => entries.set(key, value),
+    };
+    vi.stubGlobal("localStorage", storage);
+    try {
+      query = `parcel=014-331-010${coordinates}`;
+      session = { ...rated, mode, photo: mode === "photo" ? rated.photo : null };
+      render(<ScanScreen />);
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save to parcel" })));
+      expect(getCurrentPosition).toHaveBeenCalledTimes(gps ? 1 : 0);
+      expect(loadParcelScans(storage)).toMatchObject([{ lat, lon }]);
+      expect(push).toHaveBeenCalledWith(`/?lat=${lat}&lon=${lon}`);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 
   it("says Save to parcel for a parcel's first scan and Save rescan when it already has one", () => {
     query = "parcel=014-331-010";
