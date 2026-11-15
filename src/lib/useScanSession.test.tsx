@@ -334,6 +334,28 @@ describe("useScanSession", () => {
     const findingsBodies = () =>
       fetchMock.mock.calls.filter((c) => c[0] === "/api/findings").map((c) => JSON.parse(c[1].body));
 
+    it("builds the map with the estimate's grid when it is back first (one build)", async () => {
+      fetchMock.mockImplementation(routes);
+      analyse.mockClear();
+      await photo();
+      await advance(1);
+      expect(analyse.mock.calls.map((c) => c[4])).toEqual([EST.grid]);
+    });
+
+    it("rebuilds the map once with the grid when the estimate arrives after the map was built", async () => {
+      let answer: (r: unknown) => void = () => {};
+      fetchMock.mockImplementation((url: string) => (url === "/api/estimate" ? new Promise((r) => (answer = r)) : routes(url)));
+      analyse.mockClear();
+      const hook = await photo();
+      await advance(1);
+      expect(analyse.mock.calls.map((c) => c[4])).toEqual([undefined]); // map built, estimate still out
+      await act(async () => answer(await routes("/api/estimate")));
+      await advance(1);
+      expect(analyse.mock.calls.map((c) => c[4])).toEqual([undefined, EST.grid]); // exactly one rebuild
+      expect(fetchMock.mock.calls.filter((c) => c[0] === "/api/segment")).toHaveLength(1); // no extra requests
+      expect(hook.result.current.estimate).toEqual(EST);
+    });
+
     it("sends the headline share (the estimate's dry_pct) to /api/findings, not the SAM share", async () => {
       fetchMock.mockImplementation(routes);
       const hook = await photo();

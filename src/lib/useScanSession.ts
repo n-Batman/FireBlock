@@ -116,22 +116,37 @@ async function estimate(image: string, hash: string, signal: AbortSignal): Promi
   }
 }
 
-/** Masks (or colour only), then the per-pixel fuel map, all for one encoded frame. Null if it cannot be drawn. */
-async function mapFrame(image: string, hash: string, signal: AbortSignal): Promise<FuelMap | null> {
+/**
+ * Masks (or colour only), then the per-pixel fuel map, all for one encoded frame. `grid` is the estimate's tile grid
+ * when it has already come back: risk pixels in soil/other tiles are then dropped. Null if it cannot be drawn.
+ */
+async function mapFrame(image: string, hash: string, signal: AbortSignal, grid: () => string[][] | undefined) {
   try {
     const masks = await segment(image, hash, signal);
     const img = await loadImage(image);
-    return analyse(img, img.naturalWidth, img.naturalHeight, masks);
+    const used = grid();
+    const map = analyse(img, img.naturalWidth, img.naturalHeight, masks, used);
+    return { map, redo: () => analyse(img, img.naturalWidth, img.naturalHeight, masks, grid()), used };
   } catch (error) {
     if (signal.aborted) throw error;
     return null;
   }
 }
 
-/** The fuel map and the estimate for one frame, requested in parallel. Either can be null. */
+/**
+ * The fuel map and the estimate for one frame, requested in parallel. Either can be null. The map is built with the
+ * estimate's grid if that is back first; if the estimate lands later the map is rebuilt once with it (no extra requests).
+ */
 async function rateFrame(image: string, hash: string, signal: AbortSignal) {
-  const [map, est] = await Promise.all([mapFrame(image, hash, signal), estimate(image, hash, signal)]);
+  let grid: string[][] | undefined;
+  const mapP = mapFrame(image, hash, signal, () => grid); // started first: /api/segment goes out before /api/estimate
+  const estP = estimate(image, hash, signal).then((e) => {
+    grid = e?.grid;
+    return e;
+  });
+  const [built, est] = await Promise.all([mapP, estP]);
   if (signal.aborted) throw new DOMException("aborted", "AbortError");
+  const map = built ? (built.map && grid && !built.used ? built.redo() : built.map) : null;
   return { map, est };
 }
 
