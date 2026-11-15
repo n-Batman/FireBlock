@@ -142,12 +142,26 @@ const MIN_VEG_FRAC = 0.05;
 /** Points the overlay share may differ from the estimate's dry % before the number is called shaky. */
 const MAX_GAP_PTS = 15;
 
-/** "uncertain" when the headline number is a fallback or the two measures disagree. Never changes the number itself. */
+/** The overlay's RISK area and the dry area the estimate implies may differ by this factor before the number is called shaky ... */
+const MAX_AREA_FACTOR = 2;
+/** ... as long as they are also this share of the frame apart, so two tiny areas never count as a disagreement. */
+const MIN_AREA_GAP = 0.02;
+
+/**
+ * "uncertain" when the headline number is a fallback or the two measures disagree: on the dry share (over MAX_GAP_PTS) or
+ * on how much of the frame is dry (overlay RISK area vs dry_pct / 100 x veg_frac, over MAX_AREA_FACTOR), so a tiny blob
+ * never sits under a confident 25%. Never changes the number itself.
+ */
 export function headlineCertainty(fuel: FuelMap | null, est: ScanEstimate | null): "exact" | "uncertain" {
   if (!est) return fuel?.verdict.share != null ? "uncertain" : "exact";
   if (est.veg_frac > 0 && est.veg_frac < MIN_VEG_FRAC) return "uncertain";
   const overlay = fuel?.verdict.share;
-  return overlay != null && Math.abs(est.dry_pct - overlay * 100) > MAX_GAP_PTS + 1e-9 ? "uncertain" : "exact";
+  if (!fuel || overlay == null) return "exact";
+  if (Math.abs(est.dry_pct - overlay * 100) > MAX_GAP_PTS + 1e-9) return "uncertain";
+  const drawn = fuel.verdict.risk / (fuel.w * fuel.h);
+  const implied = (est.dry_pct / 100) * est.veg_frac;
+  const apart = Math.abs(drawn - implied) > MIN_AREA_GAP && Math.max(drawn, implied) > MAX_AREA_FACTOR * Math.min(drawn, implied);
+  return apart ? "uncertain" : "exact";
 }
 
 /**
