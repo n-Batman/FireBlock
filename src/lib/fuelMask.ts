@@ -503,10 +503,15 @@ export const AREA_FACTOR = 1.25;
 const AREA_FLOOR = 0.01;
 /** Texture (see TEXTURE_MIN) that counts as strong evidence of grass: what RISK needs to survive a soil/other tile, and what a pixel outside a "dry" tile needs to be grown into. */
 const STRONG_TEXTURE = 10;
-/** Growing: a pixel joins when its colour is within the seeds' own spread (their GROW_QUANTILE distance to the seed mean, times GROW_SLACK, never under GROW_MIN). Lab units, L* weighted GROW_L because shade changes it far more than hue. */
+/**
+ * Growing: a pixel joins when its colour is within the seeds' own spread (their GROW_QUANTILE distance to the seed mean,
+ * times GROW_SLACK, never under GROW_MIN). Lab units, L* weighted GROW_L because shade changes it far more than hue.
+ * The fit preferred a looser reach (1.5 and 12) for area agreement, but that painted a rusty barn roof and vine leaves,
+ * which the eval cannot see; these are the tighter values, and growth never enters an "other" tile.
+ */
 const GROW_QUANTILE = 0.9;
-const GROW_SLACK = 1.5;
-const GROW_MIN = 12;
+const GROW_SLACK = 1.25;
+const GROW_MIN = 8;
 const GROW_L = 0.15;
 /** Colour distances are bucketed in steps of this for the flood's queue. */
 const GROW_STEP = 0.25;
@@ -598,7 +603,8 @@ function trim(labels: Uint8Array, rgba: ArrayLike<number>, n: number, target: nu
  * neutral and so does weak RISK, but strong evidence stays: a SAM dry-mask pixel, or straw colour with grassy texture
  * outside every exclude mask (a strip of dry grass along a road is too thin to win a tile). Then the RISK area is compared
  * with the area the estimate implies, dryPct / 100 x vegFrac of the frame. Far under it (AREA_FACTOR), RISK grows from the
- * pixels that are RISK into touching pixels of the same colour, flat ones only in "dry" tiles; with no RISK at all the
+ * pixels that are RISK into touching pixels of the same colour (flat ones only in "dry" tiles, none in "other" tiles:
+ * canopy, buildings and sky are never ground fuel); with no RISK at all the
  * "dry" tiles' dry-coloured pixels are the seeds. Far over it, RISK is trimmed back to it: soil/other tiles first, then
  * "live" tiles, SAM dry-mask pixels last. CLEAR is then held to (100 - dryPct) / 100 x vegFrac the same way, so the share
  * the verdict reports is not a ratio of two tiny areas.
@@ -628,7 +634,7 @@ export function reconcile(labels: Uint8Array, rgba: ArrayLike<number>, w: number
     if (risk === 0) {
       for (let i = 0; i < n; i++) if (cells[i] === "dry" && !blocked(i) && dryColourOf(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]) === RISK) out[i] = RISK;
     }
-    grow(out, rgba, w, h, target, (i) => out[i] !== CLEAR && !blocked(i) && (cells[i] === "dry" || tex[i] >= STRONG_TEXTURE));
+    grow(out, rgba, w, h, target, (i) => out[i] !== CLEAR && !blocked(i) && (cells[i] === "dry" || (cells[i] !== "other" && tex[i] >= STRONG_TEXTURE)));
   } else if (Math.abs(target - risk) > floor && risk > target * AREA_FACTOR) {
     trim(out, rgba, n, target, (i) => (raster?.dry[i] ? 2 : off(i) ? 0 : cells[i] === "live" ? 1 : 2));
   }
