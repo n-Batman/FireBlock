@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import sharp from "sharp";
 import { CLEAR, RISK } from "../../src/lib/fuelMask";
 import type { Result } from "./run";
-import { DATA, mk } from "./common";
+import { DATA, REPORT, V2, mk } from "./common";
 
 const CW = 256;
 const CH = 192;
@@ -43,7 +43,7 @@ async function sheet(rs: Result[], name: string) {
   await sharp({ create: { width: CW * 2 + TXT, height: CH * rows.length, channels: 3, background: "#000" } })
     .composite(rows.map((input, i) => ({ input, left: 0, top: i * CH })))
     .jpeg({ quality: 82 })
-    .toFile(`eval/sheets/${name}.jpg`);
+    .toFile(`eval/sheets/${V2 ? "v2-" : ""}${name}.jpg`);
 }
 
 export async function report(all: Result[], meta: { total: number; dropped: number; failed: string[] }) {
@@ -53,10 +53,10 @@ export async function report(all: Result[], meta: { total: number; dropped: numb
   const cats = [...new Set(results.map((r) => r.item.category))].sort();
   const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "n/a");
   const lines = [
-    "# Scanner eval",
+    V2 ? "# Scanner eval (v2: hand-labelled ground fuel)" : "# Scanner eval",
     "",
     `Images in manifest: ${meta.total}. Dropped as irrelevant by GPT: ${meta.dropped}. Scored: ${all.length} (${flagged.length} flagged as probable label errors and left out of the rates). Failed: ${meta.failed.length}.`,
-    "Pass = dry% within 15 pts of GPT's estimate; dirt buckets also need risk under 3% of the frame; VegAnn needs risk on under 5% of background pixels.",
+    `Pass = dry% within 15 pts of ${V2 ? "the human ground label" : "GPT's estimate"}; dirt buckets also need risk under 3% of the frame; VegAnn needs risk on under 5% of background pixels.`,
     "",
     "| Bucket | n | Pass | Mean abs err (pts) |",
     "|---|---|---|---|",
@@ -86,7 +86,7 @@ export async function report(all: Result[], meta: { total: number; dropped: numb
   lines.push("", "## Probable label errors (GPT estimate looks wrong; not tuned to)", "", "| Image | Bucket | Ours | GPT | Reason |", "|---|---|---|---|---|");
   for (const r of flagged) lines.push(`| [${r.item.id}](${r.item.url}) | ${r.item.category} | ${r.ours.toFixed(0)}% | ${r.expected?.toFixed(0)}% | ${r.suspect} |`);
   if (meta.failed.length) lines.push("", "## Failed to run", "", ...meta.failed.map((f) => `- ${f}`));
-  writeFileSync("eval/report.md", lines.join("\n") + "\n");
+  writeFileSync(REPORT, lines.join("\n") + "\n");
   await sheet(flagged.slice(0, ROWS), "label-errors");
   await sheet(worst.slice(0, ROWS), "worst-a");
   await sheet(worst.slice(ROWS, ROWS * 2), "worst-b");

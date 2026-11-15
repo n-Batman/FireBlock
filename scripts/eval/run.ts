@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
 import { MAP_WIDTH, RISK, hsv, scan, type FuelMap } from "../../src/lib/fuelMask";
 import { ENDPOINT, parseSegments, segmentBody } from "../../src/lib/segment";
-import { CACHE, DATA, MANIFEST, mk, pool, sha, sleep, type Item } from "./common";
+import { CACHE, DATA, LABELS_V2, MANIFEST, V2, mk, pool, sha, sleep, withHumanLabels, type Item } from "./common";
 
 const PASS_PTS = 15; // |our dry% - GPT estimate|
 const BG_PASS = 0.05; // VegAnn: risk on background pixels, share of background
@@ -95,20 +95,21 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   }
   const riskFrame = risk / n;
   const err = expected == null ? null : Math.abs(ours - expected);
-  const dirt = DIRT.includes(item.category);
+  const dirt = DIRT.includes(item.category) || item.dirt === true;
   let pass = true;
   let why = "";
   if (err != null && err > PASS_PTS) (pass = false), (why = `dry% off by ${err.toFixed(0)}`);
   if (dirt && riskFrame > DIRT_PASS) (pass = false), (why = `dirt read as risk (${(riskFrame * 100).toFixed(0)}% of frame)`);
   if (bgFp != null && bgFp > BG_PASS) (pass = false), (why = `risk on ${(bgFp * 100).toFixed(0)}% of background`);
-  return { item, map, ours, expected, err, bgFp, riskFrame, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
+  return { item, map, ours, expected, err, bgFp, riskFrame, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: V2 ? null : suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
 }
 
 async function main() {
   const key = process.env.ROBOFLOW_API_KEY?.trim();
   if (!key) throw new Error("ROBOFLOW_API_KEY missing (run via npm run eval:run)");
   mk(CACHE);
-  const all: Item[] = JSON.parse(readFileSync(MANIFEST, "utf8"));
+  const raw: Item[] = JSON.parse(readFileSync(MANIFEST, "utf8"));
+  const all = V2 ? withHumanLabels(raw, JSON.parse(readFileSync(LABELS_V2, "utf8"))) : raw;
   const items = all.filter((i) => i.source === "vegann" || i.source === "own" || i.expected?.relevant);
   const dropped = all.length - items.length;
   const results: Result[] = [];
