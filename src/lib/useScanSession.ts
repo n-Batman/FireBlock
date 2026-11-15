@@ -5,6 +5,7 @@ import type { AreaNote, ScanResponse } from "@/data/types";
 import { DEMO_CLIP_URL } from "./demoClip";
 import { encodeFrame, MIN_SHARPNESS } from "./frame";
 import { analyse, loadImage, type FuelMap, type Mask } from "./fuelMask";
+import { SAMPLES } from "./samples";
 import { getCached, hashImage, putCached } from "./scanCache";
 import { createTracker, updateTracker, type TrackerState } from "./scan";
 import { headlineVerdict, selectFindings, type ScanEstimate } from "./scanView";
@@ -20,6 +21,10 @@ const MAX_BLUR_SKIPS = 3;
 const BLUR_RETRY_MS = 300;
 /** The estimate is a bonus: past this the frame is rated by the SAM share alone. */
 const ESTIMATE_TIMEOUT_MS = 12000;
+/** Past this the masks are given up on and the frame is rated by colour alone. */
+const SEGMENT_TIMEOUT_MS = 20000;
+/** Past this the map is shown without the model's words. */
+const FINDINGS_TIMEOUT_MS = 12000;
 export const DEMO_SRC = DEMO_CLIP_URL;
 
 // The screen adds "Or try demo mode." itself, and only when the demo clip exists.
@@ -57,19 +62,33 @@ async function postJson<T>(url: string, body: unknown, signal: AbortSignal): Pro
   return (await res.json()) as T;
 }
 
+/** Runs `request` with a signal that aborts when `signal` does or after `ms`, whichever is first. */
+async function timed<T>(signal: AbortSignal, ms: number, request: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  signal.addEventListener("abort", onAbort);
+  const timer = window.setTimeout(onAbort, ms);
+  try {
+    return await request(controller.signal);
+  } finally {
+    window.clearTimeout(timer);
+    signal.removeEventListener("abort", onAbort);
+  }
+}
+
 /** The demo clip's canned boxes from /api/scan. */
 const demoScan = (image: string, demoTime: number, signal: AbortSignal) =>
   postJson<ScanResponse>("/api/scan", { image, demoTime }, signal);
 
 /**
  * Grouped masks for a frame from /api/segment (Roboflow SAM3), cached by image hash. Null when
- * segmentation fails: the caller then rates by colour alone. An abort still throws.
+ * segmentation fails or takes over 20 s: the caller then rates by colour alone. An abort still throws.
  */
 async function segment(image: string, hash: string, signal: AbortSignal): Promise<Mask[] | null> {
   const hit = getCached<Mask[]>(`seg:v2:${hash}`, storage());
   if (hit) return hit;
   try {
-    const { masks } = await postJson<{ masks: Mask[] }>("/api/segment", { image }, signal);
+    const { masks } = await timed(signal, SEGMENT_TIMEOUT_MS, (s) => postJson<{ masks: Mask[] }>("/api/segment", { image }, s));
     putCached(`seg:v2:${hash}`, masks, storage());
     return masks;
   } catch (error) {
@@ -80,7 +99,7 @@ async function segment(image: string, hash: string, signal: AbortSignal): Promis
 
 /**
  * The model's words for the measured risk areas, given the headline dry `share`. Cached by image
- * hash, share (to the percent) and area boxes, so a different headline or different areas ask again.
+ * hash, share (to the percent) and area boxes, so a different headline or different areas ask again. Throws after 12 s.
  */
 async function fetchNotes(image: string, hash: string, map: FuelMap, share: number | null, signal: AbortSignal): Promise<AreaNote[]> {
   if (map.areas.length === 0 || share === null) return [];
@@ -88,7 +107,7 @@ async function fetchNotes(image: string, hash: string, map: FuelMap, share: numb
   const key = `notes:v2:${map.colourOnly ? "c" : "s"}:${Math.round(share * 100)}:${boxes}:${hash}`;
   const hit = getCached<AreaNote[]>(key, storage());
   if (hit) return hit;
-  const { notes } = await postJson<{ notes: AreaNote[] }>("/api/findings", { image, areas: map.areas, share }, signal);
+  const { notes } = await timed(signal, FINDINGS_TIMEOUT_MS, (s) => postJson<{ notes: AreaNote[] }>("/api/findings", { image, areas: map.areas, share }, s));
   putCached(key, notes, storage());
   return notes;
 }
@@ -100,19 +119,12 @@ async function fetchNotes(image: string, hash: string, map: FuelMap, share: numb
 async function estimate(image: string, hash: string, signal: AbortSignal): Promise<ScanEstimate | null> {
   const hit = getCached<ScanEstimate>(`est:v1:${hash}`, storage());
   if (hit) return hit;
-  const controller = new AbortController();
-  const onAbort = () => controller.abort();
-  signal.addEventListener("abort", onAbort);
-  const timer = window.setTimeout(onAbort, ESTIMATE_TIMEOUT_MS);
   try {
-    const result = await postJson<ScanEstimate>("/api/estimate", { image }, controller.signal);
+    const result = await timed(signal, ESTIMATE_TIMEOUT_MS, (s) => postJson<ScanEstimate>("/api/estimate", { image }, s));
     putCached(`est:v1:${hash}`, result, storage());
     return result;
   } catch {
     return null;
-  } finally {
-    window.clearTimeout(timer);
-    signal.removeEventListener("abort", onAbort);
   }
 }
 
@@ -175,7 +187,10 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
   const [scanning, setScanning] = useState(0);
   const streamRef = useRef<MediaStream | null>(null);
   const trackerRef = useRef<TrackerState>(tracker);
-  const [photo, setPhoto] = useState<{ src: string; image: string } | null>(null);
+  /** The still on screen. `notes` is set for a sample photo: its saved words, so nothing is asked for. */
+  const [photo, setPhoto] = useState<{ src: string; image: string; notes?: AreaNote[] } | null>(null);
+  /** Bumped by Retry: the photo or frozen frame is mapped again. */
+  const [attempt, setAttempt] = useState(0);
   /** The latest fuel map from a live frame, a photo or a frozen frame. Null for the demo clip, which uses `tracker`. */
   const [fuel, setFuel] = useState<FuelMap | null>(null);
   /** The model's words for `fuel`'s risk areas. Null while they are on their way (or not asked for). */
@@ -290,6 +305,49 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     [release],
   );
 
+  /**
+   * Scans a sample still from public/demo with its saved masks, estimate and words: they go into the in-memory cache under
+   * the still's hash, so the same path as an uploaded photo runs and makes no requests.
+   */
+  const startSample = useCallback(
+    async (id: string) => {
+      const sample = SAMPLES.find((s) => s.id === id);
+      if (!sample) return;
+      release();
+      const fresh = createTracker();
+      trackerRef.current = fresh;
+      setTracker(fresh);
+      setFuel(null);
+      setEst(null);
+      setNotes(null);
+      setMode("photo");
+      setError(null);
+      setProblem(false);
+      setFrozen(false);
+      setPhase("starting");
+      const hash = hashImage(sample.src);
+      putCached(`seg:v2:${hash}`, sample.masks);
+      putCached(`est:v1:${hash}`, sample.estimate);
+      try {
+        const img = await loadImage(sample.src);
+        setPhoto({ src: sample.src, image: sample.src, notes: sample.notes ?? [] });
+        setVideoSize({ w: img.naturalWidth, h: img.naturalHeight });
+        setPhase("running");
+      } catch (e) {
+        release();
+        setPhase("error");
+        setError(explain(e, "photo"));
+      }
+    },
+    [release],
+  );
+
+  /** Maps the same photo or frozen frame again after a failure. */
+  const retry = useCallback(() => {
+    setProblem(false);
+    setAttempt((n) => n + 1);
+  }, []);
+
   /** A frame rated while the shimmer counter is up. */
   const tracked = useCallback(async (image: string, hash: string, signal: AbortSignal) => {
     setScanning((n) => n + 1);
@@ -300,9 +358,9 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     }
   }, []);
 
-  /** Photo and freeze: map the frame once, show it, then ask for the words. */
+  /** Photo and freeze: map the frame once, show it, then ask for the words (or use `saved` ones, for a sample). */
   const mapOnce = useCallback(
-    (image: string, signal: AbortSignal) => {
+    (image: string, signal: AbortSignal, saved?: AreaNote[]) => {
       const hash = hashImage(image);
       tracked(image, hash, signal)
         .then(async ({ map, est }) => {
@@ -313,6 +371,7 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
             if (!est) setProblem(true);
             return;
           }
+          if (saved) return setNotes(saved);
           setNotes(null);
           // The estimate has already come back (or failed) by now: rateFrame waits for both.
           setNotes(await fetchNotes(image, hash, map, est ? (headlineVerdict(map, est)?.share ?? null) : map.verdict.share, signal));
@@ -405,19 +464,19 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     const controller = new AbortController();
     mapOnce(encodeFrame(v, v.videoWidth, v.videoHeight).image, controller.signal);
     return () => controller.abort();
-  }, [phase, mode, frozen, videoRef, mapOnce]);
+  }, [phase, mode, frozen, videoRef, mapOnce, attempt]);
 
-  // An uploaded photo is mapped once.
+  // An uploaded photo (or a sample) is mapped once, and again on Retry.
   useEffect(() => {
     if (phase !== "running" || mode !== "photo" || !photo) return;
     const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the shimmer counter goes up as the request starts and down in `finally`
-    mapOnce(photo.image, controller.signal);
+    mapOnce(photo.image, controller.signal, photo.notes);
     return () => controller.abort();
-  }, [phase, mode, photo, mapOnce]);
+  }, [phase, mode, photo, mapOnce, attempt]);
 
   // Leaving the screen always turns the camera off.
   useEffect(() => release, [release]);
 
-  return { phase, mode, error, tracker, videoSize, problem, frozen, photo, fuel, estimate: est, notes, scanning: scanning > 0, start, startPhoto, stop, toggleFreeze };
+  return { phase, mode, error, tracker, videoSize, problem, frozen, photo, fuel, estimate: est, notes, scanning: scanning > 0, start, startPhoto, startSample, retry, stop, toggleFreeze };
 }
