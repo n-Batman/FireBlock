@@ -10,6 +10,7 @@ function backend(failAt=0){
     const url=String(input);
     if(url.includes("b2_authorize_account"))return Response.json({accountId:"account",authorizationToken:"secret",apiInfo:{storageApi:{apiUrl:"https://api.test",downloadUrl:"https://download.test",allowed:{buckets:[{id:"bucket-id",name:"bucket"}]}}}});
     if(url.endsWith("b2_get_upload_url"))return Response.json({uploadUrl:"https://upload.test",authorizationToken:"upload-secret"});
+    if(url.endsWith("b2_list_buckets"))return Response.json({buckets:[{bucketName:"bucket",bucketId:"bucket-id",bucketType:"allPrivate"}]});
     if(url.endsWith("b2_list_file_names")){
       const {prefix,maxFileCount}=JSON.parse(String(init!.body));const files=[];
       for(const [id] of stored){const index=Number(id.replace("id-",""))-1;if(keys[index].startsWith(prefix))files.push({fileId:id,fileName:keys[index]});}
@@ -30,6 +31,21 @@ function backend(failAt=0){
   return {storage:new CloudStorage(fetcher),stored,keys,fetcher};
 }
 describe("verified cloud storage",()=>{
+  it("checks bucket privacy rather than assuming a private API makes objects private",async()=>{
+    const {storage,fetcher}=backend();await storage.requirePrivateBucket();
+    fetcher.mockResolvedValueOnce(Response.json({buckets:[{bucketId:"bucket-id",bucketType:"allPublic"}]}));
+    await expect(storage.requirePrivateBucket()).rejects.toThrow(/private B2 bucket/);
+  });
+  it("uploads and reads binary PDFs with the same integrity checks as JSON",async()=>{
+    const {storage,fetcher}=backend(),bytes=Buffer.from("%PDF-1.7\nprivate evidence");
+    const receipt=await storage.uploadBytes("grant-reports/test/application.pdf",bytes,"application/pdf");
+    const upload=fetcher.mock.calls.find(([url])=>String(url)==="https://upload.test");
+    expect(new Headers(upload![1]!.headers).get("Content-Type")).toBe("application/pdf");
+    expect((await storage.readBytes(receipt.file_id)).bytes).toEqual(bytes);
+    expect(receipt.sha256).toBe(createHash("sha256").update(bytes).digest("hex"));
+    await expect(storage.uploadBytes("x",Buffer.alloc(0),"application/pdf")).rejects.toThrow(/25 MiB/);
+    await expect(storage.uploadBytes("x",bytes,"text/html")).rejects.toThrow(/content type/);
+  });
   it("uploads and downloads JSON by immutable ID without disk caches",async()=>{
     const {storage}=backend();const receipt=await storage.uploadJson("risk/run/grid.json",{value:42});
     expect((await storage.readVersion(receipt.file_id)).value).toEqual({value:42});

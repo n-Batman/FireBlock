@@ -97,6 +97,11 @@ export class ParcelScanArchive {
     if(!file)throw new ScanArchiveError("Baseline scan not found for this parcel",404);
     return stored((await this.storage.readVersion(file.fileId,64*1024)).value,parcel,id,this.clock());
   }
+  /** Exact, validated stored observation for private evidence/report workflows. */
+  async get(parcelId:string,scanId:string){
+    if(!ID.test(scanId))throw new ScanArchiveError("Invalid scan_id");
+    return this.read({id:text(parcelId,128),source:process.env.PARCEL_LAYER_URL||DEFAULT_PARCEL_LAYER},scanId);
+  }
   async save(value:unknown){
     const now=this.clock(),scan=observation(value,now);
     const parcels=await this.lookup(new URLSearchParams({lat:String(scan.location.lat),lon:String(scan.location.lon),radius:"0"}));

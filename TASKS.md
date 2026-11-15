@@ -99,6 +99,8 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 
 | P58 | Scrape, analyze and publish unmapped coverage near 35.269972, -120.655722 | DONE (Codex; 3.00 new km2, 96/96 scored cells, zero overlap with eight verified live regions; native ScraperControl, verified satellite reuse and fresh FIRMS, stale NWS excluded; B2 publication and website snapshot verified; 690 tests and production build pass) |
 
+| P59 | Backend OpenAI grant narrative, evidence PDF and private cloud report archive | DONE (Codex; private create/download API, validated county APNs and stored scan pairs, deterministic facts and vector map, manifest-last B2 archive; 41 focused checks, TypeScript/lint/build pass; 721 full-suite passes and 3 reproduced baseline map-test failures; live private B2 PDF read-back verified; local OpenAI key/write token require configuration) |
+
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |
 |---|---|---|
