@@ -28,6 +28,7 @@ import { useWide } from "@/lib/useWide";
 import type { Place } from "@/lib/geocode";
 import { ParcelOverlay } from "@/lib/ParcelOverlay";
 import { ParcelAreas, useParcelDisplay } from "@/lib/ParcelAreas";
+import { MapLoading } from "./MapLoading";
 import { ScanSpotPins, type ScanSpots } from "./ScanSpotPins";
 
 // Literal colors for Leaflet: the risk colors from DESIGN.md.
@@ -77,16 +78,21 @@ function propertyBounds(property: Property): LatLngBoundsExpression {
  * property, or the selected block. The first framing is instant; later ones fly (off when the
  * visitor prefers reduced motion).
  */
-function Camera({ property, selected, panelOpen }: { property: Property; selected: Block | null; panelOpen: boolean }) {
+function Camera({ property, selected, panelOpen, place }: { property: Property; selected: Block | null; panelOpen: boolean; place: PickedPlace | null }) {
   const map = useMap();
   const wide = useWide();
   const first = useRef(true);
+  const initialPlace = useRef(place);
   const bounds = useMemo(
     () => (selected ? boundsOfPolygon(selected.polygon) : propertyBounds(property)),
     [property, selected],
   );
 
   useEffect(() => {
+    if (first.current && initialPlace.current) {
+      first.current = false;
+      return;
+    }
     const h = window.innerHeight;
     const topLeft: [number, number] = wide ? [416, 96] : [32, panelOpen ? 92 : 224];
     const bottomRight: [number, number] = wide
@@ -152,8 +158,12 @@ export type PickedPlace = Place & { id: number };
 /** Flies to the picked place (no animation when the visitor prefers reduced motion). */
 function PlaceFocus({ place }: { place: PickedPlace | null }) {
   const map = useMap();
+  const first = useRef(true);
   useEffect(() => {
+    const initial = first.current;
+    first.current = false;
     if (!place) return;
+    if (initial && map.getZoom() === 17 && map.getCenter().equals([place.lat, place.lon])) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     map.flyTo([place.lat, place.lon], 17, { animate: !reduce, duration: 1 });
   }, [map, place]);
@@ -308,6 +318,21 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
   const [tileErrors, setTileErrors] = useState(0);
   // Nick's rule: once a backend risk grid is loaded, the sample blocks (but not habitat) are hidden.
   const [gridActive, setGridActive] = useState(false);
+  const [tilesLoaded, setTilesLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setFading(true), 4000);
+    return () => clearTimeout(timer);
+  }, []);
+  useEffect(() => {
+    if (tilesLoaded && (gridActive || !!parcels?.length)) setFading(true);
+  }, [tilesLoaded, gridActive, parcels]);
+  useEffect(() => {
+    if (!fading) return;
+    const timer = setTimeout(() => setLoading(false), 200);
+    return () => clearTimeout(timer);
+  }, [fading]);
 
   // With county parcels on the map, or a loaded grid, the sample blocks are not drawn.
   const blocks = parcels ? [] : property.blocks.filter((b) => !gridActive || b.kind === "habitat");
@@ -321,6 +346,7 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
 
   return (
     <>
+      {loading && <MapLoading fading={fading} />}
       {/* Hatch pattern for no-mow habitat polygons (referenced from CSS). */}
       <svg aria-hidden="true" width="0" height="0" className="absolute">
         <defs>
@@ -362,7 +388,8 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
           maxZoom={24}
           maxNativeZoom={19}
           eventHandlers={{
-            tileerror: () => setTileErrors((n) => n + 1),
+            tileerror: () => { setTileErrors((n) => n + 1); setLoading(false); },
+            load: () => setTilesLoaded(true),
             tileload: () => setTileErrors(0),
           }}
         />
@@ -477,7 +504,7 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
           );
         })}
 
-        {!parcels && <Camera property={property} selected={selected} panelOpen={panelOpen} />}
+        {!parcels && <Camera property={property} selected={selected} panelOpen={panelOpen} place={place} />}
         {!parcels && <Reveal />}
       </MapContainer>
     </>

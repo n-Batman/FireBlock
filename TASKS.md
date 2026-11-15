@@ -137,6 +137,8 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | M35 | Share a continuous risk colour scale across map fills, pills, chips and the legend | DONE |
 | M36 | Add the FireBlock landing screen with map and scanner links and preserve direct map links | DONE (scanner fallback opens the live map) |
 
+| M37 | Prevent initial map camera jumps and show bounded loading overlay | DONE |
+
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15
 
