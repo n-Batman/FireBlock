@@ -2,6 +2,7 @@ import { intersect } from "@turf/intersect";
 import { area } from "@turf/area";
 import type { Feature, FeatureCollection, Polygon } from "geojson";
 import type { Parcels, ParcelProperties } from "./parcels";
+import {MAX_PARCELS} from "./parcelDisplayConfig";
 
 export type GridCell = Feature<Polygon,{cell_id:string;risk_score:number|null;model_id:string;as_of:string;layer:"relative_risk";source_run_id?:string}>;
 export type RiskGrid = FeatureCollection<Polygon,GridCell["properties"]>;
@@ -42,7 +43,7 @@ export function parseRiskGrid(input:unknown):RiskGrid {
 export function projectGridToParcels(parcels:Parcels,grid:RiskGrid,minCoverage=.6):FeatureCollection<Parcels["features"][number]["geometry"],ParcelRisk> {
   if(!Number.isFinite(minCoverage)||minCoverage<=0||minCoverage>1)throw new Error("Coverage threshold must be greater than 0 and at most 1");
   const validated=parseRiskGrid(grid);
-  if(parcels.features.length>200)throw new Error("Project at most 200 parcels at once");
+  if(parcels.features.length>MAX_PARCELS)throw new Error(`Project at most ${MAX_PARCELS} parcels at once`);
   const cells=validated.features.map(cell=>({cell,b:bounds(cell)}));
   return {type:"FeatureCollection",features:parcels.features.map(parcel=>{
     const coordinates=parcel.geometry.type==="Polygon"?parcel.geometry.coordinates.flat():parcel.geometry.coordinates.flat(2);

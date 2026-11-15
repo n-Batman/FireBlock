@@ -3,6 +3,7 @@ import {point} from "@turf/helpers";
 import type {Feature,Polygon,MultiPolygon} from "geojson";
 import type {Fetcher} from "./geocode";
 import type {Parcels} from "./parcels";
+import {MAX_PARCELS} from "./parcelDisplayConfig";
 
 type Box=[number,number,number,number];
 type Wire={body:string;status:number};
@@ -47,7 +48,7 @@ function intersectsBox(feature:Feature<Polygon|MultiPolygon>,box:Box):boolean {
 
 function boundaryPayload(value:unknown):Parcels|null {
   const p=value as Parcels;
-  if(p?.type!=="FeatureCollection"||!Array.isArray(p.features)||p.features.length>200||!p.metadata)return null;
+  if(p?.type!=="FeatureCollection"||!Array.isArray(p.features)||p.features.length>MAX_PARCELS||!p.metadata)return null;
   if(p.features.some(f=>!f?.geometry||!["Polygon","MultiPolygon"].includes(f.geometry.type)||!f.properties))return null;
   // Retain public boundaries only. Scans, addresses and unknown provider fields
   // never enter this cache even if an upstream response adds them later.

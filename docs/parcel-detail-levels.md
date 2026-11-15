@@ -1,5 +1,14 @@
 # Parcel detail by screen coverage
 
+Current behavior: combining is disabled. All loaded, viewport-filtered parcels
+render individually, regardless of size or zoom. `useParcelDisplay` is a
+pass-through with no camera subscriptions, screen-area calculations, clipping,
+union work or outline cache. `parcelDisplay.ts` remains for reference and legacy
+unit tests but has no active rendering caller. The API reports
+`X-FireBlock-Parcel-Display: individual-parcels` without a screen threshold.
+
+The following grouping description is historical and inactive:
+
 Individual parcel visibility has no fixed zoom cutoff. A parcel remains an
 individual boundary when its actual visible shape occupies at least 5% of the
 map viewport area. The calculation uses Web Mercator (screen) coordinates,
@@ -21,8 +30,8 @@ member geometry. The map permits zoom through level 24, enlarging level-19
 imagery beyond its native resolution, so small city lots can reach the screen
 threshold. There is no guarantee of additional imagery detail at those levels.
 
-Parcel queries use the visible geographic bounds at any zoom. The county API
-limits remain 25 square kilometres and 200 returned parcels per request, with
+Current loading behavior: parcel queries use the visible geographic bounds at
+any zoom. FireBlock limits remain 25 square kilometres and 500 returned parcels per request, with
 truncation reported in the UI. Previously loaded geometry stays visible while
 its replacement loads or when zooming out beyond the query-area limit. A new
 location cannot reuse another location's retained parcels; stale requests are

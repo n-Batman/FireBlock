@@ -20,15 +20,25 @@ describe("parcel spatial lookup",()=>{
     const url=new URL(String(fetcher.mock.calls[0][0]));
     expect(url.searchParams.get("outSR")).toBe("4326");
     expect(url.searchParams.get("outFields")).toBe("OBJECTID,apn");
+    expect(url.searchParams.get("resultRecordCount")).toBe("501");
     expect(result.features[0].properties.parcelId).toBe("012-345-678");
     expect(result.features[0].properties).not.toHaveProperty("assessee");
     expect(result.features[0].geometry).toEqual(polygon);
     expect(result.metadata.truncated).toBe(false);
   });
   it("marks incomplete results instead of implying a complete property inventory",async()=>{
-    const fetcher=vi.fn<typeof fetch>().mockResolvedValue(Response.json({type:"FeatureCollection",features:Array(201).fill(feature)}));
+    const fetcher=vi.fn<typeof fetch>().mockResolvedValue(Response.json({type:"FeatureCollection",features:Array(501).fill(feature)}));
     const result=await findParcels(new URLSearchParams("lat=0&lon=0"),fetcher);
-    expect(result.features).toHaveLength(200); expect(result.metadata.truncated).toBe(true);
+    expect(result.features).toHaveLength(500); expect(result.metadata).toMatchObject({truncated:true,limit:500});
+  });
+  it("accepts a complete 500-parcel response and reports the active display mode",async()=>{
+    vi.stubGlobal("fetch",vi.fn().mockResolvedValue(Response.json({type:"FeatureCollection",features:Array(500).fill(feature)})));
+    const response=await GET(new Request("http://localhost/api/parcels?lat=0&lon=0"));
+    const result=await response.json();
+    expect(result.features).toHaveLength(500);
+    expect(result.metadata).toMatchObject({truncated:false,limit:500});
+    expect(response.headers.get("X-FireBlock-Parcel-Display")).toBe("individual-parcels");
+    expect(response.headers.has("X-FireBlock-Parcel-Threshold")).toBe(false);
   });
   it("preserves holes and multipart geometry",async()=>{
     const geometry={type:"MultiPolygon",coordinates:[polygon.coordinates,polygon.coordinates]};

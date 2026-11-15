@@ -12,6 +12,16 @@ const reply=(value=body(),status=200)=>new Response(JSON.stringify(value),{statu
 afterEach(()=>{for(const c of caches)c.clear();caches.length=0;clearParcelCache();vi.unstubAllGlobals();vi.useRealTimers();});
 
 describe("bounded parcel session cache",()=>{
+  it("caches a full 500-parcel response but declines oversized feature counts",async()=>{
+    for(const count of [500,501]){
+      const value=body();value.features=Array.from({length:count},(_,i)=>({...value.features[0],properties:{...value.features[0].properties,parcelId:String(i)}}));
+      value.metadata.limit=500;
+      const fetcher=vi.fn().mockImplementation(async()=>reply(value));const c=cache(fetcher);
+      expect((await (await c.request(query())).json()).features).toHaveLength(count);
+      await c.request(query());
+      expect(fetcher).toHaveBeenCalledTimes(count===500?1:2);
+    }
+  });
   it("calls browser-native fetch with the global receiver",async()=>{
     const fetcher=vi.fn(function(this:unknown){
       if(this!==globalThis)throw new TypeError("Illegal invocation");

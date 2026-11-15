@@ -1,4 +1,5 @@
 import type { FeatureCollection, MultiPolygon, Polygon, Position } from "geojson";
+import { MAX_PARCELS } from "./parcelDisplayConfig";
 
 export const DEFAULT_PARCEL_LAYER = "https://gis.slocounty.ca.gov/arcgis/rest/services/PLN/PLN_WEB_SERVICES/MapServer/0";
 export class ParcelError extends Error {
@@ -67,7 +68,7 @@ export async function findParcels(params:URLSearchParams, fetcher:typeof fetch=f
   url.pathname=url.pathname.replace(/\/$/,"")+"/query";
   url.search=new URLSearchParams({...spatial,f:"geojson",where:"1=1",inSR:"4326",outSR:"4326",
     spatialRel:"esriSpatialRelIntersects",outFields:`${oid},${apn}`,returnGeometry:"true",
-    orderByFields:oid,resultRecordCount:"201",returnZ:"false",returnM:"false"}).toString();
+    orderByFields:oid,resultRecordCount:String(MAX_PARCELS+1),returnZ:"false",returnM:"false"}).toString();
   const response=await fetcher(url,{cache:"no-store",signal:AbortSignal.timeout(15000),redirect:"error"});
   if (!response.ok || !response.body) throw new ParcelError("Parcel provider is unavailable",502);
   const reader=response.body.getReader(); const chunks:Uint8Array[]=[]; let size=0;
@@ -82,8 +83,8 @@ export async function findParcels(params:URLSearchParams, fetcher:typeof fetch=f
   const data=JSON.parse(new TextDecoder().decode(bytes));
   if (data.error || data.type!=="FeatureCollection" || !Array.isArray(data.features)) throw new ParcelError("Parcel provider did not return queryable GeoJSON",502);
   const fetchedAt=new Date().toISOString();
-  return {type:"FeatureCollection",features:data.features.slice(0,200).map((f:{geometry:unknown;properties:Record<string,unknown>;id?:string|number})=>({
+  return {type:"FeatureCollection",features:data.features.slice(0,MAX_PARCELS).map((f:{geometry:unknown;properties:Record<string,unknown>;id?:string|number})=>({
     type:"Feature",geometry:geometry(f.geometry),properties:{parcelId:String(f.properties?.[apn] ?? f.properties?.[oid] ?? f.id ?? "Unknown"),source,fetchedAt},
-  })),metadata:{source,truncated:data.features.length>200 || data.exceededTransferLimit===true || data.properties?.exceededTransferLimit===true,
-    limit:200,fetchedAt,note:"GIS parcel outlines for planning; not surveyed boundaries. No fire-risk score is inferred."}};
+  })),metadata:{source,truncated:data.features.length>MAX_PARCELS || data.exceededTransferLimit===true || data.properties?.exceededTransferLimit===true,
+    limit:MAX_PARCELS,fetchedAt,note:"GIS parcel outlines for planning; not surveyed boundaries. No fire-risk score is inferred."}};
 }

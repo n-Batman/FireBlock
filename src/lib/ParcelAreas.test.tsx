@@ -1,41 +1,30 @@
 import {it,expect,vi,afterEach} from "vitest";
-import {act,render,screen} from "@testing-library/react";
-import {MapContainer,useMap} from "react-leaflet";
-import L from "leaflet";
-import type {ParcelUnit,PolygonRings} from "@/data/types";
+import {act,renderHook} from "@testing-library/react";
+import type {ParcelUnit} from "@/data/types";
 import {useParcelDisplay} from "./ParcelAreas";
+import {parcelDisplay,parcelScreenFraction,ParcelOutlineCache} from "./parcelDisplay";
+
+vi.mock("./parcelDisplay",async importOriginal=>{
+  const actual=await importOriginal<typeof import("./parcelDisplay")>();
+  return {...actual,parcelDisplay:vi.fn(actual.parcelDisplay),parcelScreenFraction:vi.fn(actual.parcelScreenFraction)};
+});
 afterEach(()=>vi.restoreAllMocks());
 
-it("restores individual boundaries after a real Leaflet zoom/resize cycle",()=>{
-  let map:L.Map;
-  const R=6378137,ll=(x:number,y:number):[number,number]=>[(2*Math.atan(Math.exp(y/R))-Math.PI/2)*180/Math.PI,x/R*180/Math.PI];
-  function lot(id:string,x:number):ParcelUnit{
-    return {id,acres:1,center:ll(x+20,30),score:null,parts:[[[ll(x,10),ll(x+40,10),ll(x+40,50),ll(x,50),ll(x,10)]]]};
-  }
-  const parcels=[lot("a",10),lot("b",50)];
-  let outline:PolygonRings[]|undefined;
-  function Probe(){
-    map=useMap();const display=useParcelDisplay(parcels,null);
-    outline=display.areas[0]?.parts;
-    return <div data-testid="parcel-detail">{`${display.individuals.length} individuals; ${display.areas.length} groups`}</div>;
-  }
-  render(<MapContainer center={[0,0]} zoom={15}><Probe/></MapContainer>);
-  let bounds=L.latLngBounds(ll(0,0),ll(1000,1000));
-  vi.spyOn(map!,"getBounds").mockImplementation(()=>bounds);
-  act(()=>{map!.fire("zoomend");});
-  expect(screen.getByTestId("parcel-detail").textContent).toBe("0 individuals; 1 groups");
-  const originalOutline=outline;
-  bounds=L.latLngBounds(ll(-10,0),ll(990,1000));
-  act(()=>{map!.fire("moveend");});
-  expect(outline).toBe(originalOutline);
-  bounds=L.latLngBounds(ll(0,0),ll(100,100));
-  act(()=>{map!.fire("zoomend");map!.fire("moveend");});
-  expect(screen.getByTestId("parcel-detail").textContent).toBe("2 individuals; 0 groups");
-  bounds=L.latLngBounds(ll(0,0),ll(1000,1000));
-  act(()=>{map!.fire("resize");});
-  expect(screen.getByTestId("parcel-detail").textContent).toBe("0 individuals; 1 groups");
-  expect(outline).toBe(originalOutline);
-  bounds=L.latLngBounds(ll(0,0),ll(100,100));
-  act(()=>{map!.fire("resize");});
-  expect(screen.getByTestId("parcel-detail").textContent).toBe("2 individuals; 0 groups");
+it("passes all 500 original parcels through without camera or combiner work",()=>{
+  const outline=vi.spyOn(ParcelOutlineCache.prototype,"outline");
+  const parcels:ParcelUnit[]=Array.from({length:500},(_,i)=>({
+    id:String(i),acres:1,center:[35,-120],score:null,
+    parts:[[[[35,-120],[35,-119.999],[35.001,-119.999],[35.001,-120],[35,-120]]]],
+  }));
+  // No Leaflet provider: a camera lookup/subscription here would fail.
+  const hook=renderHook(({selectedId}:{selectedId:string|null})=>useParcelDisplay(parcels,selectedId),{initialProps:{selectedId:null as string|null}});
+  const original=hook.result.current;
+  expect(original.individuals).toBe(parcels);
+  expect(original.areas).toEqual([]);
+  act(()=>{window.dispatchEvent(new Event("resize"));});
+  hook.rerender({selectedId:"0"});
+  expect(hook.result.current).toBe(original);
+  expect(parcelDisplay).not.toHaveBeenCalled();
+  expect(parcelScreenFraction).not.toHaveBeenCalled();
+  expect(outline).not.toHaveBeenCalled();
 });

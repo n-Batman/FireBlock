@@ -1,11 +1,12 @@
 import type { ScoreSource } from "@/data/types";
+import { MAX_PARCELS } from "@/lib/parcelDisplayConfig";
 
 // Words on screen for county parcels. A parcel without a score says so. It never gets a guessed one.
 export const NOT_SCORED = "Not scored yet. Scan the rows to score it.";
 export const NO_PARCELS = "No parcels found within 300 m of that point.";
 export const FINDING_PARCELS = "Finding parcels...";
 export const ZOOM_IN = "Zoom in to see property lines";
-export const TRUNCATED = "The county returned its limit of 200 parcels. Zoom in or search a smaller area.";
+export const TRUNCATED = `Showing up to ${MAX_PARCELS} parcels; more may be available. Zoom in or search a smaller area.`;
 export const PLANNING_ONLY = "County GIS outlines for planning, not a boundary survey.";
 
 /** "~12.4 acres", computed from the parcel's geometry. */

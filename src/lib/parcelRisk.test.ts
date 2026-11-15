@@ -7,6 +7,12 @@ function cell(id:string,w:number,e:number,score:number|null):GridCell{return {ty
 function grid(...features:GridCell[]):RiskGrid{return {type:"FeatureCollection",features};}
 function parcels(geometry=box(0,2)):Parcels{return {type:"FeatureCollection",features:[{type:"Feature",geometry,properties:{parcelId:"APN",source:"county",fetchedAt:"now"}}],metadata:{source:"county",truncated:false,limit:200,fetchedAt:"now",note:"test"}};}
 describe("backend grid to property display",()=>{
+  it("projects 500 parcels and rejects a batch over the limit",()=>{
+    const input=parcels();input.features=Array.from({length:500},(_,i)=>({...input.features[0],properties:{...input.features[0].properties,parcelId:String(i)}}));
+    expect(projectGridToParcels(input,grid()).features).toHaveLength(500);
+    input.features.push(input.features[0]);
+    expect(()=>projectGridToParcels(input,grid())).toThrow("Project at most 500 parcels at once");
+  });
   it("area-weights clipped cells and leaves the input grid unchanged",()=>{
     const input=grid(cell("a",0,1,20),cell("b",1,2,80));const original=JSON.stringify(input);
     const output=projectGridToParcels(parcels(box(0,1.25)),input).features[0];

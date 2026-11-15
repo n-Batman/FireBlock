@@ -123,9 +123,9 @@ describe("parcel center cache", () => {
     toParcelUnits(collection(feature("cache-key-a", { type: "MultiPolygon", coordinates: [[ring], [square(-120.8, 35.63, 0.01)]] })));
     expect(labelPoint).toHaveBeenCalledTimes(5);
   });
-  it("evicts the least recently used center after 256 entries", () => {
+  it("evicts the least recently used center after 512 entries", () => {
     const read = (id: string) => toParcelUnits(collection(feature(id, geometry)));
-    for (let i = 0; i < 256; i++) read(`bounded-${i}`);
+    for (let i = 0; i < 512; i++) read(`bounded-${i}`);
     vi.mocked(labelPoint).mockClear();
     read("bounded-0"); // Retain this entry while bounded-1 becomes the oldest.
     read("bounded-new");

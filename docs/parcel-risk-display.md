@@ -61,7 +61,7 @@ Inputs must use the current backend's non-overlapping rectangular WGS84 polygons
 unique cell IDs, timezone-aware issue times and null-or-0–100 scores. Thermal-point
 features in the export are ignored. Overlapping grid cells are rejected to prevent
 double-counting. The display supports regional files up to 25 MiB / 10,000 cells
-and 200 parcels per lookup. Larger backend jobs should export a regional subset.
+and 500 parcels per lookup. Larger backend jobs should export a regional subset.
 Aggregation runs in the browser with bbox filtering; for large regional workloads
 move this same contract to a spatial database/worker before increasing limits.
 

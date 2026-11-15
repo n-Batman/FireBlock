@@ -29,7 +29,7 @@ GET /api/parcels?bbox=-120.66,35.27,-120.65,35.28
 A zero-radius point query returns the polygon(s) intersecting the point. Radius
 is in metres and searches a rectangular envelope around the point, not a circular
 distance filter. Bbox is west,south,east,north. Searches are capped at 25 km²,
-radius at 2 km and results at 200 features. `metadata.truncated` explicitly reports
+radius at 2 km and results at 500 features. `metadata.truncated` explicitly reports
 limited results; zoom in rather than assuming that every surrounding parcel was
 returned. Coordinates on a shared boundary can legitimately return multiple parcels.
 

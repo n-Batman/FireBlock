@@ -45,9 +45,9 @@ late responses, page exit, private-field stripping, no persistent storage writes
 no speculative requests after loading and updated scores after new scan evidence.
 Type checks passed for the changed files. No whole-frontend verification was run.
 
-The score memo now holds a full 200-parcel response. The previous 128-entry cap
-caused all 200 calculations to miss on a second sequential pass (400 calculations
-over two passes). The regression check now requires just 200 calculations total.
+The score memo now holds up to 512 entries for a full 500-parcel response. A
+smaller entry cap would evict the start of a full response before its next pass.
+The regression check requires just 500 calculations across two full passes.
 The byte limit remains unchanged, so especially large geometries can still evict.
 
 The auxiliary boundary overlay skips automatic point requests and projections

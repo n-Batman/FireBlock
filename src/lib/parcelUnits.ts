@@ -5,7 +5,7 @@ import { labelPoint, pointInPolygon, type LatLng } from "./geo";
 import type { Parcels } from "./parcels";
 
 const ACRES_PER_M2 = 1 / 4046.8564224;
-const CENTER_CACHE_LIMIT = 256;
+const CENTER_CACHE_LIMIT = 512;
 const centers = new Map<string, LatLng>();
 
 // GeoJSON is [lon, lat]. Leaflet is [lat, lng]. These two functions are the only place that flips.
