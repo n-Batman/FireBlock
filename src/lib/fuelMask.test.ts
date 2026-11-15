@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, CLEAR, colourOf, liveColourOf, NEUTRAL, RISK, riskAreas, smooth, verdict } from "./fuelMask";
+import { classify, CLEAR, colourOf, dryColourOf, liveColourOf, NEUTRAL, RISK, riskAreas, smooth, verdict, whiteBalance } from "./fuelMask";
 
 const px = (...rgb: [number, number, number][]) => Uint8ClampedArray.from(rgb.flatMap(([r, g, b]) => [r, g, b, 255]));
 const STRAW: [number, number, number] = [200, 170, 110]; // cured grass
@@ -8,6 +8,7 @@ const SKY: [number, number, number] = [90, 140, 210];
 const DIRT: [number, number, number] = [170, 120, 90]; // redder brown
 const TRUNK: [number, number, number] = [90, 70, 50]; // dark brown
 const POST: [number, number, number] = [150, 150, 150];
+const PALE: [number, number, number] = [205, 185, 180]; // pinkish dead grass
 
 describe("colourOf", () => {
   it("rates straw as risk and green as clear", () => {
@@ -17,6 +18,47 @@ describe("colourOf", () => {
 
   it("keeps sky, posts, dark trunks and reddish dirt neutral", () => {
     expect([SKY, POST, TRUNK, DIRT].map((c) => colourOf(...c))).toEqual([NEUTRAL, NEUTRAL, NEUTRAL, NEUTRAL]);
+  });
+});
+
+describe("dryColourOf", () => {
+  it("counts yellow and pale dead grass but not red-brown soil, even inside a dry mask", () => {
+    const RED_SOIL: [number, number, number] = [150, 90, 70]; // Lab hue 43: redder than any cured grass
+    expect([STRAW, PALE, DIRT].map((c) => dryColourOf(...c))).toEqual([RISK, RISK, RISK]);
+    expect(dryColourOf(...RED_SOIL)).toBe(NEUTRAL);
+    expect(dryColourOf(...GREEN)).toBe(CLEAR);
+  });
+});
+
+describe("whiteBalance", () => {
+  // Six 4x4 patches in a row: straw, green, grey post, dirt, blue sky, shade.
+  const PATCHES: [number, number, number][] = [[200, 176, 112], GREEN, POST, DIRT, [120, 160, 215], [60, 60, 60]];
+  const scene = (cast: [number, number, number]) => {
+    const rgba = new Uint8ClampedArray(24 * 4 * 4).fill(255);
+    for (let i = 0; i < 24 * 4; i++) for (let c = 0; c < 3; c++) rgba[i * 4 + c] = PATCHES[(i % 24) >> 2][c] * cast[c];
+    return rgba;
+  };
+  const at = (rgba: Uint8ClampedArray, patch: number) => colourOf(rgba[patch * 16], rgba[patch * 16 + 1], rgba[patch * 16 + 2]);
+
+  it("leaves a neutral scene nearly unchanged", () => {
+    const raw = scene([1, 1, 1]);
+    const out = whiteBalance(raw, 24, 4);
+    expect(Math.max(...[...raw].map((v, i) => Math.abs(v - out[i])))).toBeLessThanOrEqual(4);
+  });
+
+  it("classifies straw under a sunset cast the same as under neutral light", () => {
+    const cast = scene([1.2, 0.9, 0.65]);
+    expect(at(cast, 0)).toBe(NEUTRAL); // the raw cast pushes straw out of the risk band
+    const out = whiteBalance(cast, 24, 4);
+    expect(at(out, 0)).toBe(RISK);
+    expect(at(out, 0)).toBe(at(whiteBalance(scene([1, 1, 1]), 24, 4), 0));
+    expect(at(out, 3)).toBe(NEUTRAL); // dirt does not come along
+  });
+
+  it("does not grey out a frame that is all golden grass", () => {
+    const field = new Uint8ClampedArray(16 * 4).fill(255);
+    for (let i = 0; i < 16; i++) [field[i * 4], field[i * 4 + 1], field[i * 4 + 2]] = STRAW;
+    expect(at(whiteBalance(field, 4, 4), 0)).toBe(RISK);
   });
 });
 
@@ -31,7 +73,6 @@ describe("liveColourOf", () => {
   });
 });
 
-const PALE: [number, number, number] = [205, 185, 180]; // pinkish dead grass
 const masks = (dry: number[], live: number[], exclude: number[]) => ({ dry: Uint8Array.from(dry), live: Uint8Array.from(live), exclude: Uint8Array.from(exclude) });
 
 describe("classify", () => {
@@ -157,7 +198,7 @@ describe("rasterise / scan", () => {
     });
   });
 
-  describe("reconcile with the headline dryPct", () => {
+  describe("reconcile with the estimate's dry area", () => {
     const w = 40;
     const DARK_STRAW: [number, number, number] = [120, 100, 60];
     const paint = (fill: (x: number, y: number) => [number, number, number]) => {
@@ -171,46 +212,63 @@ describe("rasterise / scan", () => {
       return n;
     };
 
-    it("fills canopy-over-dry-grass in dry tiles up to the headline", async () => {
+    it("fills canopy-over-dry-grass in dry tiles up to the estimate's area", async () => {
       const { scan } = await import("./fuelMask");
       const rgba = paint((_, y) => (y < 8 ? GREEN : STRAW)); // 20% canopy, 80% flat dry grass SAM did not mask
       const grid = [["dry", "dry"], ["dry", "dry"]];
       expect(scan(rgba, w, w, w, [], grid).verdict.share).toBeLessThan(0.3); // only the textured canopy edge reads as fuel
-      const r = scan(rgba, w, w, w, [], grid, 80);
+      const r = scan(rgba, w, w, w, [], grid, 80, 1);
       expect(Math.abs(r.verdict.share! - 0.8)).toBeLessThanOrEqual(0.15);
+      expect(Math.abs(riskIn(r.labels, 0, w) / (w * w) - 0.8)).toBeLessThanOrEqual(0.1); // the area, not only the ratio
     });
 
     it("leaves tan soil in soil tiles with no risk even while filling", async () => {
       const { scan } = await import("./fuelMask");
       const rgba = paint(() => STRAW); // colour only: every pixel RISK
-      const r = scan(rgba, w, w, w, null, [["soil", "dry"]], 100);
+      const r = scan(rgba, w, w, w, null, [["soil", "dry"]], 100, 0.5);
       expect(riskIn(r.labels, 0, 20)).toBe(0);
       expect(riskIn(r.labels, 20, 40)).toBe(20 * w);
     });
 
-    it("keeps a SAM dry-mask pixel RISK inside a soil tile", async () => {
+    it("keeps a SAM dry-mask pixel RISK inside a soil tile and trims unmasked tan there first", async () => {
       const { scan } = await import("./fuelMask");
       const rgba = paint((x, y) => ((x + y) % 2 ? STRAW : DARK_STRAW)); // textured dry grass
-      const r = scan(rgba, w, w, w, [{ group: "dry", polys: [[[0, 0], [20, 0], [20, 40], [0, 40]]] }], [["soil"]], 50);
+      const r = scan(rgba, w, w, w, [{ group: "dry", polys: [[[0, 0], [20, 0], [20, 40], [0, 40]]] }], [["soil"]], 50, 1);
       expect(r.labels[20 * w + 10]).toBe(RISK); // inside the dry mask
-      expect(riskIn(r.labels, 22, 40)).toBe(0); // unmasked tan in the soil tile is gated
+      expect(riskIn(r.labels, 22, 40)).toBe(0); // half the frame is over the area, so the unmasked half of the soil tile goes
     });
 
-    it("trims risk in live tiles when the headline is far lower", async () => {
+    it("trims risk in live tiles first when the estimate's area is far lower", async () => {
       const { scan } = await import("./fuelMask");
       const rgba = paint(() => STRAW);
       const grid = [["live", "dry"]];
       expect(riskIn(scan(rgba, w, w, w, null, grid).labels, 0, 20)).toBe(20 * w); // PR 20: live tiles untouched
-      const r = scan(rgba, w, w, w, null, grid, 10);
+      const r = scan(rgba, w, w, w, null, grid, 10, 1);
       expect(riskIn(r.labels, 0, 20)).toBe(0);
-      expect(riskIn(r.labels, 20, 40)).toBe(20 * w);
+      expect(Math.abs(riskIn(r.labels, 20, 40) / (w * w) - 0.1)).toBeLessThanOrEqual(0.03); // and the dry tile down to the area
     });
 
-    it("gives the PR 20 output without a grid or without dryPct", async () => {
+    it("gives the PR 20 output without a grid or without dryPct and vegFrac", async () => {
       const { scan } = await import("./fuelMask");
       const rgba = paint((_, y) => (y < 8 ? GREEN : STRAW));
-      expect(scan(rgba, w, w, w, [], null, 80)).toEqual(scan(rgba, w, w, w, []));
+      expect(scan(rgba, w, w, w, [], null, 80, 1)).toEqual(scan(rgba, w, w, w, []));
       expect(scan(rgba, w, w, w, [], [["dry", "soil"]], null)).toEqual(scan(rgba, w, w, w, [], [["dry", "soil"]]));
+      expect(scan(rgba, w, w, w, [], [["dry", "soil"]], 80)).toEqual(scan(rgba, w, w, w, [], [["dry", "soil"]]));
+    });
+
+    it("lets textured straw survive a soil tile, but not flat tan", async () => {
+      const { scan } = await import("./fuelMask");
+      const rgba = paint((x, y) => (x < 20 ? ((x + y) % 2 ? STRAW : DARK_STRAW) : STRAW)); // a grassy strip beside flat tan ground
+      const r = scan(rgba, w, w, w, [], [["soil"]], 50, 1);
+      expect(riskIn(r.labels, 0, 18)).toBe(18 * w);
+      expect(riskIn(r.labels, 22, 40)).toBe(0);
+    });
+
+    it("brings green back in soil tiles up to the live area the estimate implies", async () => {
+      const { scan } = await import("./fuelMask");
+      const rgba = paint(() => GREEN);
+      const r = scan(rgba, w, w, w, null, [["soil"]], 0, 0.5); // soil tiles lose their green, then half the frame of it comes back
+      expect(Math.abs(r.labels.reduce((n, l) => n + (l === CLEAR ? 1 : 0), 0) / (w * w) - 0.5)).toBeLessThanOrEqual(0.05);
     });
   });
 });

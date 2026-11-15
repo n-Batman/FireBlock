@@ -52,6 +52,8 @@ export function withHumanLabels(items: Item[], labels: HumanLabel[]): Item[] {
 export const isDirtBucket = (category: string) => /^(v2 )?(bare soil|dirt road)/.test(category);
 
 export const sha = (s: string | Buffer) => createHash("sha1").update(s).digest("hex").slice(0, 16);
+/** Fixed 70/30 split by id: true for the 30% thresholds are never fitted on. */
+export const heldOut = (id: string) => parseInt(sha(id).slice(0, 4), 16) % 10 >= 7;
 export const mk = (d: string) => mkdirSync(d, { recursive: true });
 
 /** Runs `fn` over `items` with `n` workers. */

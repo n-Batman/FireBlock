@@ -161,7 +161,8 @@ describe("layoutLabels", () => {
 });
 
 describe("headlineVerdict certainty", () => {
-  const fuel = (share: number) => ({ verdict: { risk: 0, clear: 0, share, level: "high", text: "SAM" } }) as FuelMap;
+  // A 10x10 map with `drawn` of the frame RISK; est(40) with veg_frac 0.5 implies 0.2 of the frame.
+  const fuel = (share: number, drawn = 0.2) => ({ w: 10, h: 10, verdict: { risk: drawn * 100, clear: 0, share, level: "high", text: "SAM" } }) as FuelMap;
   const est = (dry_pct: number, veg_frac = 0.5) => ({ dry_pct, veg_frac, grid: [] });
 
   it("keeps the exact wording when the overlay is close", () => {
@@ -184,5 +185,13 @@ describe("headlineVerdict certainty", () => {
   });
   it("stays exact at a gap of exactly 15", () => {
     expect(headlineVerdict(fuel(0.25), est(40))!.text).toBe("High risk: 40% of the vegetation looks dry.");
+  });
+  it("says About when the overlay draws under half the area the estimate implies, even with a matching share", () => {
+    expect(headlineVerdict(fuel(0.4, 0.05), est(40))!.text).toContain("About 40%"); // a small blob under a confident number
+    expect(headlineVerdict(fuel(0.4, 0.45), est(40))!.text).toContain("About 40%"); // and over twice it
+    expect(headlineVerdict(fuel(0.4, 0.11), est(40))!.text).toBe("High risk: 40% of the vegetation looks dry.");
+  });
+  it("does not call two tiny areas a disagreement", () => {
+    expect(headlineVerdict(fuel(0.4, 0.005), est(40, 0.06))!.text).toBe("High risk: 40% of the vegetation looks dry."); // 0.5% vs 2.4% of the frame
   });
 });

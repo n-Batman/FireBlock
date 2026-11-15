@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { EST_COLS, EST_ROWS, SYSTEM_PROMPT, estimateDry, type Estimate } from "../../src/lib/estimate";
 import { CLEAR, MAP_WIDTH, NEUTRAL, RISK, hsv, scan, type FuelMap } from "../../src/lib/fuelMask";
 import { ENDPOINT, parseSegments, segmentBody } from "../../src/lib/segment";
-import { CACHE, DATA, LABELS_V2, MANIFEST, V2, isDirtBucket, mk, pool, sha, sleep, withHumanLabels, type Item } from "./common";
+import { CACHE, DATA, LABELS_V2, MANIFEST, V2, heldOut, isDirtBucket, mk, pool, sha, sleep, withHumanLabels, type Item } from "./common";
 
 const VLM = process.env.EVAL_ESTIMATOR === "vlm";
 const PASS_PTS = 15; // |our dry% - GPT estimate|
@@ -19,6 +19,15 @@ export interface Result {
   /** VLM mode only: SAM fuel map share * 100 (0 when null) for the same frame; null when not run or SAM failed. */
   overlay: number | null;
   gap: number | null; // |ours - overlay|
+  /** VLM mode only: the SAM fuel map itself (null when not run or SAM failed). */
+  overlayMap: FuelMap | null;
+  /** VLM mode only: RISK pixels / frame, for the SAM fuel map and for the VLM's grid alone ("GPT only"). */
+  overlayRisk: number | null;
+  gridRisk: number | null;
+  /** VLM mode only: the grid's own share, dry cells / (dry + live cells) * 100 (0 when neither). */
+  gridShare: number | null;
+  /** VLM mode only: the dry area the estimate implies, dryPct / 100 * vegFrac of the frame. */
+  target: number | null;
   expected: number | null;
   err: number | null; // |ours - expected|
   bgFp: number | null; // VegAnn only
@@ -106,12 +115,14 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   let vlm: Estimate | null = null;
   let map: FuelMap;
   let overlay: number | null = null;
+  let overlayMap: FuelMap | null = null;
   if (VLM) {
     vlm = await estimate(jpeg);
     map = gridMap(vlm, w, h);
     const rf = process.env.ROBOFLOW_API_KEY?.trim();
     if (rf) {
-      const sam = await segment(jpeg, rf).then((r) => scan(rgba, w, h, sw, parseSegments(r), vlm?.grid, vlm?.dryPct), () => null); // SAM failure leaves overlay null: reported separately
+      const sam = await segment(jpeg, rf).then((r) => scan(rgba, w, h, sw, parseSegments(r), vlm?.grid, vlm?.dryPct, vlm?.vegFrac), () => null); // SAM failure leaves overlay null: reported separately
+      overlayMap = sam;
       if (sam) overlay = sam.verdict.share == null ? 0 : sam.verdict.share * 100;
     }
   } else map = scan(rgba, w, h, sw, parseSegments(await segment(jpeg, key)));
@@ -125,6 +136,8 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   }
   let risk = 0;
   for (const l of map.labels) if (l === RISK) risk++;
+  const count = (m: FuelMap, l: number) => m.labels.reduce((a, x) => a + (x === l ? 1 : 0), 0);
+  const gridClear = vlm ? count(map, CLEAR) : 0;
   const ours = vlm ? vlm.dryPct : map.verdict.share == null ? 0 : map.verdict.share * 100;
   const gap = overlay == null ? null : Math.abs(ours - overlay);
   const expected = item.expected?.relevant ? item.expected.dry_pct_estimate : null;
@@ -149,7 +162,7 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   if (err != null && err > PASS_PTS) (pass = false), (why = `dry% off by ${err.toFixed(0)}`);
   if (dirt && riskFrame > DIRT_PASS) (pass = false), (why = `dirt read as risk (${(riskFrame * 100).toFixed(0)}% of frame)`);
   if (bgFp != null && bgFp > BG_PASS) (pass = false), (why = `risk on ${(bgFp * 100).toFixed(0)}% of background`);
-  return { item, map, ours, overlay, gap, expected, err, bgFp, riskFrame, dirt, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: V2 ? null : suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
+  return { item, map, ours, overlay, gap, overlayMap, overlayRisk: overlayMap ? count(overlayMap, RISK) / n : null, gridRisk: vlm ? risk / n : null, gridShare: vlm ? (risk + gridClear ? (risk / (risk + gridClear)) * 100 : 0) : null, target: vlm ? (vlm.dryPct / 100) * vlm.vegFrac : null, expected, err, bgFp, riskFrame, dirt, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: V2 ? null : suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
 }
 
 async function main() {
@@ -158,7 +171,8 @@ async function main() {
   mk(CACHE);
   const raw: Item[] = JSON.parse(readFileSync(MANIFEST, "utf8"));
   const all = V2 ? withHumanLabels(raw, JSON.parse(readFileSync(LABELS_V2, "utf8"))) : raw;
-  const items = all.filter((i) => i.source === "vegann" || i.source === "own" || i.expected?.relevant);
+  const split = process.env.EVAL_SPLIT; // "train" | "test": the fixed 70/30 split thresholds are fitted on
+  const items = all.filter((i) => (i.source === "vegann" || i.source === "own" || i.expected?.relevant) && (!split || heldOut(i.id) === (split === "test")));
   const dropped = all.length - items.length;
   const results: Result[] = [];
   const failed: string[] = [];

@@ -137,17 +137,17 @@ async function estimate(image: string, hash: string, signal: AbortSignal): Promi
 
 /**
  * Masks (or colour only), then the per-pixel fuel map, all for one encoded frame. `est` is the estimate when it has
- * already come back: the map is then reconciled to its grid and dry_pct. Null if it cannot be drawn.
+ * already come back: the map is then reconciled to its grid, dry_pct and veg_frac. Null if it cannot be drawn.
  */
 async function mapFrame(image: string, hash: string, signal: AbortSignal, est: () => ScanEstimate | null | undefined) {
   try {
     const masks = await segment(image, hash, signal);
     const img = await loadImage(image);
     const used = est();
-    const map = analyse(img, img.naturalWidth, img.naturalHeight, masks, used?.grid, used?.dry_pct);
+    const map = analyse(img, img.naturalWidth, img.naturalHeight, masks, used?.grid, used?.dry_pct, used?.veg_frac);
     const redo = () => {
       const e = est();
-      return analyse(img, img.naturalWidth, img.naturalHeight, masks, e?.grid, e?.dry_pct);
+      return analyse(img, img.naturalWidth, img.naturalHeight, masks, e?.grid, e?.dry_pct, e?.veg_frac);
     };
     return { map, redo, used };
   } catch (error) {
@@ -158,7 +158,7 @@ async function mapFrame(image: string, hash: string, signal: AbortSignal, est: (
 
 /**
  * The fuel map and the estimate for one frame, requested in parallel. Either can be null. The map is built with the
- * estimate's grid and dry_pct if that is back first; if the estimate lands later the map is rebuilt once with it (no extra requests).
+ * estimate's grid, dry_pct and veg_frac if that is back first; if the estimate lands later the map is rebuilt once with it (no extra requests).
  */
 async function rateFrame(image: string, hash: string, signal: AbortSignal) {
   let landed = null as ScanEstimate | null;
