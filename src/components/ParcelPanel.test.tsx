@@ -56,7 +56,7 @@ describe("ParcelPanel before and after", () => {
     const row = screen.getByTestId("before-after");
     expect(row).toHaveTextContent("Before 75");
     expect(row).toHaveTextContent("After 25");
-    expect(screen.getByRole("link", { name: "Scan again" })).toHaveAttribute("href", "/scan?parcel=014-331-010&rescan=1");
+    expect(screen.getByRole("link", { name: "Scan again" })).toHaveAttribute("href", "/scan?parcel=014-331-010&plat=35.635&plon=-120.855&rescan=1");
   });
 
   it("Start over hides the row, keeps the scans and saves a marker for this parcel only", async () => {
@@ -140,7 +140,9 @@ describe("ParcelPanel mowed mark", () => {
     link.addEventListener("click", (e) => e.preventDefault());
     await userEvent.click(link);
     expect(JSON.parse(session.get(RESCAN_SPOT_KEY)!)).toEqual({ apn: "014-331-010", lat: 35.632, lon: -120.853 });
-    expect(link.getAttribute("href")).not.toMatch(/35\.63/);
+    const params = new URL(link.getAttribute("href")!, "http://localhost").searchParams;
+    expect([...params.values()]).not.toContain("35.632");
+    expect([...params.values()]).not.toContain("-120.853");
   });
 });
 
@@ -160,7 +162,7 @@ describe("ParcelPanel", () => {
 
   it("links to the scanner for this parcel", () => {
     render(<ParcelPanel parcel={parcel()} onClose={() => {}} />);
-    expect(screen.getByRole("link", { name: "Scan the rows" })).toHaveAttribute("href", "/scan?parcel=014-331-010");
+    expect(screen.getByRole("link", { name: "Scan the rows" })).toHaveAttribute("href", "/scan?parcel=014-331-010&plat=35.635&plon=-120.855");
   });
 
   it("shows a scan score with the scan as its source", () => {
