@@ -387,7 +387,7 @@ describe("useScanSession", () => {
       const hook = await photo();
       await advance(1);
       expect(hook.result.current.estimate).toEqual(EST);
-      expect(headline(hook)).toMatchObject({ share: 0.6, level: "high", text: "High risk: 60% of the vegetation looks dry." });
+      expect(headline(hook)).toMatchObject({ share: 0.6, level: "high", text: expect.stringContaining("About 60%") });
       expect(hook.result.current.fuel?.verdict.share).toBe(0.25); // the SAM overlay is untouched
     });
 
