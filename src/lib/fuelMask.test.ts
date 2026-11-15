@@ -156,4 +156,61 @@ describe("rasterise / scan", () => {
       expect(scan(rgba, w, w, w, null, [["live", "live"], ["live", "live"]]).labels).toEqual(none.labels);
     });
   });
+
+  describe("reconcile with the headline dryPct", () => {
+    const w = 40;
+    const DARK_STRAW: [number, number, number] = [120, 100, 60];
+    const paint = (fill: (x: number, y: number) => [number, number, number]) => {
+      const rgba = new Uint8ClampedArray(w * w * 4).fill(255);
+      for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) [rgba[(y * w + x) * 4], rgba[(y * w + x) * 4 + 1], rgba[(y * w + x) * 4 + 2]] = fill(x, y);
+      return rgba;
+    };
+    const riskIn = (labels: Uint8Array, x0: number, x1: number) => {
+      let n = 0;
+      for (let y = 0; y < w; y++) for (let x = x0; x < x1; x++) if (labels[y * w + x] === RISK) n++;
+      return n;
+    };
+
+    it("fills canopy-over-dry-grass in dry tiles up to the headline", async () => {
+      const { scan } = await import("./fuelMask");
+      const rgba = paint((_, y) => (y < 8 ? GREEN : STRAW)); // 20% canopy, 80% flat dry grass SAM did not mask
+      const grid = [["dry", "dry"], ["dry", "dry"]];
+      expect(scan(rgba, w, w, w, [], grid).verdict.share).toBeLessThan(0.3); // only the textured canopy edge reads as fuel
+      const r = scan(rgba, w, w, w, [], grid, 80);
+      expect(Math.abs(r.verdict.share! - 0.8)).toBeLessThanOrEqual(0.15);
+    });
+
+    it("leaves tan soil in soil tiles with no risk even while filling", async () => {
+      const { scan } = await import("./fuelMask");
+      const rgba = paint(() => STRAW); // colour only: every pixel RISK
+      const r = scan(rgba, w, w, w, null, [["soil", "dry"]], 100);
+      expect(riskIn(r.labels, 0, 20)).toBe(0);
+      expect(riskIn(r.labels, 20, 40)).toBe(20 * w);
+    });
+
+    it("keeps a SAM dry-mask pixel RISK inside a soil tile", async () => {
+      const { scan } = await import("./fuelMask");
+      const rgba = paint((x, y) => ((x + y) % 2 ? STRAW : DARK_STRAW)); // textured dry grass
+      const r = scan(rgba, w, w, w, [{ group: "dry", polys: [[[0, 0], [20, 0], [20, 40], [0, 40]]] }], [["soil"]], 50);
+      expect(r.labels[20 * w + 10]).toBe(RISK); // inside the dry mask
+      expect(riskIn(r.labels, 22, 40)).toBe(0); // unmasked tan in the soil tile is gated
+    });
+
+    it("trims risk in live tiles when the headline is far lower", async () => {
+      const { scan } = await import("./fuelMask");
+      const rgba = paint(() => STRAW);
+      const grid = [["live", "dry"]];
+      expect(riskIn(scan(rgba, w, w, w, null, grid).labels, 0, 20)).toBe(20 * w); // PR 20: live tiles untouched
+      const r = scan(rgba, w, w, w, null, grid, 10);
+      expect(riskIn(r.labels, 0, 20)).toBe(0);
+      expect(riskIn(r.labels, 20, 40)).toBe(20 * w);
+    });
+
+    it("gives the PR 20 output without a grid or without dryPct", async () => {
+      const { scan } = await import("./fuelMask");
+      const rgba = paint((_, y) => (y < 8 ? GREEN : STRAW));
+      expect(scan(rgba, w, w, w, [], null, 80)).toEqual(scan(rgba, w, w, w, []));
+      expect(scan(rgba, w, w, w, [], [["dry", "soil"]], null)).toEqual(scan(rgba, w, w, w, [], [["dry", "soil"]]));
+    });
+  });
 });
