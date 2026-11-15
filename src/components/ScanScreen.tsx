@@ -145,8 +145,12 @@ export function ScanScreen() {
   return (
     <main className="fixed inset-0 overflow-hidden bg-paper text-ink">
       {photoMode && session.photo && (
-        // eslint-disable-next-line @next/next/no-img-element -- a local blob URL, nothing for next/image to optimise
-        <img src={session.photo.src} alt="The photo being scanned" className="absolute inset-0 h-full w-full object-cover" />
+        // The whole photo, from just under the top controls, with the page background in the empty bands; its map sits on it.
+        <div className="absolute inset-x-0 top-16 bottom-0">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a local blob URL, nothing for next/image to optimise */}
+          <img src={session.photo.src} alt="The photo being scanned" className="h-full w-full object-contain object-top" />
+          {running && fuel && <FuelOverlay videoSize={session.videoSize} map={fuel} fit="contain-top" />}
+        </div>
       )}
       <video
         ref={videoRef}
@@ -170,7 +174,7 @@ export function ScanScreen() {
             />
           )}
           {fuel ? (
-            <FuelOverlay videoSize={session.videoSize} map={fuel} />
+            !photoMode && <FuelOverlay videoSize={session.videoSize} map={fuel} />
           ) : (
             <ScanOverlay videoSize={session.videoSize} tracks={shown} running frozen={session.frozen} />
           )}

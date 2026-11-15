@@ -489,6 +489,15 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     return () => controller.abort();
   }, [phase, mode, photo, mapOnce, attempt]);
 
+  // Rotating the phone changes the stream's shape ("resize" on the video): keep the overlay lined up with it.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (phase !== "running" || mode === "photo" || !v) return;
+    const onResize = () => setVideoSize({ w: v.videoWidth, h: v.videoHeight });
+    v.addEventListener("resize", onResize);
+    return () => v.removeEventListener("resize", onResize);
+  }, [phase, mode, videoRef]);
+
   // Leaving the screen always turns the camera off.
   useEffect(() => release, [release]);
 

@@ -65,6 +65,26 @@ describe("mapBoxToRect", () => {
       height: 500,
     });
   });
+
+  it("contain-top fits the whole photo at the top of the box, centred across", () => {
+    // 1024x768 photo in a 390x780 portrait box: scale 390/1024, no crop, empty band below.
+    const r = mapBoxToRect([0, 0, 1000, 1000], { w: 1024, h: 768 }, { w: 390, h: 780 }, "contain-top");
+    expect(r.x).toBe(0);
+    expect(r.y).toBe(0);
+    expect(r.width).toBe(390);
+    expect(r.height).toBeCloseTo(292.5);
+    const tall = mapBoxToRect([0, 0, 1000, 1000], { w: 768, h: 1024 }, { w: 390, h: 390 }, "contain-top");
+    expect(tall.x).toBeCloseTo((390 - 292.5) / 2); // narrower than the box: centred
+    expect(tall.y).toBe(0);
+  });
+
+  it("keeps a box at the photo's left edge visible with contain-top (cover crops it off)", () => {
+    const edge: BBox = [0, 400, 100, 600];
+    const shown = mapBoxToRect(edge, { w: 1024, h: 768 }, { w: 390, h: 780 }, "contain-top");
+    expect(shown.x).toBe(0);
+    expect(shown.x + shown.width).toBeLessThanOrEqual(390);
+    expect(mapBoxToRect(edge, { w: 1024, h: 768 }, { w: 390, h: 780 }).x).toBeLessThan(0);
+  });
 });
 
 describe("iou", () => {

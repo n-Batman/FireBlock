@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { RISK, CLEAR, type FuelMap } from "@/lib/fuelMask";
-import { mapBoxToRect } from "@/lib/scan";
+import { mapBoxToRect, type Fit } from "@/lib/scan";
 
 /** Clear is a clearly visible green wash with a softer edge; risk is a stronger red with a soft thin edge. */
 const CLEAR_RGBA = [74, 222, 128, 0.32] as const;
@@ -41,10 +41,10 @@ export function paint(map: Pick<FuelMap, "w" | "h" | "labels">, out: Uint8Clampe
 }
 
 /**
- * The fuel map over the frame, laid exactly where `object-cover` puts the picture. The small map is
+ * The fuel map over the frame, laid exactly where `fit` puts the picture (`object-cover` by default). The small map is
  * scaled up with smoothing and a slight blur, so the shapes hug the real areas without blocks or a grid.
  */
-export function FuelOverlay({ videoSize, map }: { videoSize: { w: number; h: number } | null; map: FuelMap }) {
+export function FuelOverlay({ videoSize, map, fit }: { videoSize: { w: number; h: number } | null; map: FuelMap; fit?: Fit }) {
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
@@ -65,7 +65,7 @@ export function FuelOverlay({ videoSize, map }: { videoSize: { w: number; h: num
     ctx.putImageData(img, 0, 0);
   }, [map]);
 
-  const rect = videoSize && size ? mapBoxToRect([0, 0, 1000, 1000], videoSize, size) : null;
+  const rect = videoSize && size ? mapBoxToRect([0, 0, 1000, 1000], videoSize, size, fit) : null;
   return (
     <div ref={box} className="pointer-events-none absolute inset-0 overflow-hidden">
       <canvas

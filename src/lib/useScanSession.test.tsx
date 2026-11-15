@@ -188,6 +188,29 @@ describe("useScanSession", () => {
     expect(hook.result.current.frozen).toBe(false);
   });
 
+  it("updates videoSize when the video resizes (the phone was rotated)", async () => {
+    fetchMock.mockImplementation(() => new Promise(() => {}));
+    let size = { w: 1280, h: 720 };
+    const v = document.createElement("video");
+    Object.defineProperties(v, {
+      videoWidth: { get: () => size.w },
+      videoHeight: { get: () => size.h },
+      readyState: { value: 4 },
+    });
+    v.play = vi.fn(async () => {});
+    v.pause = vi.fn();
+    v.load = vi.fn();
+    const ref = { current: v };
+    const hook = renderHook(() => useScanSession(ref));
+    await act(async () => {
+      await hook.result.current.start("camera");
+    });
+    expect(hook.result.current.videoSize).toEqual({ w: 1280, h: 720 });
+    size = { w: 720, h: 1280 };
+    act(() => void v.dispatchEvent(new Event("resize")));
+    expect(hook.result.current.videoSize).toEqual({ w: 720, h: 1280 });
+  });
+
   it("asks the camera for 1920x1080 with continuous focus", async () => {
     fetchMock.mockResolvedValue(ok());
     await startSession();
