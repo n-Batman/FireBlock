@@ -1,11 +1,13 @@
 /* Pulls the eval images into eval/data (gitignored) and writes eval/manifest.json. Run: npm run eval:fetch */
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { CACHE, DATA, MANIFEST, UA, mk, pool, sleep, type Item } from "./common";
 
 const PER_BUCKET = 25;
 const CATEGORIES = ["Dry grass", "Grasslands of California", "Vineyards in California", "Cover crops", "Lawns", "Chaparral", "Firebreaks", "Wildfire prevention"];
 const SEARCHES = ["brown lawn drought", "leaf litter", "bare soil field", "dirt road", "dormant vineyard"];
 const OK_LICENSE = /^(cc0|public domain|pd|cc by(-sa)? \d)/i;
+// EVAL_ONLY=dirt fetches just the two dirt searches and merges them into the existing manifest.
+const DIRT_ONLY = process.env.EVAL_ONLY === "dirt";
 const VEGANN = Number(process.env.VEGANN ?? 100);
 // FETCH_BUDGET_S stops the download phase early; files already on disk are reused, so a rerun resumes.
 const DEADLINE = Date.now() + Number(process.env.FETCH_BUDGET_S ?? 1e9) * 1000;
@@ -81,9 +83,10 @@ async function main() {
   mk(DATA);
   mk(CACHE);
   const items: (Item & { _thumb?: string })[] = [];
-  for (const c of CATEGORIES) items.push(...(await commons({ generator: "categorymembers", gcmtitle: `Category:${c}`, gcmtype: "file", gcmlimit: "50" }, c)));
-  for (const s of SEARCHES) items.push(...(await commons({ generator: "search", gsrsearch: s, gsrnamespace: "6", gsrlimit: "50" }, s)));
-  const seen = new Set<string>();
+  const old: Item[] = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : [];
+  if (!DIRT_ONLY) for (const c of CATEGORIES) items.push(...(await commons({ generator: "categorymembers", gcmtitle: `Category:${c}`, gcmtype: "file", gcmlimit: "50" }, c)));
+  for (const s of DIRT_ONLY ? ["bare soil field", "dirt road"] : SEARCHES) items.push(...(await commons({ generator: "search", gsrsearch: s, gsrnamespace: "6", gsrlimit: "50" }, s)));
+  const seen = new Set<string>(DIRT_ONLY ? old.map((o) => o.file.split("/")[1]) : []);
   const unique = items.filter((i) => !seen.has(i.file.split("/")[1]) && seen.add(i.file.split("/")[1]));
   const kept: Item[] = [];
   await pool(unique, 2, async (it) => {
@@ -96,17 +99,18 @@ async function main() {
   });
   kept.sort((a, b) => a.id.localeCompare(b.id));
   const own: Item[] = [];
-  for (const n of [1, 3, 6, 9]) {
+  const nums = existsSync("test-photos") ? readdirSync("test-photos").flatMap((f) => /^SRV(\d+)\.jpeg$/.exec(f)?.[1] ?? []).map(Number).sort((a, b) => a - b) : [];
+  for (const n of nums) {
     const src = `test-photos/SRV${n}.jpeg`;
-    if (!existsSync(src)) continue;
     mk(`${DATA}/own`);
     copyFileSync(src, `${DATA}/own/SRV${n}.jpg`);
     own.push({ id: `own-srv${n}`, file: `own/SRV${n}.jpg`, url: "local:test-photos", license: "own", author: "FireBlock", category: "own", source: "own" });
   }
-  const manifest = [...kept, ...(await vegann()), ...own];
+  const fresh = [...kept, ...(DIRT_ONLY ? [] : await vegann()), ...own];
   // Keep labels already written by label.ts.
-  const old: Item[] = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : [];
-  for (const m of manifest) m.expected = old.find((o) => o.id === m.id)?.expected;
+  for (const m of fresh) m.expected = old.find((o) => o.id === m.id)?.expected;
+  const ids = new Set(fresh.map((m) => m.id));
+  const manifest = DIRT_ONLY ? [...old.filter((o) => !ids.has(o.id)), ...fresh] : fresh;
   writeFileSync(MANIFEST, JSON.stringify(manifest, null, 1));
   const by: Record<string, number> = {};
   for (const m of manifest) by[m.category] = (by[m.category] ?? 0) + 1;
