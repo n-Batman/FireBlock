@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { AreaNote, ScanResponse } from "@/data/types";
 import { DEMO_CLIP_URL } from "./demoClip";
-import { encodeFrame, MIN_SHARPNESS } from "./frame";
+import { encodeFrame, type PhotoQuality } from "./frame";
 import { analyse, loadImage, type FuelMap, type Mask } from "./fuelMask";
 import { SAMPLES } from "./samples";
 import { getCached, hashImage, putCached } from "./scanCache";
@@ -16,7 +16,7 @@ export type Mode = "camera" | "demo" | "photo";
 /** Wait this long after a response (or a failure) before sending the next frame. */
 const PAUSE_MS = 1500;
 const MAX_FAILURES = 3;
-/** A blurry frame is skipped, but after this many in a row one is sent anyway (flat scenes score as blurry). */
+/** A blurry, dark or foggy frame is skipped, but after this many in a row one is sent anyway (flat scenes score as blurry). */
 const MAX_BLUR_SKIPS = 3;
 const BLUR_RETRY_MS = 300;
 /** The estimate is a bonus: past this the frame is rated by the SAM share alone. */
@@ -26,6 +26,13 @@ const SEGMENT_TIMEOUT_MS = 20000;
 /** Past this the map is shown without the model's words. */
 const FINDINGS_TIMEOUT_MS = 12000;
 export const DEMO_SRC = DEMO_CLIP_URL;
+
+/** Why an uploaded photo was not sent to the scanner, and what to do. */
+const RETAKE: Record<Exclude<PhotoQuality, "ok">, string> = {
+  blurry: "This photo is too blurry to rate. Hold the phone still and retake.",
+  dark: "This photo is too dark to rate. Retake it in more light.",
+  foggy: "This photo is too foggy to rate. Wait for a clearer view and retake.",
+};
 
 // The screen adds "Or try demo mode." itself, and only when the demo clip exists.
 function explain(error: unknown, mode: Mode): string {
@@ -272,7 +279,7 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     [release, videoRef],
   );
 
-  /** Scans one uploaded photo: same downscale, same tracker, same overlay as a camera frame. */
+  /** Scans one uploaded photo: same downscale, same tracker, same overlay as a camera frame. A blurry, dark or foggy photo is not sent: it asks for a retake. */
   const startPhoto = useCallback(
     async (file: File) => {
       release();
@@ -289,7 +296,14 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       setPhase("starting");
       try {
         const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-        const { image } = encodeFrame(bitmap, bitmap.width, bitmap.height);
+        const { image, quality } = encodeFrame(bitmap, bitmap.width, bitmap.height);
+        if (quality && quality !== "ok") {
+          bitmap.close();
+          release();
+          setPhase("error");
+          setError(RETAKE[quality]);
+          return;
+        }
         const src = URL.createObjectURL(file);
         photoUrlRef.current = src;
         setPhoto({ src, image });
@@ -410,8 +424,8 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       let delay = PAUSE_MS;
       if (v && v.readyState >= 2 && v.videoWidth) {
         try {
-          const { image, sharp } = encodeFrame(v, v.videoWidth, v.videoHeight, canvas);
-          if (mode === "camera" && sharp !== null && sharp < MIN_SHARPNESS && blurSkips < MAX_BLUR_SKIPS) {
+          const { image, quality } = encodeFrame(v, v.videoWidth, v.videoHeight, canvas);
+          if (mode === "camera" && quality && quality !== "ok" && blurSkips < MAX_BLUR_SKIPS) {
             blurSkips += 1;
             delay = BLUR_RETRY_MS;
           } else {

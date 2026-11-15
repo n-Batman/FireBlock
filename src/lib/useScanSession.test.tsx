@@ -216,6 +216,58 @@ describe("useScanSession", () => {
     expect(JSON.parse(fetchMock.mock.calls[2][1].body).areas).toEqual(MAP.areas); // the words are about the measured areas only
   });
 
+  describe("photo quality gate", () => {
+    /** A 2D context whose pixels are `luma(x, y)` grey, so the quality check reads them. */
+    const pixels = (luma: (x: number, y: number) => number) =>
+      vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+        drawImage: () => {},
+        getImageData: (_x: number, _y: number, w: number, h: number) => {
+          const data = new Uint8ClampedArray(w * h * 4);
+          for (let i = 0; i < w * h; i++) data.fill(luma(i % w, Math.floor(i / w)), i * 4, i * 4 + 3), (data[i * 4 + 3] = 255);
+          return { data };
+        },
+      } as never);
+    const upload = async () => {
+      vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 1600, height: 1200, close: () => {} })));
+      vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:photo", revokeObjectURL: () => {} }));
+      const ref = { current: liveVideo() };
+      const hook = renderHook(() => useScanSession(ref));
+      await act(async () => {
+        await hook.result.current.startPhoto(new File(["x"], "row.jpg", { type: "image/jpeg" }));
+      });
+      await advance(1);
+      return hook;
+    };
+
+    it("rejects a foggy upload with a retake message and no requests", async () => {
+      pixels(() => 235);
+      fetchMock.mockImplementation(routes);
+      const hook = await upload();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(hook.result.current.phase).toBe("error");
+      expect(hook.result.current.error).toBe("This photo is too foggy to rate. Wait for a clearer view and retake.");
+      expect(hook.result.current.photo).toBeNull();
+    });
+
+    it("maps a sharp, well-lit upload as before", async () => {
+      pixels((x, y) => ((x + y) % 2 ? 70 : 190));
+      fetchMock.mockImplementation(routes);
+      const hook = await upload();
+      expect(hook.result.current.error).toBeNull();
+      expect(fetchMock.mock.calls.map((c) => c[0])).toEqual(["/api/segment", "/api/estimate", "/api/findings"]);
+      expect(hook.result.current.fuel?.verdict.share).toBe(0.25);
+    });
+
+    it("skips dark camera frames (even sharp ones), then sends one anyway after three", async () => {
+      pixels((x, y) => ((x + y) % 2 ? 5 : 45));
+      fetchMock.mockResolvedValue(ok());
+      await startSession();
+      expect(fetchMock).not.toHaveBeenCalled();
+      await advance(300 * 3);
+      expect(fetchMock).toHaveBeenCalledTimes(2); // masks and estimate for the escape frame
+    });
+  });
+
   it("falls back to colour only when segmentation fails", async () => {
     vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 800, height: 600, close: () => {} })));
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:photo", revokeObjectURL: () => {} }));
