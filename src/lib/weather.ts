@@ -65,20 +65,54 @@ function windMph(value: unknown): number | null {
   return quantity.unitCode === "wmoUnit:mi_h-1" ? Math.round(speed) : null;
 }
 
-/** NWS GeoJSON in, a point forecast and active warning geometries out. No sample fallback. */
+const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+
+async function latestObservation(value: unknown, signal: AbortSignal, now: number) {
+  const address = string(value);
+  if (!address) return null;
+  const url = new URL(address);
+  if (url.origin !== BASE || !/^\/gridpoints\/[A-Z]{3}\/\d+,\d+\/stations$/.test(url.pathname) || url.search || url.hash) return null;
+  const stations = await nws(url.href, 86400, signal);
+  const first = Array.isArray(stations.features) ? object(stations.features[0]) : {};
+  const station = string(object(first.properties).stationIdentifier);
+  if (!station || !/^[A-Z0-9]+$/.test(station)) return null;
+  const data = await nws(`${BASE}/stations/${station}/observations/latest`, 300, signal);
+  const props = object(data.properties);
+  const observedAt = string(props.timestamp);
+  if (!observedAt) return null;
+  const age = now - Date.parse(observedAt);
+  if (!Number.isFinite(age) || age < 0 || age >= 90 * 60_000) return null;
+
+  const temperature = object(props.temperature);
+  const celsius = temperature.unitCode === "wmoUnit:degC" ? numeric(temperature.value) : null;
+  const humidity = numeric(object(props.relativeHumidity).value);
+  const degrees = numeric(object(props.windDirection).value);
+  return {
+    basis: "observed" as const,
+    station,
+    observedAt,
+    windMph: windMph(props.windSpeed),
+    windDir: degrees !== null && degrees >= 0 && degrees <= 360 ? COMPASS[Math.round(degrees / 22.5) % COMPASS.length] : null,
+    humidityPct: humidity !== null && humidity >= 0 && humidity <= 100 ? Math.round(humidity) : null,
+    temperatureF: celsius === null ? null : Math.round(celsius * 9 / 5 + 32),
+    shortForecast: string(props.textDescription),
+  };
+}
+
+/** NWS GeoJSON in, point weather and active warning geometries out. No sample fallback. */
 export async function getWeather(lat: number, lon: number, now = Date.now()): Promise<WeatherGeoJSON> {
   const signal = AbortSignal.timeout(10_000);
   const point = `${lat},${lon}`;
+  const location = nws(`${BASE}/points/${point}`, 86400, signal).then(data => object(data.properties));
   const forecastRequest = async () => {
-    const location = await nws(`${BASE}/points/${point}`, 86400, signal);
-    const data = await nws(hourlyURL(object(location.properties).forecastHourly), 300, signal);
+    const data = await nws(hourlyURL((await location).forecastHourly), 300, signal);
     const props = object(data.properties);
     const periods = Array.isArray(props.periods) ? props.periods : [];
     const period = periods.map(object).find(p => Date.parse(String(p.startTime)) <= now && Date.parse(String(p.endTime)) > now);
     if (!period || !Number.isFinite(Date.parse(String(props.updateTime)))) throw new WeatherError("NWS has no current hourly forecast for this location.");
     return { props, period };
   };
-  const [forecast, alerts] = await Promise.allSettled([
+  const [forecast, alerts, observation] = await Promise.allSettled([
     forecastRequest(),
     nws(`${BASE}/alerts/active?point=${point}`, 60, signal).then(data => {
       if (data.type !== "FeatureCollection" || !Array.isArray(data.features)) throw new WeatherError("NWS alerts are unavailable.");
@@ -87,6 +121,7 @@ export async function getWeather(lat: number, lon: number, now = Date.now()): Pr
         return p.status === "Actual" && p.messageType !== "Cancel" && Date.parse(String(p.expires)) > now && (!p.onset || Date.parse(String(p.onset)) <= now);
       });
     }),
+    location.then(props => latestObservation(props.observationStations, signal, now)),
   ]);
   if (forecast.status === "rejected") throw forecast.reason;
   const { props, period } = forecast.value;
@@ -95,6 +130,9 @@ export async function getWeather(lat: number, lon: number, now = Date.now()): Pr
   const activeAlerts = alerts.status === "fulfilled" ? alerts.value : null;
   const weather: LiveWeather = {
     kind: "forecast",
+    basis: "forecast",
+    station: null,
+    observedAt: null,
     windMph: windMph(period.windSpeed),
     windDir: string(period.windDirection),
     humidityPct: humidity !== null && humidity >= 0 && humidity <= 100 ? humidity : null,
@@ -105,6 +143,7 @@ export async function getWeather(lat: number, lon: number, now = Date.now()): Pr
     validFrom: String(period.startTime),
     validTo: String(period.endTime),
     source: "National Weather Service",
+    ...(observation.status === "fulfilled" ? observation.value : null),
   };
   return {
     type: "FeatureCollection",
