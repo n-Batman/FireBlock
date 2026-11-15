@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, CLEAR, colourOf, NEUTRAL, RISK, riskAreas, smooth, verdict } from "./fuelMask";
+import { classify, CLEAR, colourOf, liveColourOf, NEUTRAL, RISK, riskAreas, smooth, verdict } from "./fuelMask";
 
 const px = (...rgb: [number, number, number][]) => Uint8ClampedArray.from(rgb.flatMap(([r, g, b]) => [r, g, b, 255]));
 const STRAW: [number, number, number] = [200, 170, 110]; // cured grass
@@ -17,6 +17,17 @@ describe("colourOf", () => {
 
   it("keeps sky, posts, dark trunks and reddish dirt neutral", () => {
     expect([SKY, POST, TRUNK, DIRT].map((c) => colourOf(...c))).toEqual([NEUTRAL, NEUTRAL, NEUTRAL, NEUTRAL]);
+  });
+});
+
+const LAWN: [number, number, number] = [190, 180, 90]; // sunlit yellow-green grass, hue 54
+
+describe("liveColourOf", () => {
+  it("rates sunlit yellow-green lawn as clear and straw as risk", () => {
+    expect(colourOf(...LAWN)).toBe(RISK); // the strict band alone would call it fuel
+    expect(liveColourOf(...LAWN)).toBe(CLEAR);
+    expect(liveColourOf(...STRAW)).toBe(RISK);
+    expect([...classify(px(LAWN, STRAW), 2, 1, masks([0, 0], [1, 1], [0, 0]))]).toEqual([CLEAR, RISK]);
   });
 });
 
