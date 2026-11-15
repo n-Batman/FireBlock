@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { clearMemoryCache } from "./scanCache";
+import { headlineVerdict } from "./scanView";
 import { useScanSession } from "./useScanSession";
 
 // jsdom cannot decode or draw images: the pixel analysis is tested in fuelMask.test.ts, here it is a fixed map.
@@ -23,8 +24,15 @@ const routes = (url: string) =>
   Promise.resolve({
     ok: true,
     status: 200,
-    json: async () => (url === "/api/segment" ? { masks: [{ group: "dry", polys: [[[0, 0], [10, 0], [10, 10]]] }] } : { notes: [NOTE] }),
+    json: async () =>
+      url === "/api/segment"
+        ? { masks: [{ group: "dry", polys: [[[0, 0], [10, 0], [10, 10]]] }] }
+        : url === "/api/estimate"
+          ? EST
+          : { notes: [NOTE] },
   });
+const EST = { dry_pct: 60, veg_frac: 0.5, grid: [["dry"]] };
+const failing = { ok: false, status: 502, json: async () => ({}) };
 
 const IMAGE = "data:image/jpeg;base64,AAAA";
 const ok = (findings: unknown[] = []) => ({ ok: true, status: 200, json: async () => ({ findings }) });
@@ -110,24 +118,24 @@ describe("useScanSession", () => {
     const replies: ((v: unknown) => void)[] = [];
     fetchMock.mockImplementation(() => new Promise((resolve) => replies.push(resolve)));
     await startSession();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2); // masks and estimate, in parallel
 
-    await advance(10_000); // a slow reply must not queue a second request
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    await act(async () => replies[0](ok()));
-    await advance(1400);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    await advance(200);
+    await advance(10_000); // a slow reply must not queue a second frame
     expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await act(async () => replies.forEach((r) => r(ok())));
+    await advance(1400);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await advance(200);
+    expect(fetchMock).toHaveBeenCalledTimes(3); // the next frame (the test sends the same image, so its estimate is cached)
   });
 
   it("keeps going after a failed request, with the same pause", async () => {
     fetchMock.mockRejectedValueOnce(new Error("network")).mockResolvedValue(ok());
     await startSession();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    await advance(1600);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    await advance(1600);
+    expect(fetchMock).toHaveBeenCalledTimes(3); // same image: the estimate is cached
   });
 
   it("freezes on tap: aborts the live request, pauses the video, scans the frozen frame once and then sends nothing", async () => {
@@ -139,10 +147,10 @@ describe("useScanSession", () => {
     expect(hook.result.current.frozen).toBe(true);
     expect(signal.aborted).toBe(true);
     expect(video.pause).toHaveBeenCalled();
-    expect(fetchMock).toHaveBeenCalledTimes(2); // the frozen frame
+    expect(fetchMock).toHaveBeenCalledTimes(4); // the frozen frame: masks and estimate
 
     await advance(10_000);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it("resumes on a second tap", async () => {
@@ -199,8 +207,8 @@ describe("useScanSession", () => {
     expect(analyse.mock.calls.at(-1)?.[3]).toEqual([{ group: "dry", polys: [[[0, 0], [10, 0], [10, 10]]] }]); // the masks went in
     expect(hook.result.current.notes).toEqual([NOTE]);
     const urls = fetchMock.mock.calls.map((c) => c[0]);
-    expect(urls).toEqual(["/api/segment", "/api/findings"]);
-    expect(JSON.parse(fetchMock.mock.calls[1][1].body).areas).toEqual(MAP.areas); // the words are about the measured areas only
+    expect(urls).toEqual(["/api/segment", "/api/estimate", "/api/findings"]);
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body).areas).toEqual(MAP.areas); // the words are about the measured areas only
   });
 
   it("falls back to colour only when segmentation fails", async () => {
@@ -236,14 +244,14 @@ describe("useScanSession", () => {
     await act(async () => release());
     await advance(1);
     expect(hook.result.current.scanning).toBe(false);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
 
     await act(async () => {
       hook.result.current.stop();
       await hook.result.current.startPhoto(file);
     });
     await advance(1);
-    expect(fetchMock).toHaveBeenCalledTimes(2); // masks and words both came from the cache
+    expect(fetchMock).toHaveBeenCalledTimes(3); // masks, estimate and words all came from the cache
     expect(hook.result.current.notes).toEqual([NOTE]);
   });
 
@@ -257,5 +265,80 @@ describe("useScanSession", () => {
     const frozenCalls = fetchMock.mock.calls.length;
     await advance(10_000);
     expect(fetchMock.mock.calls.length).toBe(frozenCalls);
+  });
+
+  describe("estimate", () => {
+    const photo = async () => {
+      vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ width: 800, height: 600, close: () => {} })));
+      vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:photo", revokeObjectURL: () => {} }));
+      const ref = { current: liveVideo() };
+      const hook = renderHook(() => useScanSession(ref));
+      await act(async () => {
+        await hook.result.current.startPhoto(new File(["x"], "row.jpg", { type: "image/jpeg" }));
+      });
+      return hook;
+    };
+    const headline = (h: Awaited<ReturnType<typeof photo>>) => headlineVerdict(h.result.current.fuel, h.result.current.estimate);
+
+    it("(a) calls /api/estimate in parallel with /api/segment and headlines dry_pct", async () => {
+      fetchMock.mockImplementation(() => new Promise(() => {})); // nothing answers: both must already be out
+      const pending = await photo();
+      expect(fetchMock.mock.calls.map((c) => c[0]).sort()).toEqual(["/api/estimate", "/api/segment"]);
+      pending.unmount();
+
+      fetchMock.mockReset();
+      fetchMock.mockImplementation(routes);
+      const hook = await photo();
+      await advance(1);
+      expect(hook.result.current.estimate).toEqual(EST);
+      expect(headline(hook)).toMatchObject({ share: 0.6, level: "high", text: "High risk: 60% of the vegetation looks dry." });
+      expect(hook.result.current.fuel?.verdict.share).toBe(0.25); // the SAM overlay is untouched
+    });
+
+    it("(b) falls back to the SAM share, with no error, when the estimate fails or times out", async () => {
+      fetchMock.mockImplementation((url: string) => (url === "/api/estimate" ? Promise.resolve(failing) : routes(url)));
+      const hook = await photo();
+      await advance(1);
+      expect(hook.result.current.estimate).toBeNull();
+      expect(headline(hook)).toMatchObject({ share: 0.25, level: "moderate" });
+      expect(hook.result.current.problem).toBe(false);
+
+      hook.unmount();
+      clearMemoryCache();
+      let abortedAt12s = false;
+      fetchMock.mockImplementation((url: string, init: RequestInit) =>
+        url === "/api/estimate"
+          ? new Promise((_, reject) => init.signal?.addEventListener("abort", () => ((abortedAt12s = true), reject(new Error("aborted")))))
+          : routes(url),
+      );
+      const slow = await photo();
+      await advance(11_900);
+      expect(abortedAt12s).toBe(false);
+      await advance(200);
+      expect(abortedAt12s).toBe(true);
+      expect(slow.result.current.estimate).toBeNull();
+      expect(headline(slow)?.share).toBe(0.25);
+      expect(slow.result.current.problem).toBe(false);
+    });
+
+    it("(c) still shows a number when segmentation fails and nothing can be drawn", async () => {
+      analyse.mockReturnValueOnce(null as never);
+      fetchMock.mockImplementation((url: string) => (url === "/api/segment" ? Promise.resolve(failing) : routes(url)));
+      const hook = await photo();
+      await advance(1);
+      expect(hook.result.current.fuel).toBeNull();
+      expect(hook.result.current.problem).toBe(false);
+      expect(headline(hook)?.text).toBe("High risk: 60% of the vegetation looks dry.");
+    });
+
+    it("aborts the estimate when a new scan starts", async () => {
+      fetchMock.mockImplementation(() => new Promise(() => {}));
+      const hook = await photo();
+      const signal = fetchMock.mock.calls.find((c) => c[0] === "/api/estimate")![1].signal as AbortSignal;
+      await act(async () => {
+        await hook.result.current.startPhoto(new File(["z"], "b.jpg", { type: "image/jpeg" }));
+      });
+      expect(signal.aborted).toBe(true);
+    });
   });
 });

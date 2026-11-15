@@ -10,7 +10,7 @@ import { scoreOf } from "@/lib/score";
 import { currentPosition, LocationError } from "@/lib/geolocate";
 import { saveParcelScan } from "@/lib/parcelScanStore";
 import { saveScan, scanKey } from "@/lib/scanStore";
-import { shownTracks } from "@/lib/scanView";
+import { headlineVerdict, shownTracks } from "@/lib/scanView";
 import { useScanSession } from "@/lib/useScanSession";
 import { useDemoAvailable } from "@/lib/useDemoAvailable";
 import { AreaFindingsList, FindingsList } from "./FindingsList";
@@ -71,7 +71,7 @@ export function ScanScreen() {
   const { tracks } = session.tracker;
   // The overlay, the card and the score all read the same result: the fuel map (live, photo, frozen) or the tracked boxes (demo clip).
   const fuel = session.fuel;
-  const call = fuel?.verdict ?? null;
+  const call = headlineVerdict(fuel, session.estimate);
   const shown = shownTracks(tracks);
   // A fuel map is saved as dry and green parts per thousand of the rated vegetation: the score only uses the share.
   const counts =
@@ -155,7 +155,7 @@ export function ScanScreen() {
           ) : (
             <ScanOverlay videoSize={session.videoSize} tracks={shown} running frozen={session.frozen} />
           )}
-          {((session.scanning && (photoMode || session.frozen || !fuel)) || (photoMode && !fuel && !session.problem)) && (
+          {((session.scanning && (photoMode || session.frozen || !fuel)) || (photoMode && !call && !session.problem)) && (
             <div role="status" className="pointer-events-none absolute inset-0 z-[5] grid place-items-center">
               <p className="glass px-5 py-3 text-[15px] font-medium">
                 <span className="scan-shimmer">Scanning every part of the photo…</span>
