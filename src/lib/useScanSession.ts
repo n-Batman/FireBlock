@@ -7,7 +7,7 @@ import { encodeFrame, MIN_SHARPNESS } from "./frame";
 import { analyse, loadImage, type FuelMap, type Mask } from "./fuelMask";
 import { getCached, hashImage, putCached } from "./scanCache";
 import { createTracker, updateTracker, type TrackerState } from "./scan";
-import { selectFindings } from "./scanView";
+import { headlineVerdict, selectFindings, type ScanEstimate } from "./scanView";
 
 export type Phase = "idle" | "starting" | "running" | "error";
 export type Mode = "camera" | "demo" | "photo";
@@ -18,6 +18,8 @@ const MAX_FAILURES = 3;
 /** A blurry frame is skipped, but after this many in a row one is sent anyway (flat scenes score as blurry). */
 const MAX_BLUR_SKIPS = 3;
 const BLUR_RETRY_MS = 300;
+/** The estimate is a bonus: past this the frame is rated by the SAM share alone. */
+const ESTIMATE_TIMEOUT_MS = 12000;
 export const DEMO_SRC = DEMO_CLIP_URL;
 
 // The screen adds "Or try demo mode." itself, and only when the demo clip exists.
@@ -76,26 +78,76 @@ async function segment(image: string, hash: string, signal: AbortSignal): Promis
   }
 }
 
-/** The model's words for the measured risk areas, cached by image hash. */
-async function fetchNotes(image: string, hash: string, map: FuelMap, signal: AbortSignal): Promise<AreaNote[]> {
-  if (map.areas.length === 0 || map.verdict.share === null) return [];
-  const key = `notes:v2:${map.colourOnly ? "c" : "s"}:${hash}`;
+/**
+ * The model's words for the measured risk areas, given the headline dry `share`. Cached by image
+ * hash, share (to the percent) and area boxes, so a different headline or different areas ask again.
+ */
+async function fetchNotes(image: string, hash: string, map: FuelMap, share: number | null, signal: AbortSignal): Promise<AreaNote[]> {
+  if (map.areas.length === 0 || share === null) return [];
+  const boxes = map.areas.map((a) => a.box.map((v) => v.toFixed(3)).join(",")).join(";");
+  const key = `notes:v2:${map.colourOnly ? "c" : "s"}:${Math.round(share * 100)}:${boxes}:${hash}`;
   const hit = getCached<AreaNote[]>(key, storage());
   if (hit) return hit;
-  const { notes } = await postJson<{ notes: AreaNote[] }>(
-    "/api/findings",
-    { image, areas: map.areas, share: map.verdict.share },
-    signal,
-  );
+  const { notes } = await postJson<{ notes: AreaNote[] }>("/api/findings", { image, areas: map.areas, share }, signal);
   putCached(key, notes, storage());
   return notes;
 }
 
-/** Masks (or colour only), then the per-pixel fuel map, all for one encoded frame. */
-async function mapFrame(image: string, hash: string, signal: AbortSignal): Promise<FuelMap | null> {
-  const masks = await segment(image, hash, signal);
-  const img = await loadImage(image);
-  return analyse(img, img.naturalWidth, img.naturalHeight, masks);
+/**
+ * The model's rating of the dry share of the ground vegetation from /api/estimate, cached by image
+ * hash. Null when it fails or takes over 12 s: the caller then uses the SAM share. Aborts when `signal` does.
+ */
+async function estimate(image: string, hash: string, signal: AbortSignal): Promise<ScanEstimate | null> {
+  const hit = getCached<ScanEstimate>(`est:v1:${hash}`, storage());
+  if (hit) return hit;
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  signal.addEventListener("abort", onAbort);
+  const timer = window.setTimeout(onAbort, ESTIMATE_TIMEOUT_MS);
+  try {
+    const result = await postJson<ScanEstimate>("/api/estimate", { image }, controller.signal);
+    putCached(`est:v1:${hash}`, result, storage());
+    return result;
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timer);
+    signal.removeEventListener("abort", onAbort);
+  }
+}
+
+/**
+ * Masks (or colour only), then the per-pixel fuel map, all for one encoded frame. `grid` is the estimate's tile grid
+ * when it has already come back: risk pixels in soil/other tiles are then dropped. Null if it cannot be drawn.
+ */
+async function mapFrame(image: string, hash: string, signal: AbortSignal, grid: () => string[][] | undefined) {
+  try {
+    const masks = await segment(image, hash, signal);
+    const img = await loadImage(image);
+    const used = grid();
+    const map = analyse(img, img.naturalWidth, img.naturalHeight, masks, used);
+    return { map, redo: () => analyse(img, img.naturalWidth, img.naturalHeight, masks, grid()), used };
+  } catch (error) {
+    if (signal.aborted) throw error;
+    return null;
+  }
+}
+
+/**
+ * The fuel map and the estimate for one frame, requested in parallel. Either can be null. The map is built with the
+ * estimate's grid if that is back first; if the estimate lands later the map is rebuilt once with it (no extra requests).
+ */
+async function rateFrame(image: string, hash: string, signal: AbortSignal) {
+  let grid: string[][] | undefined;
+  const mapP = mapFrame(image, hash, signal, () => grid); // started first: /api/segment goes out before /api/estimate
+  const estP = estimate(image, hash, signal).then((e) => {
+    grid = e?.grid;
+    return e;
+  });
+  const [built, est] = await Promise.all([mapP, estP]);
+  if (signal.aborted) throw new DOMException("aborted", "AbortError");
+  const map = built ? (built.map && grid && !built.used ? built.redo() : built.map) : null;
+  return { map, est };
 }
 
 /**
@@ -124,6 +176,8 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
   const [fuel, setFuel] = useState<FuelMap | null>(null);
   /** The model's words for `fuel`'s risk areas. Null while they are on their way (or not asked for). */
   const [notes, setNotes] = useState<AreaNote[] | null>(null);
+  /** The model's dry rating for the same frame as `fuel`. Null when it failed, timed out or is not in yet. */
+  const [est, setEst] = useState<ScanEstimate | null>(null);
   const photoUrlRef = useRef<string | null>(null);
 
   const release = useCallback(() => {
@@ -155,6 +209,7 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       trackerRef.current = fresh;
       setTracker(fresh);
       setFuel(null);
+      setEst(null);
       setNotes(null);
       setMode(next);
       setError(null);
@@ -206,6 +261,7 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
       trackerRef.current = fresh;
       setTracker(fresh);
       setFuel(null);
+      setEst(null);
       setNotes(null);
       setMode("photo");
       setError(null);
@@ -230,11 +286,11 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     [release],
   );
 
-  /** A frame mapped while the shimmer counter is up. */
+  /** A frame rated while the shimmer counter is up. */
   const tracked = useCallback(async (image: string, hash: string, signal: AbortSignal) => {
     setScanning((n) => n + 1);
     try {
-      return await mapFrame(image, hash, signal);
+      return await rateFrame(image, hash, signal);
     } finally {
       setScanning((n) => Math.max(0, n - 1));
     }
@@ -245,12 +301,17 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
     (image: string, signal: AbortSignal) => {
       const hash = hashImage(image);
       tracked(image, hash, signal)
-        .then(async (map) => {
+        .then(async ({ map, est }) => {
           if (signal.aborted) return;
           setFuel(map);
-          if (!map) return setProblem(true);
+          setEst(est);
+          if (!map) {
+            if (!est) setProblem(true);
+            return;
+          }
           setNotes(null);
-          setNotes(await fetchNotes(image, hash, map, signal));
+          // The estimate has already come back (or failed) by now: rateFrame waits for both.
+          setNotes(await fetchNotes(image, hash, map, est ? (headlineVerdict(map, est)?.share ?? null) : map.verdict.share, signal));
         })
         .catch(() => {
           if (!signal.aborted) setNotes((n) => n ?? []);
@@ -293,13 +354,14 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
           } else {
             blurSkips = 0;
             if (mode === "camera") {
-              const map = await tracked(image, hashImage(image), controller.signal);
+              const { map, est } = await tracked(image, hashImage(image), controller.signal);
               if (cancelled) return;
-              if (!map) throw new Error("no canvas");
+              if (!map && !est) throw new Error("no canvas");
               failures = 0;
               setProblem(false);
               setFuel(map);
-              if (map.verdict.level !== "clear" && map.verdict.level !== "none" && typeof navigator.vibrate === "function") {
+              setEst(est);
+              if (map && map.verdict.level !== "clear" && map.verdict.level !== "none" && typeof navigator.vibrate === "function") {
                 navigator.vibrate(20);
               }
             } else {
@@ -353,5 +415,5 @@ export function useScanSession(videoRef: RefObject<HTMLVideoElement | null>) {
   // Leaving the screen always turns the camera off.
   useEffect(() => release, [release]);
 
-  return { phase, mode, error, tracker, videoSize, problem, frozen, photo, fuel, notes, scanning: scanning > 0, start, startPhoto, stop, toggleFreeze };
+  return { phase, mode, error, tracker, videoSize, problem, frozen, photo, fuel, estimate: est, notes, scanning: scanning > 0, start, startPhoto, stop, toggleFreeze };
 }

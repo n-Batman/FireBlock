@@ -16,6 +16,9 @@ export interface Result {
   item: Item;
   map: FuelMap;
   ours: number; // dry %, 0 when nothing could be rated
+  /** VLM mode only: SAM fuel map share * 100 (0 when null) for the same frame; null when not run or SAM failed. */
+  overlay: number | null;
+  gap: number | null; // |ours - overlay|
   expected: number | null;
   err: number | null; // |ours - expected|
   bgFp: number | null; // VegAnn only
@@ -102,9 +105,15 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   const rgba = await sharp(jpeg).resize(w, h, { fit: "fill" }).ensureAlpha().raw().toBuffer();
   let vlm: Estimate | null = null;
   let map: FuelMap;
+  let overlay: number | null = null;
   if (VLM) {
     vlm = await estimate(jpeg);
     map = gridMap(vlm, w, h);
+    const rf = process.env.ROBOFLOW_API_KEY?.trim();
+    if (rf) {
+      const sam = await segment(jpeg, rf).then((r) => scan(rgba, w, h, sw, parseSegments(r), vlm?.grid), () => null); // SAM failure leaves overlay null: reported separately
+      if (sam) overlay = sam.verdict.share == null ? 0 : sam.verdict.share * 100;
+    }
   } else map = scan(rgba, w, h, sw, parseSegments(await segment(jpeg, key)));
   const n = w * h;
   let snow = 0;
@@ -117,6 +126,7 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   let risk = 0;
   for (const l of map.labels) if (l === RISK) risk++;
   const ours = vlm ? vlm.dryPct : map.verdict.share == null ? 0 : map.verdict.share * 100;
+  const gap = overlay == null ? null : Math.abs(ours - overlay);
   const expected = item.expected?.relevant ? item.expected.dry_pct_estimate : null;
   let bgFp: number | null = null;
   if (item.mask) {
@@ -139,7 +149,7 @@ async function evaluate(item: Item, key: string): Promise<Result> {
   if (err != null && err > PASS_PTS) (pass = false), (why = `dry% off by ${err.toFixed(0)}`);
   if (dirt && riskFrame > DIRT_PASS) (pass = false), (why = `dirt read as risk (${(riskFrame * 100).toFixed(0)}% of frame)`);
   if (bgFp != null && bgFp > BG_PASS) (pass = false), (why = `risk on ${(bgFp * 100).toFixed(0)}% of background`);
-  return { item, map, ours, expected, err, bgFp, riskFrame, dirt, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: V2 ? null : suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
+  return { item, map, ours, overlay, gap, expected, err, bgFp, riskFrame, dirt, allClearWithRisk: map.verdict.level === "clear" && risk > 0, pass, why, suspect: V2 ? null : suspectLabel(item.expected?.notes ?? "", expected, snow / n, satSum / n), jpeg };
 }
 
 async function main() {

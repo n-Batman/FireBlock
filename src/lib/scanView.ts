@@ -1,4 +1,5 @@
 import type { Finding } from "@/data/types";
+import type { FuelMap, Verdict } from "./fuelMask";
 import { iou, isVisible, type Rect, type Track } from "./scan";
 
 const MIN_CONFIDENCE = 0.6;
@@ -127,4 +128,25 @@ export function layoutLabels(items: LabelItem[], area: { w: number; h: number },
     placed.set(key, pill);
   }
   return placed;
+}
+
+/** The model's rating of one frame, as /api/estimate returns it. */
+export interface ScanEstimate {
+  dry_pct: number;
+  veg_frac: number;
+  grid: string[][];
+}
+
+/**
+ * The headline verdict: the estimate's dry_pct when it came back, else the SAM share, else null.
+ * Same 0.15 / 0.4 cut-offs as the SAM verdict.
+ */
+export function headlineVerdict(fuel: FuelMap | null, est: ScanEstimate | null): Verdict | null {
+  if (!est) return fuel?.verdict ?? null;
+  if (est.veg_frac <= 0) return { risk: 0, clear: 0, share: null, level: "none", text: "No vegetation to rate in this frame." };
+  const share = est.dry_pct / 100;
+  if (share <= 0) return { risk: 0, clear: 0, share, level: "clear", text: "All clear: no dry vegetation found." };
+  const level = share >= 0.4 ? "high" : share >= 0.15 ? "moderate" : "low";
+  const word = { high: "High risk", moderate: "Moderate risk", low: "Some risk" }[level];
+  return { risk: 0, clear: 0, share, level, text: `${word}: ${share < 0.01 ? "<1%" : `${Math.round(share * 100)}%`} of the vegetation looks dry.` };
 }

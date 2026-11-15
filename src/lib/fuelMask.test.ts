@@ -131,4 +131,29 @@ describe("rasterise / scan", () => {
     expect(big.areas.length).toBeGreaterThan(0);
     expect(big.colourOnly).toBe(false);
   });
+
+  describe("grid gate", () => {
+    // 40x40 all straw (every pixel RISK by colour alone), split into a 2x2 tile grid.
+    const w = 40;
+    const rgba = new Uint8ClampedArray(w * w * 4).fill(255);
+    for (let i = 0; i < w * w; i++) [rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]] = STRAW;
+    const at = (r: { labels: Uint8Array }, x: number, y: number) => r.labels[y * w + x];
+
+    it("turns RISK pixels in soil and other tiles neutral and keeps them in dry tiles", async () => {
+      const { scan } = await import("./fuelMask");
+      const r = scan(rgba, w, w, w, null, [["dry", "soil"], ["other", "dry"]]);
+      expect(at(r, 5, 5)).toBe(RISK); // dry tile
+      expect(at(r, 35, 35)).toBe(RISK); // dry tile
+      expect(at(r, 30, 5)).toBe(NEUTRAL); // soil tile
+      expect(at(r, 5, 30)).toBe(NEUTRAL); // other tile
+    });
+
+    it("keeps live tiles as they are and leaves the output identical without a grid", async () => {
+      const { scan } = await import("./fuelMask");
+      const none = scan(rgba, w, w, w, null);
+      expect(none.labels.every((l) => l === RISK)).toBe(true);
+      expect(scan(rgba, w, w, w, null, undefined)).toEqual(none);
+      expect(scan(rgba, w, w, w, null, [["live", "live"], ["live", "live"]]).labels).toEqual(none.labels);
+    });
+  });
 });

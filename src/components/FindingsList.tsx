@@ -37,6 +37,7 @@ export function FindingsList({ tracks, empty }: { tracks: Track[]; empty: string
  */
 export function AreaFindingsList({ areas, notes }: { areas: RiskArea[]; notes: AreaNote[] | null }) {
   if (areas.length === 0) return <p className="text-[15px] text-ink-2">No dry patches big enough to list.</p>;
+  const rest = 100 - areas.reduce((sum, a) => sum + a.pctOfRisk, 0);
   return (
     <ul aria-label="Findings" className="max-h-48 space-y-2 overflow-y-auto">
       {areas.map((a) => {
@@ -56,6 +57,15 @@ export function AreaFindingsList({ areas, notes }: { areas: RiskArea[]; notes: A
           </li>
         );
       })}
+      {rest >= 5 && (
+        <li className="flex items-start gap-3 text-[15px] leading-snug">
+          <span aria-hidden="true" className={`mt-1.5 size-2.5 shrink-0 rounded-full ${TONE.risk.dot}`} />
+          <span>
+            <span className="sr-only">{TONE.risk.word}: </span>
+            Smaller patches: {rest}% of the dry fuel
+          </span>
+        </li>
+      )}
     </ul>
   );
 }
