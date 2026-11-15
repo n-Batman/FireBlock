@@ -1,10 +1,11 @@
-import { describe,it,expect,vi,afterEach } from "vitest";
+import { describe,it,expect,vi,afterEach,beforeEach } from "vitest";
 import { findParcels,searchGeometry } from "./parcels";
 import { GET } from "@/app/api/parcels/route";
 
 const polygon={type:"Polygon",coordinates:[[[0,0],[1,0],[1,1],[0,0]]]};
 const feature={type:"Feature",geometry:polygon,properties:{apn:"012-345-678",OBJECTID:7,assessee:"Do not expose"}};
-afterEach(()=>vi.unstubAllGlobals());
+beforeEach(()=>vi.stubEnv("PARCEL_DATA_SOURCE","arcgis"));
+afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();});
 describe("parcel spatial lookup",()=>{
   it("filters by the county's stored square-foot area before requesting geometry",async()=>{
     const fetcher=vi.fn<typeof fetch>().mockImplementation(async()=>Response.json({type:"FeatureCollection",features:[]}));
