@@ -135,6 +135,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | M33 | Scanner: automatic object excludes (second SAM3 call: road, path, dog, person, post, building, vehicle), agreement shading on the overlay and a reasons line per area | DOING (Milo; PR open. Scanner files only; no new key, route or store) |
 | M34 | Follow the map center in the weather strip and use recent NWS station readings with an hourly forecast fallback | DONE |
 | M35 | Share a continuous risk colour scale across map fills, pills, chips and the legend | DONE |
+| M36 | Add the FireBlock landing screen with map and scanner links and preserve direct map links | DONE |
 
 ## Rubric reminder (100 pts)
 Execution & design 25 · Real problem/real user 25 (tiebreaker) · Path to customers 20 · Pitch & demo 15 · Creative AI 15

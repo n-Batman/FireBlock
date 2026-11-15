@@ -18,9 +18,16 @@ vi.mock("@/components/WeatherStrip", () => ({ WeatherStrip: (props: { lat: numbe
 vi.mock("@/components/Legend", () => ({ Legend: () => null }));
 vi.mock("@/components/ParcelPanel", () => ({ ParcelPanel: () => null }));
 
+it("shows the landing screen without map parameters", () => {
+  state.params = new URLSearchParams();
+  render(<Home />);
+  expect(screen.getByRole("heading", { name: "FireBlock" })).toBeInTheDocument();
+  expect(screen.queryByTestId("map")).not.toBeInTheDocument();
+});
+
 describe("map starting place", () => {
   it("passes the overlay's regional cells into parcel scoring and clears them on grid failure",()=>{
-    state.params=new URLSearchParams();
+    state.params=new URLSearchParams("map=1");
     render(<Home/>);
     fireEvent.click(screen.getByRole("button",{name:"Loaded regional grid"}));
     expect(state.parcels.mock.lastCall![2]).toMatchObject([{cellId:"regional",score:62,modelId:"regional-model"}]);
