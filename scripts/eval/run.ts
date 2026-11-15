@@ -121,7 +121,7 @@ async function evaluate(item: Item, key: string): Promise<Result> {
     map = gridMap(vlm, w, h);
     const rf = process.env.ROBOFLOW_API_KEY?.trim();
     if (rf) {
-      const sam = await segment(jpeg, rf).then((r) => scan(rgba, w, h, sw, parseSegments(r), vlm?.grid, vlm?.dryPct), () => null); // SAM failure leaves overlay null: reported separately
+      const sam = await segment(jpeg, rf).then((r) => scan(rgba, w, h, sw, parseSegments(r), vlm?.grid, vlm?.dryPct, vlm?.vegFrac), () => null); // SAM failure leaves overlay null: reported separately
       overlayMap = sam;
       if (sam) overlay = sam.verdict.share == null ? 0 : sam.verdict.share * 100;
     }

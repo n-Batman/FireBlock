@@ -90,18 +90,22 @@ export function whiteBalance(rgba: ArrayLike<number>, w: number, h: number): Uin
 const lin = (c: number) => (c <= 10.31475 ? c / 3294.6 : ((c / 255 + 0.055) / 1.055) ** 2.4);
 const labF = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
 
-/** CIE Lab (D65) of an sRGB pixel as [L*, chroma, hue angle in degrees 0..360]: straw sits near 85-95, red-brown soil lower. */
-export function lch(r: number, g: number, b: number): [number, number, number] {
+/** CIE Lab (D65) of an sRGB pixel as [L*, a*, b*]. */
+export function lab(r: number, g: number, b: number): [number, number, number] {
   const R = lin(r);
   const G = lin(g);
   const B = lin(b);
   const fx = labF((0.4124 * R + 0.3576 * G + 0.1805 * B) / 0.95047);
   const fy = labF(0.2126 * R + 0.7152 * G + 0.0722 * B);
   const fz = labF((0.0193 * R + 0.1192 * G + 0.9505 * B) / 1.08883);
-  const a = 500 * (fx - fy);
-  const bb = 200 * (fy - fz);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+
+/** The same as [L*, chroma, hue angle in degrees 0..360]: straw sits near 85-95, red-brown soil lower. */
+export function lch(r: number, g: number, b: number): [number, number, number] {
+  const [l, a, bb] = lab(r, g, b);
   const hue = (Math.atan2(bb, a) * 180) / Math.PI;
-  return [116 * fy - 16, Math.hypot(a, bb), hue < 0 ? hue + 360 : hue];
+  return [l, Math.hypot(a, bb), hue < 0 ? hue + 360 : hue];
 }
 
 /*
@@ -431,54 +435,178 @@ export function gateByGrid(labels: Uint8Array, w: number, h: number, grid: Estim
   return out;
 }
 
-/** How far (0 to 1) the overlay's share may sit from the headline dry_pct before reconcile fills or trims. */
-export const RECONCILE_GAP = 0.15;
-
-/**
- * Pulls the classified map toward the headline dry_pct. Soil/other tiles leave the score (RISK and CLEAR go neutral, except
- * SAM dry-mask pixels). Then, if the share is more than RECONCILE_GAP under the headline, pixels in "dry" tiles that the wide
- * dry band calls RISK become RISK (no texture check, exclude masks still win); if it is more than RECONCILE_GAP over, RISK
- * pixels in "live" tiles outside a SAM dry mask go neutral.
+/*
+ * Reconcile settings, fitted the same way as the colour thresholds (training 70% of the v2 eval, coordinate descent).
  */
-export function reconcile(labels: Uint8Array, rgba: ArrayLike<number>, w: number, h: number, grid: EstimateGrid, dryPct: number, raster: Masks | null): Uint8Array {
+/** The overlay's RISK (or CLEAR) area may be this many times over or under the area the estimate implies, and at least AREA_FLOOR of the frame apart, before reconcile grows or trims it. */
+export const AREA_FACTOR = 1.25;
+const AREA_FLOOR = 0.01;
+/** Texture (see TEXTURE_MIN) that counts as strong evidence of grass: what RISK needs to survive a soil/other tile, and what a pixel outside a "dry" tile needs to be grown into. */
+const STRONG_TEXTURE = 10;
+/** Growing: a pixel joins when its colour is within the seeds' own spread (their GROW_QUANTILE distance to the seed mean, times GROW_SLACK, never under GROW_MIN). Lab units, L* weighted GROW_L because shade changes it far more than hue. */
+const GROW_QUANTILE = 0.9;
+const GROW_SLACK = 1.5;
+const GROW_MIN = 12;
+const GROW_L = 0.15;
+/** Colour distances are bucketed in steps of this for the flood's queue. */
+const GROW_STEP = 0.25;
+
+/** Each pixel's tile label from the estimate's grid. */
+function cellsOf(w: number, h: number, grid: EstimateGrid): string[] {
   const rows = grid.length;
   const cells = new Array<string>(w * h);
   for (let y = 0; y < h; y++) {
     const row = grid[Math.min(rows - 1, Math.floor((y / h) * rows))];
     for (let x = 0; x < w; x++) cells[y * w + x] = row[Math.min(row.length - 1, Math.floor((x / w) * row.length))];
   }
-  const out = labels.slice();
-  for (let i = 0; i < w * h; i++) {
-    if ((cells[i] === "soil" || cells[i] === "other") && (out[i] === CLEAR || (out[i] === RISK && !raster?.dry[i]))) out[i] = NEUTRAL;
+  return cells;
+}
+
+/** Distance of every pixel's colour from the mean colour of the RISK pixels (Lab, L* down-weighted). Null when there are none. */
+function distanceFromRisk(labels: Uint8Array, rgba: ArrayLike<number>, n: number): Float32Array | null {
+  const px = new Float32Array(n * 3);
+  const mean = [0, 0, 0];
+  let seeds = 0;
+  for (let i = 0; i < n; i++) {
+    const c = lab(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]);
+    c[0] *= GROW_L;
+    px.set(c, i * 3);
+    if (labels[i] !== RISK) continue;
+    seeds++;
+    for (let k = 0; k < 3; k++) mean[k] += c[k];
   }
-  const share = verdict(out).share ?? 0;
-  const target = dryPct / 100;
-  if (target - share > RECONCILE_GAP) {
-    for (let i = 0; i < w * h; i++) {
-      if (cells[i] === "dry" && out[i] !== RISK && !raster?.exclude[i] && dryColourOf(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]) === RISK) out[i] = RISK;
+  if (seeds === 0) return null;
+  const d = new Float32Array(n);
+  for (let i = 0; i < n; i++) d[i] = Math.hypot(px[i * 3] - mean[0] / seeds, px[i * 3 + 1] - mean[1] / seeds, px[i * 3 + 2] - mean[2] / seeds);
+  return d;
+}
+
+/**
+ * Region growing: spreads RISK from the pixels that already are RISK into touching (8-way) pixels whose balanced colour
+ * is close to the seeds' mean, closest colours first, until `target` pixels are RISK or nothing close enough is left.
+ * `open` says which pixels may join (never exclude masks, never green). This is what carries a correct seed along a
+ * thin strip without crossing onto the road next to it.
+ */
+function grow(labels: Uint8Array, rgba: ArrayLike<number>, w: number, h: number, target: number, open: (i: number) => boolean): void {
+  const d = distanceFromRisk(labels, rgba, w * h);
+  if (!d) return;
+  const seeds: number[] = [];
+  for (let i = 0; i < w * h; i++) if (labels[i] === RISK) seeds.push(i);
+  const own = seeds.map((i) => d[i]).sort((a, b) => a - b);
+  const reach = Math.max(GROW_MIN, own[Math.floor(GROW_QUANTILE * (own.length - 1))] * GROW_SLACK);
+  const buckets: number[][] = Array.from({ length: Math.floor(reach / GROW_STEP) + 1 }, () => []);
+  const queued = new Uint8Array(w * h);
+  const push = (i: number, level: number) => {
+    const x = i % w;
+    const y = (i - x) / w;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (queued[j] || labels[j] === RISK || d[j] > reach || !open(j)) continue;
+        queued[j] = 1;
+        buckets[Math.max(level, Math.floor(d[j] / GROW_STEP))].push(j);
+      }
     }
-  } else if (share - target > RECONCILE_GAP) {
-    for (let i = 0; i < w * h; i++) if (cells[i] === "live" && out[i] === RISK && !raster?.dry[i]) out[i] = NEUTRAL;
+  };
+  for (const i of seeds) push(i, 0);
+  let risk = seeds.length;
+  for (let level = 0; level < buckets.length && risk < target; level++) {
+    const bucket = buckets[level];
+    for (let k = 0; k < bucket.length && risk < target; k++) {
+      labels[bucket[k]] = RISK;
+      risk++;
+      push(bucket[k], level);
+    }
+  }
+}
+
+/** Takes RISK pixels away until `target` are left: first the ones `weak` names (lower rank first), and among equals the colours furthest from the RISK mean. */
+function trim(labels: Uint8Array, rgba: ArrayLike<number>, n: number, target: number, rank: (i: number) => number): void {
+  const d = distanceFromRisk(labels, rgba, n);
+  if (!d) return;
+  const risk: number[] = [];
+  for (let i = 0; i < n; i++) if (labels[i] === RISK) risk.push(i);
+  risk.sort((a, b) => rank(a) - rank(b) || d[b] - d[a]);
+  for (let k = 0; k < risk.length - target; k++) labels[risk[k]] = NEUTRAL;
+}
+
+/**
+ * Pulls the classified map toward the estimate, using its grid as a prior and not a gate. In soil/other tiles CLEAR goes
+ * neutral and so does weak RISK, but strong evidence stays: a SAM dry-mask pixel, or straw colour with grassy texture
+ * outside every exclude mask (a strip of dry grass along a road is too thin to win a tile). Then the RISK area is compared
+ * with the area the estimate implies, dryPct / 100 x vegFrac of the frame. Far under it (AREA_FACTOR), RISK grows from the
+ * pixels that are RISK into touching pixels of the same colour, flat ones only in "dry" tiles; with no RISK at all the
+ * "dry" tiles' dry-coloured pixels are the seeds. Far over it, RISK is trimmed back to it: soil/other tiles first, then
+ * "live" tiles, SAM dry-mask pixels last. CLEAR is then held to (100 - dryPct) / 100 x vegFrac the same way, so the share
+ * the verdict reports is not a ratio of two tiny areas.
+ */
+export function reconcile(labels: Uint8Array, rgba: ArrayLike<number>, w: number, h: number, grid: EstimateGrid, dryPct: number, vegFrac: number, raster: Masks | null): Uint8Array {
+  const n = w * h;
+  const cells = cellsOf(w, h, grid);
+  const tex = texture(rgba, w, h);
+  const off = (i: number) => cells[i] === "soil" || cells[i] === "other";
+  const straw = (i: number) => colourOf(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]) === RISK;
+  // An exclude mask stops RISK, except straw colour in a "dry" tile: SAM's "bare soil" often covers a mown straw aisle, and there the estimate and the colour both say fuel.
+  const blocked = (i: number) => !!raster?.exclude[i] && !(cells[i] === "dry" && straw(i));
+  const out = labels.slice();
+  let risk = 0;
+  let clear = 0;
+  for (let i = 0; i < n; i++) {
+    if (off(i)) {
+      const strong = out[i] === RISK && (raster?.dry[i] || (tex[i] >= STRONG_TEXTURE && !raster?.exclude[i] && straw(i)));
+      if (!strong) out[i] = NEUTRAL;
+    }
+    if (out[i] === RISK) risk++;
+    else if (out[i] === CLEAR) clear++;
+  }
+  const floor = AREA_FLOOR * n;
+  const target = Math.round((dryPct / 100) * vegFrac * n);
+  if (Math.abs(target - risk) > floor && risk * AREA_FACTOR < target) {
+    if (risk === 0) {
+      for (let i = 0; i < n; i++) if (cells[i] === "dry" && !blocked(i) && dryColourOf(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]) === RISK) out[i] = RISK;
+    }
+    grow(out, rgba, w, h, target, (i) => out[i] !== CLEAR && !blocked(i) && (cells[i] === "dry" || tex[i] >= STRONG_TEXTURE));
+  } else if (Math.abs(target - risk) > floor && risk > target * AREA_FACTOR) {
+    trim(out, rgba, n, target, (i) => (raster?.dry[i] ? 2 : off(i) ? 0 : cells[i] === "live" ? 1 : 2));
+  }
+  // The green side, the same way: the estimate implies (100 - dryPct) / 100 x vegFrac of the frame is live ground vegetation.
+  const green = (i: number) => 2 * rgba[i * 4 + 1] - rgba[i * 4] - rgba[i * 4 + 2];
+  const clearTarget = Math.round((1 - dryPct / 100) * vegFrac * n);
+  if (Math.abs(clearTarget - clear) > floor && clear * AREA_FACTOR < clearTarget) {
+    // Green that the gate took out comes back, soil tiles first and the greenest first: a few plants on a dirt road never win a tile.
+    const gated: number[] = [];
+    for (let i = 0; i < n; i++) if (labels[i] === CLEAR && out[i] === NEUTRAL) gated.push(i);
+    gated.sort((a, b) => Number(cells[b] === "soil") - Number(cells[a] === "soil") || green(b) - green(a));
+    for (let k = 0; k < gated.length && clear < clearTarget; k++, clear++) out[gated[k]] = CLEAR;
+  } else if (Math.abs(clearTarget - clear) > floor && clear > clearTarget * AREA_FACTOR) {
+    // Too much green is canopy counted as ground cover: "dry" tiles lose theirs first, then the least green.
+    const kept: number[] = [];
+    for (let i = 0; i < n; i++) if (out[i] === CLEAR) kept.push(i);
+    kept.sort((a, b) => Number(cells[b] === "dry") - Number(cells[a] === "dry") || green(a) - green(b));
+    for (let k = 0; k < kept.length - clearTarget; k++) out[kept[k]] = NEUTRAL;
   }
   return out;
 }
 
 /**
  * The whole analysis on a small RGBA frame (w x h): rasterise masks, white-balance a copy, classify it, then with the estimate's grid either gate
- * (grid only) or reconcile toward its dryPct (grid and dryPct), smooth, drop specks, group. Pure, so the app and the eval
- * share it. No grid gives the same map as before; a grid without dryPct gives the PR 20 gate.
+ * (grid only) or reconcile toward its dry area (grid, dryPct and vegFrac), smooth, drop specks, group. Pure, so the app
+ * and the eval share it. A grid without dryPct and vegFrac gives the PR 20 gate.
  */
-export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, masks: Mask[] | null, grid?: EstimateGrid | null, dryPct?: number | null): FuelMap {
+export function scan(rgba: ArrayLike<number>, w: number, h: number, srcW: number, masks: Mask[] | null, grid?: EstimateGrid | null, dryPct?: number | null, vegFrac?: number | null): FuelMap {
   const raster = masks ? rasterise(masks, srcW, w, h) : null;
   const balanced = whiteBalance(rgba, w, h);
   const classified = classify(balanced, w, h, raster);
-  const gated = !(grid?.length && grid[0]?.length) ? classified : dryPct == null ? gateByGrid(classified, w, h, grid) : reconcile(classified, balanced, w, h, grid, dryPct, raster);
+  const gated = !(grid?.length && grid[0]?.length) ? classified : dryPct == null || vegFrac == null ? gateByGrid(classified, w, h, grid) : reconcile(classified, balanced, w, h, grid, dryPct, vegFrac, raster);
   const labels = dropSpecks(smooth(gated, w, h), w, h);
   return { w, h, labels, verdict: verdict(labels), areas: riskAreas(labels, w, h), colourOnly: !masks };
 }
 
 /** Browser wrapper: draws the frame at MAP_WIDTH and hands the pixels to `scan`. */
-export function analyse(source: CanvasImageSource, srcW: number, srcH: number, masks: Mask[] | null, grid?: EstimateGrid | null, dryPct?: number | null): FuelMap | null {
+export function analyse(source: CanvasImageSource, srcW: number, srcH: number, masks: Mask[] | null, grid?: EstimateGrid | null, dryPct?: number | null, vegFrac?: number | null): FuelMap | null {
   const w = MAP_WIDTH;
   const h = Math.max(1, Math.round((srcH / srcW) * MAP_WIDTH));
   const canvas = document.createElement("canvas");
@@ -487,7 +615,7 @@ export function analyse(source: CanvasImageSource, srcW: number, srcH: number, m
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
   ctx.drawImage(source, 0, 0, w, h);
-  return scan(ctx.getImageData(0, 0, w, h).data, w, h, srcW, masks, grid, dryPct);
+  return scan(ctx.getImageData(0, 0, w, h).data, w, h, srcW, masks, grid, dryPct, vegFrac);
 }
 
 /** Decodes an encoded frame (data URL) so it can be drawn. */

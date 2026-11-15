@@ -356,7 +356,7 @@ describe("useScanSession", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(hook.result.current.mode).toBe("photo");
     expect(hook.result.current.photo?.src).toBe("/demo/fixture.jpg");
-    expect(analyse.mock.calls.at(-1)?.slice(3)).toEqual([SAMPLE_MASKS, [["dry"]], 70]); // cached masks, grid and dry_pct
+    expect(analyse.mock.calls.at(-1)?.slice(3)).toEqual([SAMPLE_MASKS, [["dry"]], 70, 0.4]); // cached masks, grid, dry_pct and veg_frac
     expect(hook.result.current.fuel?.verdict.share).toBe(0.25);
     expect(hook.result.current.estimate).toEqual({ dry_pct: 70, veg_frac: 0.4, grid: [["dry"]] });
     expect(hook.result.current.notes).toEqual([]);
