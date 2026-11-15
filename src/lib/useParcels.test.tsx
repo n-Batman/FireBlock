@@ -64,37 +64,31 @@ const detail:View={west:-120.87,south:35.62,east:-120.84,north:35.64,zoom:17};
 const useParcels=(place:Parameters<typeof useViewportParcels>[0],view:View|null=detail)=>useViewportParcels(place,view);
 
 describe("useParcels", () => {
-  it('waits for the camera and makes zero parcel requests below zoom 17, then loads the visible details',async()=>{
+  it('loads parcels at every zoom and restores them after zoom-out and zoom-in',async()=>{
     routes({risk:riskMap});
     const hook=renderHook(({view}:{view:View|null})=>useViewportParcels(at(1),view),{initialProps:{view:null as View|null}});
-    expect(hook.result.current.units).toEqual([]);
     expect(fetchMock.mock.calls.filter(([url])=>String(url).includes('/api/parcels'))).toHaveLength(0);
     hook.rerender({view:{...detail,zoom:16}});
-    expect(hook.result.current.phase).toBe('zoom');
-    await act(async()=>{await Promise.resolve();});
-    expect(fetchMock.mock.calls.filter(([url])=>String(url).includes('/api/parcels'))).toHaveLength(0);
+    await waitFor(()=>expect(hook.result.current.phase).toBe('ready'));
+    expect(hook.result.current.units).toHaveLength(2);
+    hook.rerender({view:{...detail,zoom:14}});
+    expect(hook.result.current.units).toHaveLength(2);
+    await waitFor(()=>expect(hook.result.current.phase).toBe('ready'));
+    hook.rerender({view:detail});
+    await waitFor(()=>expect(hook.result.current.phase).toBe('ready'));
+    expect(hook.result.current.units.map(u=>u.id)).toEqual(['A-1','B-2']);
+    hook.unmount();
+  });
+  it('keeps loaded parcels when the next viewport is too wide to query',async()=>{
+    routes();
+    const hook=renderHook(({view})=>useParcels(at(1),view),{initialProps:{view:detail}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe('ready'));
+    hook.rerender({view:{west:-121,south:35.5,east:-120.5,north:36,zoom:10}});
+    await waitFor(()=>expect(hook.result.current.phase).toBe('zoom'));
+    expect(hook.result.current.units).toHaveLength(2);
     hook.rerender({view:detail});
     await waitFor(()=>expect(hook.result.current.phase).toBe('ready'));
     expect(hook.result.current.units).toHaveLength(2);
-    const calls=fetchMock.mock.calls.filter(([url])=>String(url).includes('/api/parcels'));
-    expect(calls).toHaveLength(1);expect(String(calls[0][0])).toContain('bbox=');
-    hook.rerender({view:{...detail,zoom:16}});
-    expect(hook.result.current.units).toEqual([]);
-    expect(hook.result.current.phase).toBe('zoom');
-    hook.unmount();
-  });
-  it('cancels pending detail work on zoom-out and ignores its late answer',async()=>{
-    let finish!:(value:unknown)=>void;let signal:AbortSignal|undefined;
-    fetchMock.mockImplementation((url:string,init?:{signal?:AbortSignal})=>{
-      if(url.includes('/data/'))return Promise.resolve(reply({},404));
-      signal=init?.signal;return new Promise(resolve=>{finish=resolve;});
-    });
-    const hook=renderHook(({view})=>useParcels(at(1),view),{initialProps:{view:detail}});
-    await waitFor(()=>expect(signal).toBeDefined());
-    hook.rerender({view:{...detail,zoom:15}});
-    expect(signal!.aborted).toBe(true);
-    await act(async()=>{finish(reply(parcelsBody));await Promise.resolve();});
-    expect(hook.result.current.units).toEqual([]);expect(hook.result.current.phase).toBe('zoom');
   });
   it("invalidates memoized parcel scores when new scan evidence arrives", async () => {
     routes({risk:riskMap});

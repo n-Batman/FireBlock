@@ -71,6 +71,7 @@ P16 — DONE (Codex): replaceable mathematical cloud risk model and verified fro
 | P28 | Load area overview before individual parcel detail | DONE (Codex; zero parcel requests below zoom 17, bounded area tiles from saved risk cells, viewport-only detail requests and zoom-out cancellation; docs/parcel-detail-levels.md) |
 | P29 | Remove parcel preloading regression and redundant hidden map work | DONE (Codex; automatic preload disabled, full-response score cache retained within existing byte bound, duplicate lookup/projection and hidden grid clipping skipped; targeted regression checks) |
 | P30 | Integrate cloud maps with both agents' local frontend and parcel changes | DONE (Codex; preserved Downtown SLO/weather and zoom-dependent parcel loading; aligned individual-parcel rendering tests with zoom 17) |
+| P32 | Restore parcel visibility and group by visible screen area | DONE (Codex; removed zoom cutoff, retained loaded geometry, union outlines below 10% of viewport area, zoom/resize restoration; 432 website tests, TypeScript and production build pass) |
 
 ### Milo (product, words, proof, pitch)
 | ID | Task | Status |

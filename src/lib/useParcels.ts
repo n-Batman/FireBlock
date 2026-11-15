@@ -9,11 +9,10 @@ import { loadRiskCells, scoreParcel, type RiskCell } from "./parcelScore";
 import { toGeoJSON } from "./parcelUnits";
 import { useParcelScans } from "./useParcelScans";
 import { ParcelScoreCache } from "./parcelScoreCache";
-import { INDIVIDUAL_PARCEL_ZOOM } from "./parcelDisplay";
 import { insideSlo } from "./geocode";
 
 export interface ParcelState {
-  /** "zoom" means area overview mode, or a view too wide for a parcel query. */
+  /** "zoom" means the view exceeds the county query limit; loaded parcels remain. */
   phase: "idle" | "loading" | "ready" | "outside" | "error" | "zoom";
   units: ParcelUnit[];
   truncated: boolean;
@@ -30,14 +29,15 @@ interface Place {
 const viewKeyOf = (v: View | null) => (v ? [v.west, v.south, v.east, v.north,v.zoom??17].join(",") : null);
 
 /**
- * Load the visible county parcels only after the camera reports detail zoom (17+).
- * Overview zooms and views over 25 km2 show no individual parcels. Each has a score only if a saved scan's GPS
+ * Load a bounded visible viewport at every zoom and retain loaded geometry while
+ * the next request completes. Each has a score only if a saved scan's GPS
  * falls inside it or public/data/risk_map.geojson covers it. Everything else stays unscored.
  */
 export function useParcels(place: Place | null, view: View | null = null): ParcelState {
   const scans = useParcelScans();
   const [cells, setCells] = useState<RiskCell[]>([]);
   const [viewLookup, setViewLookup] = useState<{ placeId: number; viewKey:string; result: ViewLookup } | null>(null);
+  const [retained,setRetained]=useState<{placeId:number;result:Extract<ViewLookup,{kind:"ok"}>}|null>(null);
   // A new map or scan array creates a fresh memo, so stale scores cannot survive
   // new evidence. The cache never stores raw scans, photos or GPS coordinates.
   const scoreCache=useMemo(()=>new ParcelScoreCache(),[cells,scans]);
@@ -61,18 +61,20 @@ export function useParcels(place: Place | null, view: View | null = null): Parce
   const id = place?.id;
   const lat = place?.lat;
   const lon = place?.lon;
-  const overview=!!view&&(view.zoom??17)<INDIVIDUAL_PARCEL_ZOOM;
   const outside=lat!==undefined&&lon!==undefined&&!insideSlo(lat,lon);
   const viewKey = viewKeyOf(view);
   useEffect(() => {
-    // Await the camera's zoom before any parcel request, including the initial address pick.
-    if (!viewKey || id === undefined || overview || outside) return;
+    // Await valid camera bounds before the initial request; no zoom cutoff.
+    if (!viewKey || id === undefined || outside) return;
     const [west, south, east, north, zoom] = viewKey.split(",").map(Number);
     const forPlace = id;
     const controller = new AbortController();
     lookupParcelsInView({ west, south, east, north,zoom }, { signal: controller.signal }).then(
       (result) => {
-        if (!controller.signal.aborted) setViewLookup({ placeId: forPlace, viewKey, result });
+        if (!controller.signal.aborted) {
+          setViewLookup({ placeId: forPlace, viewKey, result });
+          if(result.kind==="ok")setRetained({placeId:forPlace,result});
+        }
       },
       () => {
         if (!controller.signal.aborted) {
@@ -81,27 +83,30 @@ export function useParcels(place: Place | null, view: View | null = null): Parce
       },
     );
     return () => controller.abort();
-  }, [viewKey,id,overview,outside]);
+  }, [viewKey,id,outside]);
 
-  // Never retain visible details from a different camera, place or overview zoom.
-  const current = !overview&&place&&viewLookup?.placeId===place.id&&viewLookup.viewKey===viewKey?viewLookup.result:null;
+  // Match replies to the current view; retain successful geometry for this place.
+  const current = place&&viewLookup?.placeId===place.id&&viewLookup.viewKey===viewKey?viewLookup.result:null;
+  const display=current?.kind==="ok"?current:retained?.placeId===place?.id?retained?.result:null;
   // Fetch only the requested point/view. Speculative envelopes competed with
   // visible lookups and repeatedly downloaded larger parcel geometries.
   const units = useMemo(() => {
-    if (current?.kind !== "ok") return [];
+    if (!display) return [];
     const here = place ? point([place.lon, place.lat]) : null;
-    return current.units.map((u) => ({
+    return display.units.filter(u=>!view||u.parts.some(part=>{
+      const xs=part[0].map(p=>p[1]),ys=part[0].map(p=>p[0]);
+      return Math.min(...xs)<=view.east&&Math.max(...xs)>=view.west&&Math.min(...ys)<=view.north&&Math.max(...ys)>=view.south;
+    })).map((u) => ({
       ...u,
       atPoint: u.atPoint ?? (here ? booleanPointInPolygon(here, toGeoJSON(u)) : false),
       score: scoreCache.get(u,()=>scoreParcel(u, scans, cells)),
     }));
-  }, [current, place, scans, cells, scoreCache]);
+  }, [display, view, place, scans, cells, scoreCache]);
 
   if (!place) return { phase: "idle", units: [], truncated: false, message: null };
   if (outside) return { phase: "outside", units: [], truncated: false, message: null };
-  if (overview) return {phase:"zoom",units:[],truncated:false,message:"Area summaries shown. Zoom in for individual properties."};
-  if (!current) return { phase: "loading", units: [], truncated: false, message: null };
-  if (current.kind === "too-wide") return { phase: "zoom", units: [], truncated: false, message: null };
-  if (current.kind === "error") return { phase: "error", units: [], truncated: false, message: current.message };
+  if (!current) return { phase: "loading", units, truncated: display?.truncated??false, message: null };
+  if (current.kind === "too-wide") return { phase: "zoom", units, truncated: true, message: "Showing loaded properties. Zoom in to load more boundaries." };
+  if (current.kind === "error") return { phase: "error", units, truncated: display?.truncated??false, message: current.message };
   return { phase: "ready", units, truncated: current.truncated, message: null };
 }

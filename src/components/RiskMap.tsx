@@ -128,6 +128,7 @@ export function ViewWatcher({ onView }: { onView: (view: View) => void }) {
       timer.current = setTimeout(report, 400);
     },
     zoomend(){clearTimeout(timer.current);report();},
+    resize(){clearTimeout(timer.current);report();},
   });
   useEffect(() => {
     report();
@@ -292,7 +293,7 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
         zoom={place ? 17 : undefined}
         bounds={place ? undefined : propertyBounds(property)}
         boundsOptions={{ padding: [56, 56] }}
-        maxZoom={19}
+        maxZoom={24}
         zoomControl={false}
         attributionControl={false}
         className="h-full w-full"
@@ -300,7 +301,8 @@ export default function RiskMap({ property, selectedId, onSelect, panelOpen, pla
         <TileLayer
           url={tiles.url}
           attribution={tiles.attribution}
-          maxZoom={19}
+          maxZoom={24}
+          maxNativeZoom={19}
           eventHandlers={{
             tileerror: () => setTileErrors((n) => n + 1),
             tileload: () => setTileErrors(0),
